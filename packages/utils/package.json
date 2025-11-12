@@ -1,0 +1,28 @@
+{
+  "name": "@read-comics/utils",
+  "version": "1.0.0",
+  "description": "Shared utility functions for read-comics project",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "vitest"
+  },
+  "keywords": [
+    "utils",
+    "utilities",
+    "comics"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@read-comics/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0"
+  }
+}
