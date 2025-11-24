@@ -68,16 +68,7 @@ export const useReaderStore = defineStore('reader', {
 
       try {
         // TODO: Replace with actual API call to load chapter
-        await new Promise((resolve, reject) => {
-          setTimeout(() => {
-            // For testing purposes, we'll check if there's a mock error
-            if ((global as any).__mockError) {
-              reject((global as any).__mockError);
-            } else {
-              resolve(null);
-            }
-          }, 500);
-        });
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         this.currentComic = comic;
         this.currentChapterId = chapterId;

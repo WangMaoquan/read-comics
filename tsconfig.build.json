@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "stripInternal": true,
+    "composite": false
+  },
+  "include": [
+    "packages/types/",
+    "packages/utils/src",
+  ]
+}

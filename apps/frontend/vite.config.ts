@@ -1,13 +1,11 @@
-import { defineConfig, type Plugin } from 'vitest/config';
+import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
-const plugins = [vue(), tailwindcss()] as Plugin[];
-
 // https://vite.dev/config/
 export default defineConfig({
-  plugins,
+  plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -17,11 +15,5 @@ export default defineConfig({
       '@types': path.resolve(__dirname, '../../packages/types'),
       '@utils-shared': path.resolve(__dirname, '../../packages/utils/src'),
     },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    css: true,
   },
 });
