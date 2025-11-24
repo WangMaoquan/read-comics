@@ -2,10 +2,14 @@
   "name": "@read-comics/types",
   "version": "1.0.0",
   "description": "Type definitions for read-comics project",
-  "types": "index.d.ts",
+  "types": "index.ts",
+  "main": "index.ts",
+  "module": "index.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts"
+      "types": "./index.ts",
+      "import": "./index.ts",
+      "require": "./index.ts"
     }
   },
   "keywords": [
