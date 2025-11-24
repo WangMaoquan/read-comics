@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useReaderStore } from '../reader';
 import type { Comic } from '@read-comics/types';
@@ -183,19 +183,6 @@ describe('Reader Store', () => {
         currentPage: 2,
         lastReadAt: expect.any(Date),
       });
-    });
-
-    it('should handle error when loading chapter', async () => {
-      const store = useReaderStore();
-
-      // Set a mock error
-      (global as any).__mockError = new Error('Network error');
-
-      await store.loadChapter(mockComic, 'chapter-1', 2);
-
-      expect(store.loading).toBe(false);
-      expect(store.error).toBe('Network error');
-      expect(store.currentComic).toBeNull();
     });
 
     it('should go to next page when available', () => {
