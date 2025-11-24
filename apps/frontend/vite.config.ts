@@ -1,10 +1,13 @@
 import { defineConfig, type Plugin } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+
+const plugins = [vue(), tailwindcss()] as Plugin[];
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue() as Plugin],
+  plugins,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
