@@ -10,7 +10,6 @@
   "scripts": {
     "dev": "pnpm run --parallel dev",
     "build": "pnpm run --recursive build",
-    "test": "pnpm run --recursive test",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
@@ -22,7 +21,6 @@
     "dev:backend": "pnpm --filter backend dev",
     "build:frontend": "pnpm --filter frontend build",
     "build:backend": "pnpm --filter backend build",
-    "test:frontend": "pnpm --filter frontend test",
     "test:backend": "pnpm --filter backend test"
   },
   "devDependencies": {
