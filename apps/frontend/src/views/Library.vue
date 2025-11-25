@@ -66,6 +66,9 @@
           author: '谏山创',
           description: '人类与巨人的生存之战',
           coverPath: '/covers/attack-on-titan.jpg',
+          filePath: '/comics/attack-on-titan',
+          fileSize: 1024 * 1024 * 500,
+          fileFormat: 'folder' as any,
           totalPages: 139,
           status: ComicStatus.READING,
           tags: ['热血', '战斗', '奇幻'],
@@ -78,6 +81,9 @@
           author: '吾峠呼世晴',
           description: '兄妹二人对抗恶鬼的故事',
           coverPath: '/covers/demon-slayer.jpg',
+          filePath: '/comics/demon-slayer',
+          fileSize: 1024 * 1024 * 400,
+          fileFormat: 'folder' as any,
           totalPages: 205,
           status: ComicStatus.COMPLETED,
           tags: ['热血', '战斗', '历史'],
@@ -90,6 +96,9 @@
           author: '尾田荣一郎',
           description: '路飞成为海贼王的冒险故事',
           coverPath: '/covers/one-piece.jpg',
+          filePath: '/comics/one-piece',
+          fileSize: 1024 * 1024 * 1000,
+          fileFormat: 'folder' as any,
           totalPages: 1000,
           status: ComicStatus.READING,
           tags: ['冒险', '热血', '友情'],
@@ -102,6 +111,9 @@
           author: '岸本齐史',
           description: '忍者世界的成长故事',
           coverPath: '/covers/naruto.jpg',
+          filePath: '/comics/naruto',
+          fileSize: 1024 * 1024 * 800,
+          fileFormat: 'folder' as any,
           totalPages: 700,
           status: ComicStatus.READING,
           tags: ['忍者', '成长', '战斗'],
@@ -149,31 +161,32 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
     <!-- 页面标题和操作栏 -->
     <div
-      class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700"
+      class="sticky top-16 z-30 glass border-b border-white/20 transition-all duration-300"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div
           class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <!-- 标题 -->
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-              漫画库
-            </h1>
+          <div class="animate-fade-in">
+            <h1 class="text-3xl font-bold text-gradient">漫画库</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
               共 {{ comics.length }} 部漫画
             </p>
           </div>
 
           <!-- 操作按钮 -->
-          <div class="flex items-center gap-3">
+          <div
+            class="flex items-center gap-3 animate-fade-in"
+            style="animation-delay: 0.1s"
+          >
             <!-- 导入按钮 -->
             <button
               @click="importComics"
-              class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+              class="btn btn-primary text-sm px-4 py-2 hover-glow"
             >
               <svg
                 class="w-4 h-4 mr-2"
@@ -192,14 +205,16 @@
             </button>
 
             <!-- 视图切换 -->
-            <div class="flex rounded-md shadow-sm">
+            <div
+              class="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 shadow-inner"
+            >
               <button
                 @click="viewMode = 'grid'"
                 :class="[
-                  'px-3 py-2 text-sm font-medium rounded-l-md transition-colors',
+                  'p-2 rounded-md transition-all duration-200',
                   viewMode === 'grid'
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                    : 'bg-white text-gray-500 hover:text-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-200',
+                    ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
                 ]"
               >
                 <svg
@@ -219,10 +234,10 @@
               <button
                 @click="viewMode = 'list'"
                 :class="[
-                  'px-3 py-2 text-sm font-medium rounded-r-md transition-colors',
+                  'p-2 rounded-md transition-all duration-200',
                   viewMode === 'list'
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                    : 'bg-white text-gray-500 hover:text-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-200',
+                    ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
                 ]"
               >
                 <svg
@@ -244,15 +259,18 @@
         </div>
 
         <!-- 搜索和过滤栏 -->
-        <div class="mt-6 flex flex-col sm:flex-row gap-4">
+        <div
+          class="mt-6 flex flex-col sm:flex-row gap-4 animate-fade-in"
+          style="animation-delay: 0.2s"
+        >
           <!-- 搜索框 -->
           <div class="flex-1 max-w-md">
-            <div class="relative">
+            <div class="relative group">
               <div
                 class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
               >
                 <svg
-                  class="h-5 w-5 text-gray-400"
+                  class="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -269,20 +287,39 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="搜索漫画标题、作者或标签..."
-                class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="block w-full pl-10 pr-3 py-2 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
               />
             </div>
           </div>
 
           <!-- 排序选择 -->
-          <select
-            v-model="sortBy"
-            class="block w-full sm:w-48 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="date">按添加时间排序</option>
-            <option value="title">按标题排序</option>
-            <option value="progress">按阅读进度排序</option>
-          </select>
+          <div class="relative">
+            <select
+              v-model="sortBy"
+              class="block w-full sm:w-48 pl-3 pr-10 py-2 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all duration-200 appearance-none cursor-pointer"
+            >
+              <option value="date">按添加时间排序</option>
+              <option value="title">按标题排序</option>
+              <option value="progress">按阅读进度排序</option>
+            </select>
+            <div
+              class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"
+            >
+              <svg
+                class="w-4 h-4 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -295,24 +332,31 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="comics.length === 0" class="text-center py-12">
-        <svg
-          class="mx-auto h-12 w-12 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div
+        v-else-if="comics.length === 0"
+        class="text-center py-20 animate-fade-in"
+      >
+        <div
+          class="w-24 h-24 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          />
-        </svg>
-        <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">
+          <svg
+            class="h-12 w-12 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+            />
+          </svg>
+        </div>
+        <h3 class="mt-2 text-xl font-medium text-gray-900 dark:text-white">
           暂无漫画
         </h3>
-        <p class="mt-1 text-gray-500 dark:text-gray-400">
+        <p class="mt-2 text-gray-500 dark:text-gray-400">
           点击"导入漫画"开始添加您的漫画收藏
         </p>
       </div>
@@ -323,10 +367,11 @@
         class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
       >
         <div
-          v-for="comic in filteredComics"
+          v-for="(comic, index) in filteredComics"
           :key="comic.id"
           @click="goToComicDetail(Number(comic.id))"
-          class="group cursor-pointer bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-200 dark:border-gray-700"
+          class="card-glass group cursor-pointer overflow-hidden hover-lift animate-scale-in"
+          :style="{ animationDelay: `${index * 0.05}s` }"
         >
           <!-- 封面图片 -->
           <div
@@ -335,16 +380,21 @@
             <img
               :src="comic.coverPath || '/placeholder-cover.jpg'"
               :alt="comic.title"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               loading="lazy"
             />
+            <!-- 遮罩层 -->
+            <div
+              class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            ></div>
+
             <!-- 进度条 -->
             <div
               v-if="comic.lastReadAt"
-              class="absolute bottom-0 left-0 right-0 h-1 bg-gray-300 dark:bg-gray-600"
+              class="absolute bottom-0 left-0 right-0 h-1 bg-gray-300/30 backdrop-blur-sm"
             >
               <div
-                class="h-full bg-blue-600 transition-all duration-300"
+                class="h-full bg-linear-to-r from-blue-500 to-purple-500 transition-all duration-300"
                 :style="{
                   width: `${comic.status === 'completed' ? 100 : comic.lastReadAt ? 50 : 0}%`,
                 }"
@@ -354,19 +404,23 @@
 
           <!-- 漫画信息 -->
           <div class="p-4">
-            <h3 class="font-medium text-gray-900 dark:text-white truncate mb-1">
+            <h3
+              class="font-bold text-gray-900 dark:text-white truncate mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+            >
               {{ comic.title }}
             </h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 truncate mb-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400 truncate mb-3">
               {{ comic.author }}
             </p>
             <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-500 dark:text-gray-400">
+              <span
+                class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+              >
                 {{ comic.totalPages }} 页
               </span>
               <span
                 v-if="comic.lastReadAt"
-                class="text-xs font-medium"
+                class="text-xs font-bold"
                 :class="[
                   comic.status === 'completed'
                     ? 'text-green-600 dark:text-green-400'
@@ -387,86 +441,77 @@
       </div>
 
       <!-- 漫画列表视图 -->
-      <div
-        v-else
-        class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
-      >
-        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div v-else class="space-y-4">
+        <div
+          v-for="(comic, index) in filteredComics"
+          :key="comic.id"
+          @click="goToComicDetail(Number(comic.id))"
+          class="card-glass p-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all duration-200 animate-slide-up flex items-center gap-4"
+          :style="{ animationDelay: `${index * 0.05}s` }"
+        >
+          <!-- 封面图片 -->
           <div
-            v-for="comic in filteredComics"
-            :key="comic.id"
-            @click="goToComicDetail(Number(comic.id))"
-            class="p-4 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition-colors"
+            class="shrink-0 w-16 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm"
           >
-            <div class="flex items-center space-x-4">
-              <!-- 封面图片 -->
-              <div
-                class="flex-shrink-0 w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden"
+            <img
+              :src="comic.coverPath || '/placeholder-cover.jpg'"
+              :alt="comic.title"
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+
+          <!-- 漫画信息 -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between mb-1">
+              <h3
+                class="text-lg font-bold text-gray-900 dark:text-white truncate"
               >
-                <img
-                  :src="comic.coverPath || '/placeholder-cover.jpg'"
-                  :alt="comic.title"
-                  class="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-
-              <!-- 漫画信息 -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                  <h3
-                    class="text-lg font-medium text-gray-900 dark:text-white truncate"
-                  >
-                    {{ comic.title }}
-                  </h3>
-                  <span
-                    v-if="comic.lastReadAt"
-                    class="text-sm font-medium"
-                    :class="[
-                      comic.status === 'completed'
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-blue-600 dark:text-blue-400',
-                    ]"
-                  >
-                    {{
-                      comic.status === 'completed'
-                        ? 100
-                        : comic.lastReadAt
-                          ? 50
-                          : 0
-                    }}%
-                  </span>
-                </div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {{ comic.author }}
-                </p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {{ comic.totalPages }} 页
-                </p>
-                <div
-                  v-if="comic.tags && comic.tags.length > 0"
-                  class="mt-2 flex flex-wrap gap-1"
-                >
-                  <span
-                    v-for="tag in comic.tags.slice(0, 3)"
-                    :key="tag"
-                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 操作按钮 -->
-              <div class="flex-shrink-0">
-                <button
-                  @click.stop="goToComicDetail(Number(comic.id))"
-                  class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                >
-                  开始阅读
-                </button>
-              </div>
+                {{ comic.title }}
+              </h3>
+              <span
+                v-if="comic.lastReadAt"
+                class="text-sm font-bold"
+                :class="[
+                  comic.status === 'completed'
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-blue-600 dark:text-blue-400',
+                ]"
+              >
+                {{
+                  comic.status === 'completed'
+                    ? 100
+                    : comic.lastReadAt
+                      ? 50
+                      : 0
+                }}%
+              </span>
             </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              {{ comic.author }} · {{ comic.totalPages }} 页
+            </p>
+            <div
+              v-if="comic.tags && comic.tags.length > 0"
+              class="flex flex-wrap gap-2"
+            >
+              <span
+                v-for="tag in comic.tags.slice(0, 3)"
+                :key="tag"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+              >
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="shrink-0">
+            <button
+              @click.stop="goToComicDetail(Number(comic.id))"
+              class="btn btn-primary text-sm px-4 py-2"
+            >
+              开始阅读
+            </button>
           </div>
         </div>
       </div>
