@@ -10,7 +10,7 @@ import { UserPreferences } from '../entities/user-preferences.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: 'src/.env',
+      envFilePath: '.env',
     }),
     TypeOrmModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
