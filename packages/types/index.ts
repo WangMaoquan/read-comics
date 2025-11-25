@@ -3,10 +3,10 @@
  */
 
 // 漫画相关类型
-export * from './comic.d';
+export * from './comic';
 
 // API 相关类型
-export * from './api.d';
+export * from './api';
 
 // 通用工具类型
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
