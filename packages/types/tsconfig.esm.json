@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "composite": true,
+    "outDir": "./dist/esm",
+    "target": "ES2021",
+    "rootDir": "./",
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "moduleResolution": "node",
+    "lib": [],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": false,
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+}

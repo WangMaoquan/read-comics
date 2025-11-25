@@ -8,14 +8,14 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "build": "pnpm exec tsc -p tsconfig.esm.json && pnpm exec tsc -p tsconfig.cjs.json",
+    "dev": "pnpm exec tsc -p tsconfig.esm.json --watch & pnpm exec tsc -p tsconfig.cjs.json --watch",
+    "clean": "rmdir /s /q dist 2>nul || echo \"No dist directory found\""
   },
   "keywords": [
     "typescript",

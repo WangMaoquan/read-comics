@@ -1,20 +1,10 @@
 {
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./",
-    "declaration": true,
-    "emitDeclarationOnly": false,
-    "module": "commonjs",
-    "target": "ES2021",
-    "lib": [
-      "ES2021"
-    ]
-  },
-  "include": [
-    "**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
+  "references": [
+    {
+      "path": "./tsconfig.cjs.json"
+    },
+    {
+      "path": "./tsconfig.esm.json"
+    }
   ]
 }
