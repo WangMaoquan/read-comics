@@ -1,7 +1,14 @@
 <script setup lang="ts">
-  // App.vue
+  import Layout from './components/Layout.vue';
+  import { ComicStatus } from '@read-comics/types';
+
+  console.log(ComicStatus);
+
+  // App.vue 主入口
 </script>
 
 <template>
-  <router-view />
+  <Layout>
+    <router-view />
+  </Layout>
 </template>
