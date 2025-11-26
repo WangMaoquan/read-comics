@@ -8,10 +8,12 @@ import {
   StreamableFile,
   Query,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FilesService } from './files.service';
 import { ComicFormat } from '@read-comics/types';
 
+@ApiTags('files')
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
@@ -20,6 +22,8 @@ export class FilesController {
    * 扫描漫画目录
    */
   @Get('scan')
+  @ApiOperation({ summary: '扫描漫画目录' })
+  @ApiResponse({ status: 200, description: '扫描成功' })
   async scanComicsDirectory() {
     const files = await this.filesService.scanComicsDirectory();
     return {
@@ -33,6 +37,9 @@ export class FilesController {
    * 解析漫画文件
    */
   @Get('parse/:filePath')
+  @ApiOperation({ summary: '解析漫画文件' })
+  @ApiParam({ name: 'filePath', description: '文件路径' })
+  @ApiResponse({ status: 200, description: '解析成功' })
   async parseComicFile(@Param('filePath') filePath: string) {
     try {
       const result = await this.filesService.parseComicFile(filePath);
@@ -52,6 +59,9 @@ export class FilesController {
    * 获取文件信息
    */
   @Get('info/:filePath')
+  @ApiOperation({ summary: '获取文件信息' })
+  @ApiParam({ name: 'filePath', description: '文件路径' })
+  @ApiResponse({ status: 200, description: '获取成功' })
   async getFileInfo(@Param('filePath') filePath: string) {
     const info = await this.filesService.getFileInfo(filePath);
     return {
@@ -64,6 +74,10 @@ export class FilesController {
    * 读取文件流
    */
   @Get('stream/:filePath')
+  @ApiOperation({ summary: '读取文件流' })
+  @ApiParam({ name: 'filePath', description: '文件路径' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '文件不存在' })
   async readFileStream(
     @Param('filePath') filePath: string,
     @Res({ passthrough: true }) res: Response,
@@ -123,6 +137,9 @@ export class FilesController {
    * 删除文件
    */
   @Delete(':filePath')
+  @ApiOperation({ summary: '删除文件' })
+  @ApiParam({ name: 'filePath', description: '文件路径' })
+  @ApiResponse({ status: 200, description: '删除成功' })
   async deleteFile(@Param('filePath') filePath: string) {
     try {
       await this.filesService.deleteFile(filePath);
@@ -142,6 +159,8 @@ export class FilesController {
    * 获取支持的漫画格式
    */
   @Get('formats')
+  @ApiOperation({ summary: '获取支持的漫画格式' })
+  @ApiResponse({ status: 200, description: '获取成功' })
   getSupportedFormats() {
     return {
       success: true,

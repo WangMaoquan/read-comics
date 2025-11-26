@@ -7,9 +7,17 @@ import {
   StreamableFile,
   Query,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import { ImagesService, ImageOptions } from './images.service';
 
+@ApiTags('images')
 @Controller('images')
 export class ImagesController {
   constructor(private readonly imagesService: ImagesService) {}
@@ -18,6 +26,22 @@ export class ImagesController {
    * 生成缩略图
    */
   @Post('thumbnail')
+  @ApiOperation({ summary: '生成缩略图' })
+  @ApiQuery({ name: 'comicPath', description: '漫画文件路径' })
+  @ApiQuery({ name: 'imagePath', description: '图片在压缩包中的路径' })
+  @ApiQuery({
+    name: 'width',
+    description: '宽度',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'height',
+    description: '高度',
+    required: false,
+    type: Number,
+  })
+  @ApiResponse({ status: 200, description: '生成成功' })
   async generateThumbnail(
     @Query('comicPath') comicPath: string,
     @Query('imagePath') imagePath: string,
@@ -54,6 +78,11 @@ export class ImagesController {
    * 优化图片
    */
   @Post('optimize')
+  @ApiOperation({ summary: '优化图片' })
+  @ApiQuery({ name: 'comicPath', description: '漫画文件路径' })
+  @ApiQuery({ name: 'imagePath', description: '图片在压缩包中的路径' })
+  @ApiQuery({ name: 'options', description: '优化选项 JSON 字符串' })
+  @ApiResponse({ status: 200, description: '优化成功' })
   async optimizeImage(
     @Query('comicPath') comicPath: string,
     @Query('imagePath') imagePath: string,
@@ -95,6 +124,10 @@ export class ImagesController {
    * 获取图片信息
    */
   @Get('info/:comicPath/:imagePath')
+  @ApiOperation({ summary: '获取图片信息' })
+  @ApiParam({ name: 'comicPath', description: '漫画文件路径' })
+  @ApiParam({ name: 'imagePath', description: '图片在压缩包中的路径' })
+  @ApiResponse({ status: 200, description: '获取成功' })
   async getImageInfo(
     @Param('comicPath') comicPath: string,
     @Param('imagePath') imagePath: string,
@@ -124,6 +157,8 @@ export class ImagesController {
    * 获取缓存统计信息
    */
   @Get('cache/stats')
+  @ApiOperation({ summary: '获取缓存统计信息' })
+  @ApiResponse({ status: 200, description: '获取成功' })
   getCacheStats() {
     return {
       success: true,
@@ -135,6 +170,14 @@ export class ImagesController {
    * 清理缓存
    */
   @Post('cache/clean')
+  @ApiOperation({ summary: '清理缓存' })
+  @ApiQuery({
+    name: 'maxAge',
+    description: '最大缓存时间(毫秒)',
+    required: false,
+    type: Number,
+  })
+  @ApiResponse({ status: 200, description: '清理成功' })
   async cleanCache(@Query('maxAge') maxAge: number = 24 * 60 * 60 * 1000) {
     try {
       await this.imagesService.cleanExpiredCache(maxAge);
@@ -154,6 +197,8 @@ export class ImagesController {
    * 获取支持的图片格式
    */
   @Get('formats')
+  @ApiOperation({ summary: '获取支持的图片格式' })
+  @ApiResponse({ status: 200, description: '获取成功' })
   getSupportedFormats() {
     return {
       success: true,
@@ -186,6 +231,8 @@ export class ImagesController {
    * 获取支持的缩略图尺寸
    */
   @Get('thumbnail-sizes')
+  @ApiOperation({ summary: '获取支持的缩略图尺寸' })
+  @ApiResponse({ status: 200, description: '获取成功' })
   getThumbnailSizes() {
     return {
       success: true,
