@@ -53,10 +53,12 @@
 
   // 失去焦点时隐藏搜索栏
   const handleBlur = () => {
+    isFocused.value = false;
     // 延迟隐藏，以便点击搜索按钮
     setTimeout(() => {
       if (!isFocused.value) {
         emit('update:visible', false);
+        searchQuery.value = ''; // 隐藏时清空搜索内容
       }
     }, 200);
   };
@@ -69,16 +71,24 @@
 </script>
 
 <template>
-  <div class="relative">
+  <div class="relative flex">
     <!-- 搜索栏容器 -->
     <div
       :class="[
-        'glass rounded-full transition-all duration-300 overflow-hidden shadow-sm',
+        'glass rounded-full transition-all duration-300 overflow-hidden',
         props.visible
           ? 'w-full md:w-96 opacity-100 scale-100'
           : 'w-0 opacity-0 scale-95',
-        isFocused ? 'ring-2 ring-blue-500/50 shadow-glow' : '',
+        isFocused ? 'ring-2 ring-purple-500/50 shadow-lg' : 'shadow-sm',
       ]"
+      :style="
+        isFocused
+          ? {
+              boxShadow:
+                '0 0 0 2px rgba(102, 126, 234, 0.3), 0 0 25px rgba(102, 126, 234, 0.4), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            }
+          : {}
+      "
     >
       <div class="flex items-center px-4 py-2">
         <!-- 搜索图标 -->

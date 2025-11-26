@@ -1,25 +1,14 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
+  import { computed } from 'vue';
   import { useRoute } from 'vue-router';
   import Navigation from './Navigation.vue';
-  import SearchBar from './SearchBar.vue';
 
   const route = useRoute();
-  const isSearchVisible = ref(false);
 
   // 根据路由决定是否显示导航栏
   const showNavigation = computed(() => {
     return !['/reader', '/settings'].includes(route.path);
   });
-
-  // 根据路由决定是否显示搜索栏
-  const showSearchBar = computed(() => {
-    return route.path === '/library';
-  });
-
-  const toggleSearch = () => {
-    isSearchVisible.value = !isSearchVisible.value;
-  };
 </script>
 
 <template>
@@ -49,13 +38,9 @@
             </router-link>
           </div>
 
-          <!-- 搜索栏 -->
-          <div v-if="showSearchBar" class="flex-1 max-w-lg mx-4 md:mx-8">
-            <SearchBar v-model:visible="isSearchVisible" />
-          </div>
-
           <!-- 右侧操作 -->
           <div class="flex items-center space-x-2">
+            <!-- 设置按钮 -->
             <router-link
               to="/settings"
               class="p-2 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-gray-800 transition-all duration-300"

@@ -270,7 +270,7 @@
                 class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
               >
                 <svg
-                  class="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                  class="h-5 w-5 text-gray-400 group-focus-within:text-purple-500 transition-colors duration-300"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -287,7 +287,10 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="搜索漫画标题、作者或标签..."
-                class="block w-full pl-10 pr-3 py-2 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                class="block w-full pl-10 pr-3 py-2.5 border-0 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:shadow-lg transition-all duration-300"
+                style="box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05)"
+                onfocus="this.style.boxShadow='0 0 0 2px rgba(102, 126, 234, 0.3), 0 0 25px rgba(102, 126, 234, 0.4), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'"
+                onblur="this.style.boxShadow='0 1px 2px 0 rgb(0 0 0 / 0.05)'"
               />
             </div>
           </div>
