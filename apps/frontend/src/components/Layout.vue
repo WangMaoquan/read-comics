@@ -23,42 +23,46 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div
+    class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300"
+  >
     <!-- 顶部导航栏 -->
     <header
       v-if="showNavigation"
-      class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700"
+      class="fixed top-0 left-0 right-0 glass z-40 transition-all duration-300"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           <!-- Logo 和标题 -->
           <div class="flex items-center">
-            <router-link to="/" class="flex items-center space-x-3">
+            <router-link to="/" class="flex items-center space-x-3 group">
               <div
-                class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"
+                class="w-10 h-10 rounded-xl bg-linear-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
               >
-                <span class="text-white font-bold text-sm">M</span>
+                <span class="text-white font-bold text-lg">M</span>
               </div>
-              <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+              <h1
+                class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300"
+              >
                 漫画阅读器
               </h1>
             </router-link>
           </div>
 
           <!-- 搜索栏 -->
-          <div v-if="showSearchBar" class="flex-1 max-w-lg mx-8">
+          <div v-if="showSearchBar" class="flex-1 max-w-lg mx-4 md:mx-8">
             <SearchBar v-model:visible="isSearchVisible" />
           </div>
 
           <!-- 右侧操作 -->
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
             <router-link
               to="/settings"
-              class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              class="p-2 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-gray-800 transition-all duration-300"
               title="设置"
             >
               <svg
-                class="w-5 h-5"
+                class="w-6 h-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -84,7 +88,10 @@
 
     <!-- 主要内容区域 -->
     <main
-      :class="['transition-all duration-300', showNavigation ? 'pt-16' : '']"
+      :class="[
+        'transition-all duration-300 min-h-screen',
+        showNavigation ? 'pt-20 pb-24' : '',
+      ]"
     >
       <slot />
     </main>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-  import { computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
 
   const route = useRoute();
@@ -29,46 +28,62 @@
 
 <template>
   <nav
-    class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50"
+    class="fixed bottom-0 left-0 right-0 glass backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border-t border-white/20 z-50 pb-safe shadow-lg-up"
   >
     <div class="max-w-7xl mx-auto px-4">
-      <div class="flex justify-around items-center h-16">
+      <div class="flex justify-around items-center h-16 md:h-20">
         <template v-for="item in navItems" :key="item.route">
           <button
             @click="navigate(item.route)"
-            :class="[
-              'flex flex-col items-center justify-center w-full h-full transition-all duration-200',
-              isActive(item.route)
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
-            ]"
+            class="group relative flex flex-col items-center justify-center w-full h-full transition-all duration-300"
           >
-            <!-- SVG 图标 -->
-            <svg
+            <!-- Active State Background Glow -->
+            <div
+              class="absolute inset-0 bg-linear-to-t from-blue-500/10 to-transparent opacity-0 transition-opacity duration-300"
+              :class="{ 'opacity-100': isActive(item.route) }"
+            ></div>
+
+            <!-- Top Indicator Bar -->
+            <div
+              class="absolute top-0 left-1/2 transform -translate-x-1/2 w-12 h-1 rounded-b-full bg-linear-to-r from-blue-500 to-purple-500 transition-all duration-300"
               :class="[
-                'w-6 h-6 mb-1',
                 isActive(item.route)
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400',
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 -translate-y-full',
               ]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            ></div>
+
+            <!-- Icon Container -->
+            <div
+              class="relative p-2 rounded-xl transition-all duration-300 group-hover:-translate-y-1"
+              :class="[
+                isActive(item.route)
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300',
+              ]"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                :d="item.icon"
-              />
-            </svg>
+              <svg
+                class="w-6 h-6 md:w-7 md:h-7"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  :d="item.icon"
+                />
+              </svg>
+            </div>
+
             <!-- 文本标签 -->
             <span
+              class="text-xs font-medium mt-1 transition-all duration-300"
               :class="[
-                'text-xs font-medium',
                 isActive(item.route)
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400',
+                  ? 'text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-purple-600 font-bold scale-105'
+                  : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200',
               ]"
             >
               {{ item.name }}
@@ -79,3 +94,9 @@
     </div>
   </nav>
 </template>
+
+<style scoped>
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+</style>

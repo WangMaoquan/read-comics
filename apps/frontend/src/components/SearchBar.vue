@@ -73,14 +73,17 @@
     <!-- 搜索栏容器 -->
     <div
       :class="[
-        'bg-gray-100 dark:bg-gray-700 rounded-lg transition-all duration-300 overflow-hidden',
-        props.visible ? 'max-w-96 opacity-100' : 'max-w-0 opacity-0',
+        'glass rounded-full transition-all duration-300 overflow-hidden shadow-sm',
+        props.visible
+          ? 'w-full md:w-96 opacity-100 scale-100'
+          : 'w-0 opacity-0 scale-95',
+        isFocused ? 'ring-2 ring-blue-500/50 shadow-glow' : '',
       ]"
     >
       <div class="flex items-center px-4 py-2">
         <!-- 搜索图标 -->
         <svg
-          class="w-5 h-5 text-gray-400 mr-3"
+          class="w-5 h-5 text-gray-400 mr-3 shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -102,18 +105,18 @@
           @focus="isFocused = true"
           @blur="handleBlur"
           @keydown="handleKeyDown"
-          class="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+          class="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm md:text-base w-full"
         />
 
         <!-- 清空按钮 -->
         <button
           v-if="searchQuery"
           @click="clearSearch"
-          class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors mr-2"
           title="清空"
         >
           <svg
-            class="w-5 h-5"
+            class="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -130,7 +133,7 @@
         <!-- 搜索按钮 -->
         <button
           @click="handleSearch"
-          class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+          class="p-2 rounded-full gradient-primary text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 shrink-0"
           title="搜索"
         >
           <svg
@@ -154,11 +157,11 @@
     <button
       v-if="!props.visible"
       @click="$emit('update:visible', true)"
-      class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+      class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-all duration-300 hover:scale-110"
       title="搜索"
     >
       <svg
-        class="w-5 h-5"
+        class="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
