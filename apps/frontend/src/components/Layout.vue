@@ -1,12 +1,11 @@
 <script setup lang="ts">
   import { computed } from 'vue';
   import { useRoute } from 'vue-router';
-  import Navigation from './Navigation.vue';
 
   const route = useRoute();
 
-  // 根据路由决定是否显示导航栏
-  const showNavigation = computed(() => {
+  // 根据路由决定是否显示顶部导航栏
+  const showTopNav = computed(() => {
     return !['/reader', '/settings'].includes(route.path);
   });
 </script>
@@ -17,7 +16,7 @@
   >
     <!-- 顶部导航栏 -->
     <header
-      v-if="showNavigation"
+      v-if="showTopNav"
       class="fixed top-0 left-0 right-0 glass z-40 transition-all duration-300"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -75,13 +74,10 @@
     <main
       :class="[
         'transition-all duration-300 min-h-screen',
-        showNavigation ? 'pt-20 pb-24' : '',
+        showTopNav ? 'pt-20 pb-8' : '',
       ]"
     >
       <slot />
     </main>
-
-    <!-- 底部导航栏 -->
-    <Navigation v-if="showNavigation" />
   </div>
 </template>

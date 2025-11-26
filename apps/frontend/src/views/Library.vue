@@ -161,7 +161,7 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-8">
     <!-- 页面标题和操作栏 -->
     <div
       class="sticky top-16 z-30 glass border-b border-white/20 transition-all duration-300"

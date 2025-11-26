@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-8">
     <!-- 头部 -->
     <header
       class="sticky top-0 z-40 glass border-b border-white/20 transition-all duration-300"
@@ -15,13 +15,13 @@
           >
             <router-link
               to="/"
-              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              class="px-4 py-2 rounded-lg text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               首页
             </router-link>
             <router-link
               to="/library"
-              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              class="px-4 py-2 rounded-lg text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               漫画库
             </router-link>
@@ -49,11 +49,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                 >
                   阅读模式
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   选择您偏好的阅读模式
                 </p>
               </div>
@@ -69,11 +69,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                 >
                   方向
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   设置阅读方向
                 </p>
               </div>
@@ -89,11 +89,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                 >
                   缩放模式
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   设置图片缩放方式
                 </p>
               </div>
@@ -126,11 +126,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
                 >
                   主题
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   选择界面主题
                 </p>
               </div>
@@ -146,11 +146,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
                 >
                   字体大小
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   设置界面字体大小
                 </p>
               </div>
@@ -183,11 +183,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors"
                 >
                   漫画存储位置
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   设置漫画文件存储路径
                 </p>
               </div>
@@ -207,11 +207,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors"
                 >
                   缓存管理
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   管理应用缓存
                 </p>
               </div>
@@ -242,11 +242,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
                 >
                   自动更新
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   自动检查应用更新
                 </p>
               </div>
@@ -264,11 +264,11 @@
             <div class="flex items-center justify-between group">
               <div>
                 <h3
-                  class="font-medium text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
+                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
                 >
                   数据备份
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   定期备份阅读数据
                 </p>
               </div>
