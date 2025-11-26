@@ -66,7 +66,7 @@
   };
 
   // 导航到漫画详情
-  const goToComicDetail = (comicId: number) => {
+  const goToComicDetail = (comicId: string) => {
     router.push(`/comic/${comicId}`);
   };
 
@@ -370,7 +370,7 @@
         <div
           v-for="(comic, index) in filteredComics"
           :key="comic.id"
-          @click="goToComicDetail(Number(comic.id))"
+          @click="goToComicDetail(comic.id)"
           class="card-glass group cursor-pointer overflow-hidden hover-lift animate-scale-in"
           :style="{ animationDelay: `${index * 0.05}s` }"
         >
@@ -446,7 +446,7 @@
         <div
           v-for="(comic, index) in filteredComics"
           :key="comic.id"
-          @click="goToComicDetail(Number(comic.id))"
+          @click="goToComicDetail(comic.id)"
           class="card-glass p-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all duration-200 animate-slide-up flex items-center gap-4"
           :style="{ animationDelay: `${index * 0.05}s` }"
         >
@@ -508,7 +508,7 @@
           <!-- 操作按钮 -->
           <div class="shrink-0">
             <button
-              @click.stop="goToComicDetail(Number(comic.id))"
+              @click.stop="goToComicDetail(comic.id)"
               class="btn btn-primary text-sm px-4 py-2"
             >
               开始阅读

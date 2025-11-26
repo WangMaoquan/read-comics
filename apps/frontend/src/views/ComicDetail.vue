@@ -4,14 +4,16 @@
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import type { Comic, Chapter } from '@read-comics/types';
   import { ComicStatus, ComicFormat } from '@read-comics/types';
+  import { useComicStore } from '../stores/comic';
 
   const route = useRoute();
   const router = useRouter();
+  const comicStore = useComicStore();
 
   // 状态管理
-  const loading = ref(false);
+  const loading = computed(() => comicStore.loading);
   const loadingChapters = ref(false);
-  const comic = ref<Comic | null>(null);
+  const comic = computed(() => comicStore.currentComic);
   const chapters = ref<Chapter[]>([]);
   const currentChapter = ref<Chapter | null>(null);
 
@@ -29,35 +31,12 @@
     return Math.round((readChapters / chapters.value.length) * 100);
   });
 
-  // 模拟加载漫画详情
+  // 加载漫画详情
   const loadComicDetails = async () => {
-    loading.value = true;
     try {
-      // TODO: 从API加载漫画详情
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      comic.value = {
-        id: comicId.value,
-        title: '进击的巨人',
-        author: '谏山创',
-        description:
-          '人类与巨人的生存之战，讲述了一个少年在巨人威胁下为自由而战的故事。',
-        coverPath: '/covers/attack-on-titan.jpg',
-        filePath: '/comics/attack-on-titan',
-        fileSize: 1000000000,
-        fileFormat: ComicFormat.FOLDER,
-        totalPages: 139,
-        status: ComicStatus.READING,
-        tags: ['热血', '战斗', '奇幻', '生存'],
-        rating: 9.5,
-        createdAt: new Date('2023-01-01'),
-        updatedAt: new Date('2024-01-01'),
-        lastReadAt: new Date('2024-01-15'),
-      };
+      await comicStore.fetchComicById(comicId.value);
     } catch (error) {
       console.error('Failed to load comic details:', error);
-    } finally {
-      loading.value = false;
     }
   };
 
@@ -162,8 +141,9 @@
   };
 
   // 格式化日期
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('zh-CN', {
+  const formatDate = (date: Date | string): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
