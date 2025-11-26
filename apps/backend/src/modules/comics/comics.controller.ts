@@ -27,16 +27,17 @@ import type { ComicFilter } from '@read-comics/types';
 export class ComicsController {
   constructor(private readonly comicsService: ComicsService) {}
 
-  @Post()
+  @Post('/')
   @ApiOperation({ summary: '创建漫画' })
   @ApiBody({ type: CreateComicDto })
   @ApiResponse({ status: 201, description: '创建成功' })
   @UsePipes(new ValidationPipe())
   create(@Body() createComicDto: CreateComicDto) {
+    console.log(createComicDto);
     return this.comicsService.create(createComicDto);
   }
 
-  @Get()
+  @Get('/')
   @ApiOperation({ summary: '获取漫画列表' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })

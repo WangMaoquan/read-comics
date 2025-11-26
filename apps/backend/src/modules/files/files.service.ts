@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createReadStream, promises as fs } from 'fs';
 import { join, extname, dirname, basename } from 'path';
-import { AdmZip } from 'adm-zip';
+import * as AdmZip from 'adm-zip';
 import { watch, FSWatcher } from 'chokidar';
 import { ComicFormat, ComicStatus } from '@read-comics/types';
 

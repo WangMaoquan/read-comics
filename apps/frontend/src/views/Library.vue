@@ -4,12 +4,16 @@
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import type { Comic } from '@read-comics/types';
   import { ComicStatus } from '@read-comics/types';
+  import { useFileStore } from '../stores/files';
+  import { useComicStore } from '../stores/comic';
 
   const router = useRouter();
+  const fileStore = useFileStore();
+  const comicStore = useComicStore();
 
   // 状态管理
   const loading = ref(false);
-  const comics = ref<Comic[]>([]);
+  const comics = computed(() => comicStore.comics);
   const viewMode = ref<'grid' | 'list'>('grid');
   const searchQuery = ref('');
   const sortBy = ref<'title' | 'date' | 'progress'>('date');
@@ -51,93 +55,11 @@
     return result;
   });
 
-  // 模拟数据加载
+  // 加载数据
   const loadComics = async () => {
     loading.value = true;
     try {
-      // TODO: 实际从 API 加载数据
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // 模拟数据
-      comics.value = [
-        {
-          id: '1',
-          title: '进击的巨人',
-          author: '谏山创',
-          description: '人类与巨人的生存之战',
-          coverPath: '/covers/attack-on-titan.jpg',
-          filePath: '/comics/attack-on-titan',
-          fileSize: 1024 * 1024 * 500,
-          fileFormat: 'folder' as any,
-          totalPages: 139,
-          status: ComicStatus.READING,
-          tags: ['热血', '战斗', '奇幻'],
-          createdAt: new Date('2023-01-01'),
-          updatedAt: new Date('2024-01-01'),
-        },
-        {
-          id: '2',
-          title: '鬼灭之刃',
-          author: '吾峠呼世晴',
-          description: '兄妹二人对抗恶鬼的故事',
-          coverPath: '/covers/demon-slayer.jpg',
-          filePath: '/comics/demon-slayer',
-          fileSize: 1024 * 1024 * 400,
-          fileFormat: 'folder' as any,
-          totalPages: 205,
-          status: ComicStatus.COMPLETED,
-          tags: ['热血', '战斗', '历史'],
-          createdAt: new Date('2023-02-01'),
-          updatedAt: new Date('2024-02-01'),
-        },
-        {
-          id: '3',
-          title: '海贼王',
-          author: '尾田荣一郎',
-          description: '路飞成为海贼王的冒险故事',
-          coverPath: '/covers/one-piece.jpg',
-          filePath: '/comics/one-piece',
-          fileSize: 1024 * 1024 * 1000,
-          fileFormat: 'folder' as any,
-          totalPages: 1000,
-          status: ComicStatus.READING,
-          tags: ['冒险', '热血', '友情'],
-          createdAt: new Date('2022-12-01'),
-          updatedAt: new Date('2024-03-01'),
-        },
-        {
-          id: '4',
-          title: '火影忍者',
-          author: '岸本齐史',
-          description: '忍者世界的成长故事',
-          coverPath: '/covers/naruto.jpg',
-          filePath: '/comics/naruto',
-          fileSize: 1024 * 1024 * 800,
-          fileFormat: 'folder' as any,
-          totalPages: 700,
-          status: ComicStatus.READING,
-          tags: ['忍者', '成长', '战斗'],
-          createdAt: new Date('2022-11-01'),
-          updatedAt: new Date('2024-04-01'),
-        },
-        {
-          id: '5',
-          title: '咒术回战',
-          author: '芥见下々',
-          description: '现代咒术师的战斗故事',
-          coverPath: '/covers/jujutsu-kaisen.jpg',
-          filePath: '/comics/jujutsu-kaisen',
-          fileSize: 800000000,
-          fileFormat: 'folder' as any,
-          totalPages: 250,
-          status: ComicStatus.READING,
-          tags: ['都市', '战斗', '超自然'],
-          createdAt: new Date('2023-03-01'),
-          updatedAt: new Date('2024-05-01'),
-        },
-      ];
-    } catch (error) {
-      console.error('Failed to load comics:', error);
+      await comicStore.fetchComics();
     } finally {
       loading.value = false;
     }
@@ -149,9 +71,8 @@
   };
 
   // 导入漫画
-  const importComics = () => {
-    // TODO: 实现导入功能
-    console.log('Import comics...');
+  const importComics = async () => {
+    await fileStore.importComics();
   };
 
   // 初始化
@@ -186,9 +107,18 @@
             <!-- 导入按钮 -->
             <button
               @click="importComics"
-              class="btn btn-primary text-sm px-4 py-2 hover-glow"
+              :disabled="
+                fileStore.status === 'scanning' ||
+                fileStore.status === 'importing'
+              "
+              class="btn btn-primary text-sm px-4 py-2 hover-glow disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
+                v-if="
+                  fileStore.status === 'idle' ||
+                  fileStore.status === 'completed' ||
+                  fileStore.status === 'error'
+                "
                 class="w-4 h-4 mr-2"
                 fill="none"
                 stroke="currentColor"
@@ -201,7 +131,14 @@
                   d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                 />
               </svg>
-              导入漫画
+              <LoadingSpinner v-else size="sm" class="mr-2" />
+              {{
+                fileStore.status === 'scanning'
+                  ? '扫描中...'
+                  : fileStore.status === 'importing'
+                    ? '导入中...'
+                    : '导入漫画'
+              }}
             </button>
 
             <!-- 视图切换 -->
@@ -255,6 +192,67 @@
                 </svg>
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- 导入进度条 -->
+        <div v-if="fileStore.status !== 'idle'" class="mt-4 animate-fade-in">
+          <div class="flex justify-between text-sm mb-1">
+            <span class="text-gray-600 dark:text-gray-300">
+              {{
+                fileStore.status === 'scanning'
+                  ? '正在扫描文件...'
+                  : fileStore.status === 'completed'
+                    ? '导入完成'
+                    : `正在导入: ${fileStore.current}/${fileStore.total}`
+              }}
+            </span>
+            <span class="text-gray-500 dark:text-gray-400">
+              {{
+                fileStore.status === 'completed'
+                  ? '100%'
+                  : fileStore.total > 0
+                    ? Math.round((fileStore.current / fileStore.total) * 100) +
+                      '%'
+                    : '...'
+              }}
+            </span>
+          </div>
+          <div
+            class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden"
+          >
+            <div
+              class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+              :style="{
+                width:
+                  fileStore.status === 'completed'
+                    ? '100%'
+                    : fileStore.total > 0
+                      ? `${(fileStore.current / fileStore.total) * 100}%`
+                      : '0%',
+              }"
+            ></div>
+          </div>
+          <div
+            v-if="fileStore.logs.length > 0"
+            class="mt-2 text-xs text-gray-500 dark:text-gray-400 max-h-20 overflow-y-auto font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded"
+          >
+            <div v-for="(log, index) in fileStore.logs.slice(-5)" :key="index">
+              {{ log }}
+            </div>
+          </div>
+          <div
+            v-if="
+              fileStore.status === 'completed' || fileStore.status === 'error'
+            "
+            class="mt-2 text-right"
+          >
+            <button
+              @click="fileStore.resetStatus()"
+              class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              关闭
+            </button>
           </div>
         </div>
 
