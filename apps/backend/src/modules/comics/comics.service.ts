@@ -6,16 +6,29 @@ import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
 import { ComicFilter } from '@read-comics/types';
 
+import { ChaptersService } from '../chapters/chapters.service';
+
 @Injectable()
 export class ComicsService {
   constructor(
     @InjectRepository(Comic)
     private readonly comicRepository: Repository<Comic>,
+    private readonly chaptersService: ChaptersService,
   ) {}
 
   async create(createComicDto: CreateComicDto): Promise<Comic> {
     const comic = this.comicRepository.create(createComicDto);
-    return await this.comicRepository.save(comic);
+    const savedComic = await this.comicRepository.save(comic);
+
+    // Create default chapter
+    await this.chaptersService.create({
+      title: '第 1 话',
+      pageNumber: 1,
+      imagePath: savedComic.filePath,
+      comicId: savedComic.id,
+    });
+
+    return savedComic;
   }
 
   async findAll(filter?: ComicFilter): Promise<Comic[]> {

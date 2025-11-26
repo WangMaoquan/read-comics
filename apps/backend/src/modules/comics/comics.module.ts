@@ -3,19 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ComicsController } from './comics.controller';
 import { ComicsService } from './comics.service';
 import { Comic } from '../../entities/comic.entity';
-import { Chapter } from '../../entities/chapter.entity';
-import { ReadingProgress } from '../../entities/reading-progress.entity';
-import { UserPreferences } from '../../entities/user-preferences.entity';
+import { ChaptersModule } from '../chapters/chapters.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Comic,
-      Chapter,
-      ReadingProgress,
-      UserPreferences,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Comic]), ChaptersModule],
   controllers: [ComicsController],
   providers: [ComicsService],
   exports: [ComicsService],

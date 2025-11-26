@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { ComicsModule } from './modules/comics/comics.module';
 import { FilesModule } from './modules/files/files.module';
 import { ImagesModule } from './modules/images/images.module';
+import { ChaptersModule } from './modules/chapters/chapters.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ImagesModule } from './modules/images/images.module';
     ComicsModule,
     FilesModule,
     ImagesModule,
+    ChaptersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
