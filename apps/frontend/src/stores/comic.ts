@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia';
-import type { Comic } from '@read-comics/types';
-import { ComicStatus, ComicFormat } from '@read-comics/types';
+import type { Comic, Chapter } from '@read-comics/types';
 
 interface ComicState {
   comics: Comic[];
+  chapters: Chapter[];
   loading: boolean;
   error: string | null;
   currentComic: Comic | null;
@@ -12,6 +12,7 @@ interface ComicState {
 export const useComicStore = defineStore('comic', {
   state: (): ComicState => ({
     comics: [],
+    chapters: [],
     loading: false,
     error: null,
     currentComic: null,
@@ -84,6 +85,31 @@ export const useComicStore = defineStore('comic', {
       }
     },
 
+    async fetchChapters(comicId: string) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await fetch(
+          `http://localhost:4399/chapters?comicId=${comicId}`,
+        );
+        if (!response.ok) {
+          throw new Error('获取章节列表失败');
+        }
+
+        const chapters = await response.json();
+        this.chapters = chapters;
+        return chapters;
+      } catch (error) {
+        this.error =
+          error instanceof Error ? error.message : 'Failed to fetch chapters';
+        console.error('Error fetching chapters:', error);
+        return [];
+      } finally {
+        this.loading = false;
+      }
+    },
+
     addComic(comic: Comic) {
       this.comics.unshift(comic);
     },
@@ -109,6 +135,7 @@ export const useComicStore = defineStore('comic', {
 
     clear() {
       this.comics = [];
+      this.chapters = [];
       this.currentComic = null;
       this.error = null;
       this.loading = false;

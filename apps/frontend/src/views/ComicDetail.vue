@@ -14,7 +14,7 @@
   const loading = computed(() => comicStore.loading);
   const loadingChapters = ref(false);
   const comic = computed(() => comicStore.currentComic);
-  const chapters = ref<Chapter[]>([]);
+  const chapters = computed(() => comicStore.chapters);
   const currentChapter = ref<Chapter | null>(null);
 
   // 获取漫画ID
@@ -26,7 +26,7 @@
 
     // 简单的进度计算：已读章节数 / 总章节数
     const readChapters = chapters.value.filter(
-      (ch) => ch.id <= currentChapter.value!.id,
+      (ch) => ch.pageNumber <= currentChapter.value!.pageNumber,
     ).length;
     return Math.round((readChapters / chapters.value.length) * 100);
   });
@@ -40,33 +40,18 @@
     }
   };
 
-  // 模拟加载章节列表
+  // 加载章节列表
   const loadChapters = async () => {
     loadingChapters.value = true;
     try {
-      // TODO: 从API加载章节列表
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      chapters.value = Array.from({ length: 20 }, (_, i) => ({
-        id: (i + 1).toString(),
-        comicId: comicId.value,
-        title: `第 ${i + 1} 话 - ${getChapterTitle(i + 1)}`,
-        pageNumber: i + 1,
-        imagePath: `/comics/attack-on-titan/chapter-${i + 1}`,
-        createdAt: new Date(
-          `2023-${String(i + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-        ),
-        updatedAt: new Date(
-          `2024-${String(i + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-        ),
-      }));
+      await comicStore.fetchChapters(comicId.value);
 
       // 设置当前章节为第一个未读章节或最后一章
-      const firstUnreadChapter = chapters.value.find(
-        (ch) => !isChapterRead(ch),
-      );
-      currentChapter.value =
-        firstUnreadChapter || chapters.value[chapters.value.length - 1];
+      if (chapters.value.length > 0) {
+        // 简单的逻辑：默认第一章，或者如果有阅读记录则使用记录（目前暂无持久化阅读记录）
+        // 这里暂时默认第一章
+        currentChapter.value = chapters.value[0];
+      }
     } catch (error) {
       console.error('Failed to load chapters:', error);
     } finally {
@@ -74,37 +59,10 @@
     }
   };
 
-  // 获取章节标题
-  const getChapterTitle = (chapterNumber: number): string => {
-    const titles = [
-      '绝望的呐喊',
-      '希望之门',
-      '誓言',
-      '巨人来袭',
-      '小刀',
-      '正义',
-      '回应',
-      '听见心跳',
-      '士兵',
-      '回应',
-      '少女',
-      '枪声',
-      '巨人',
-      '路',
-      '墙外',
-      '独白',
-      '正确答案',
-      '两副面孔',
-      '父亲',
-      '女巨人',
-    ];
-    return titles[chapterNumber - 1] || `第 ${chapterNumber} 话`;
-  };
-
   // 判断章节是否已读
   const isChapterRead = (chapter: Chapter): boolean => {
-    // 简单的已读判断：章节ID小于等于当前章节ID
-    return parseInt(chapter.id) <= parseInt(currentChapter.value?.id || '0');
+    if (!currentChapter.value) return false;
+    return chapter.pageNumber <= currentChapter.value.pageNumber;
   };
 
   // 导航功能
@@ -191,43 +149,8 @@
             漫画详情
           </h1>
 
-          <!-- 操作按钮 -->
-          <div class="flex items-center space-x-2">
-            <button
-              class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            >
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
-            </button>
-            <button
-              class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            >
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.032 4.026a9.001 9.001 0 010-5.684m-9.032 5.684a9.001 9.001 0 0118.064 0"
-                />
-              </svg>
-            </button>
-          </div>
+          <!-- 右侧占位，保持标题居中或左对齐 -->
+          <div class="w-20"></div>
         </div>
       </div>
     </div>
@@ -235,160 +158,115 @@
     <!-- 主要内容区域 -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex justify-center py-12">
+      <div v-if="loading && !comic" class="flex justify-center py-12">
         <LoadingSpinner size="lg" text="加载中..." />
       </div>
 
       <!-- 漫画未找到 -->
-      <div v-else-if="!comic" class="text-center py-12">
-        <svg
-          class="mx-auto h-12 w-12 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">
-          漫画未找到
-        </h3>
-        <p class="mt-1 text-gray-500 dark:text-gray-400">
-          请检查链接或返回漫画库
-        </p>
+      <div v-else-if="!comic && !loading" class="text-center py-12">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+          未找到漫画
+        </h2>
         <button
           @click="goBack"
-          class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
-          返回漫画库
+          返回书库
         </button>
       </div>
 
       <!-- 漫画详情内容 -->
-      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- 左侧：漫画封面和信息 -->
+      <div v-else-if="comic" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 左侧：封面和信息 -->
         <div class="lg:col-span-1">
-          <div
-            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
-          >
-            <!-- 封面图片 -->
+          <div class="sticky top-24 space-y-6">
+            <!-- 封面 -->
             <div
-              class="aspect-w-3 aspect-h-4 bg-gray-200 dark:bg-gray-700 relative"
+              class="aspect-[2/3] w-full rounded-lg overflow-hidden shadow-lg relative group"
             >
               <img
-                :src="comic.coverPath || '/placeholder-cover.jpg'"
+                :src="`http://localhost:4399/images/thumbnail?comicPath=${encodeURIComponent(comic.filePath)}&imagePath=${encodeURIComponent(comic.cover || '')}`"
                 :alt="comic.title"
-                class="w-full h-full object-cover"
-                loading="lazy"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                @error="$event.target.src = '/placeholder.png'"
               />
-              <!-- 进度条 -->
               <div
-                v-if="comicProgress > 0"
-                class="absolute bottom-0 left-0 right-0 h-2 bg-gray-300 dark:bg-gray-600"
-              >
-                <div
-                  class="h-full bg-blue-600 transition-all duration-300"
-                  :style="{ width: `${comicProgress}%` }"
-                />
-              </div>
+                class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-300"
+              ></div>
             </div>
 
-            <!-- 漫画信息 -->
-            <div class="p-6">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {{ comic.title }}
-              </h2>
+            <!-- 基本信息 -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4"
+            >
+              <div>
+                <h2
+                  class="text-2xl font-bold text-gray-900 dark:text-white mb-2"
+                >
+                  {{ comic.title }}
+                </h2>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">
+                  {{ comic.author || '未知作者' }}
+                </p>
+              </div>
 
-              <!-- 基本信息 -->
-              <div class="space-y-3 mb-6">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-500 dark:text-gray-400">作者:</span>
-                  <span class="text-gray-900 dark:text-white font-medium">{{
-                    comic.author || '未知'
-                  }}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-500 dark:text-gray-400">状态:</span>
+              <div class="space-y-2 text-sm">
+                <div
+                  class="flex justify-between text-gray-600 dark:text-gray-300"
+                >
+                  <span>状态</span>
                   <span
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                    :class="[
-                      comic.status === ComicStatus.COMPLETED
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                    ]"
+                    :class="{
+                      'text-green-600': comic.status === ComicStatus.READING,
+                      'text-blue-600': comic.status === ComicStatus.COMPLETED,
+                      'text-gray-600': comic.status === ComicStatus.UNREAD,
+                    }"
                   >
                     {{
-                      comic.status === ComicStatus.COMPLETED
-                        ? '已完结'
-                        : '连载中'
+                      comic.status === ComicStatus.READING
+                        ? '阅读中'
+                        : comic.status === ComicStatus.COMPLETED
+                          ? '已读完'
+                          : '未读'
                     }}
                   </span>
                 </div>
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-500 dark:text-gray-400">页数:</span>
-                  <span class="text-gray-900 dark:text-white font-medium"
-                    >{{ comic.totalPages }} 页</span
-                  >
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-500 dark:text-gray-400"
-                    >文件大小:</span
-                  >
-                  <span class="text-gray-900 dark:text-white font-medium">{{
-                    formatFileSize(comic.fileSize)
-                  }}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-500 dark:text-gray-400"
-                    >更新时间:</span
-                  >
-                  <span class="text-gray-900 dark:text-white font-medium">{{
-                    formatDate(comic.updatedAt)
-                  }}</span>
+                <div
+                  class="flex justify-between text-gray-600 dark:text-gray-300"
+                >
+                  <span>格式</span>
+                  <span class="uppercase">{{ comic.fileFormat }}</span>
                 </div>
                 <div
-                  v-if="comic.rating"
-                  class="flex items-center justify-between text-sm"
+                  class="flex justify-between text-gray-600 dark:text-gray-300"
                 >
-                  <span class="text-gray-500 dark:text-gray-400">评分:</span>
-                  <span
-                    class="text-yellow-600 dark:text-yellow-400 font-medium"
-                  >
-                    {{ comic.rating }}/10
-                  </span>
+                  <span>大小</span>
+                  <span>{{ formatFileSize(comic.fileSize) }}</span>
                 </div>
-              </div>
-
-              <!-- 标签 -->
-              <div v-if="comic.tags && comic.tags.length > 0" class="mb-6">
-                <h4
-                  class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2"
+                <div
+                  class="flex justify-between text-gray-600 dark:text-gray-300"
                 >
-                  标签:
-                </h4>
-                <div class="flex flex-wrap gap-2">
-                  <span
-                    v-for="tag in comic.tags"
-                    :key="tag"
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                  >
-                    {{ tag }}
-                  </span>
+                  <span>页数</span>
+                  <span>{{ comic.totalPages }} 页</span>
+                </div>
+                <div
+                  class="flex justify-between text-gray-600 dark:text-gray-300"
+                >
+                  <span>添加时间</span>
+                  <span>{{ formatDate(comic.createdAt) }}</span>
                 </div>
               </div>
 
               <!-- 操作按钮 -->
-              <div class="space-y-3">
+              <div
+                class="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700"
+              >
                 <button
                   @click="startReading"
-                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  class="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md hover:shadow-lg gap-2"
                 >
                   <svg
-                    class="w-4 h-4 mr-2"
+                    class="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -406,13 +284,13 @@
                       d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  开始阅读
+                  <span>开始阅读</span>
                 </button>
                 <button
-                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  class="w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm hover:shadow-md gap-2"
                 >
                   <svg
-                    class="w-4 h-4 mr-2"
+                    class="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -424,7 +302,7 @@
                       d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                     />
                   </svg>
-                  添加到收藏
+                  <span>添加到收藏</span>
                 </button>
               </div>
             </div>
@@ -516,7 +394,7 @@
 
                     <!-- 章节编号 -->
                     <span class="text-sm text-gray-500 dark:text-gray-400">
-                      第 {{ parseInt(chapter.id) }} 话
+                      第 {{ chapter.pageNumber }} 话
                     </span>
 
                     <!-- 箭头图标 -->

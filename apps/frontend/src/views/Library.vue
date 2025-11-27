@@ -75,6 +75,91 @@
     await fileStore.importComics();
   };
 
+  // 文件上传相关
+  const uploadingFile = ref(false);
+  const uploadProgress = ref(0);
+  const fileInputRef = ref<HTMLInputElement | null>(null);
+
+  // 触发文件选择
+  const triggerFileUpload = () => {
+    fileInputRef.value?.click();
+  };
+
+  // 处理文件选择
+  const handleFileSelect = async (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    const supportedFormats = ['.cbz', '.cbr', '.zip', '.rar'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!supportedFormats.includes(ext)) {
+      alert('不支持的文件格式。支持的格式：.cbz, .cbr, .zip, .rar');
+      return;
+    }
+
+    // 验证文件大小 (500MB)
+    if (file.size > 500 * 1024 * 1024) {
+      alert('文件大小超过限制 (500MB)');
+      return;
+    }
+
+    // 上传文件
+    uploadingFile.value = true;
+    uploadProgress.value = 0;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const xhr = new XMLHttpRequest();
+
+      // 监听上传进度
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          uploadProgress.value = Math.round((e.loaded / e.total) * 100);
+        }
+      });
+
+      // 处理上传完成
+      xhr.addEventListener('load', async () => {
+        if (xhr.status === 200 || xhr.status === 201) {
+          const response = JSON.parse(xhr.responseText);
+          console.log('上传成功:', response);
+
+          // 上传成功后重新加载漫画列表
+          await loadComics();
+          alert('文件上传成功!');
+        } else {
+          console.error('上传失败:', xhr.statusText);
+          alert('上传失败: ' + xhr.statusText);
+        }
+        uploadingFile.value = false;
+        uploadProgress.value = 0;
+      });
+
+      // 处理上传错误
+      xhr.addEventListener('error', () => {
+        console.error('上传错误');
+        alert('上传失败,请重试');
+        uploadingFile.value = false;
+        uploadProgress.value = 0;
+      });
+
+      xhr.open('POST', 'http://localhost:4399/files/upload');
+      xhr.send(formData);
+    } catch (error) {
+      console.error('上传错误:', error);
+      alert('上传失败');
+      uploadingFile.value = false;
+      uploadProgress.value = 0;
+    } finally {
+      // 重置文件输入
+      if (target) target.value = '';
+    }
+  };
+
   // 初始化
   onMounted(() => {
     loadComics();
@@ -104,6 +189,39 @@
             class="flex items-center gap-3 animate-fade-in"
             style="animation-delay: 0.1s"
           >
+            <!-- 隐藏的文件输入 -->
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".cbz,.cbr,.zip,.rar"
+              @change="handleFileSelect"
+              class="hidden"
+            />
+
+            <!-- 上传文件按钮 -->
+            <button
+              @click="triggerFileUpload"
+              :disabled="uploadingFile"
+              class="btn btn-secondary text-sm px-4 py-2 hover-glow disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg
+                v-if="!uploadingFile"
+                class="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                />
+              </svg>
+              <LoadingSpinner v-else size="sm" class="mr-2" />
+              {{ uploadingFile ? `上传中 ${uploadProgress}%` : '上传文件' }}
+            </button>
+
             <!-- 导入按钮 -->
             <button
               @click="importComics"
