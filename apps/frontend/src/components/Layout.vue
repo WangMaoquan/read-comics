@@ -8,6 +8,12 @@
   const showTopNav = computed(() => {
     return !['/reader', '/settings'].includes(route.path);
   });
+
+  console.log(route.path);
+
+  const readerBgColor = computed(() =>
+    route.path.includes('/reader') ? 'bg-gray-900' : '',
+  );
 </script>
 
 <template>
@@ -75,6 +81,7 @@
       :class="[
         'transition-all duration-300 min-h-screen',
         showTopNav ? 'pt-20 pb-8' : '',
+        readerBgColor,
       ]"
     >
       <slot />
