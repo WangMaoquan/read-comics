@@ -6,6 +6,8 @@
   import { ComicStatus } from '@read-comics/types';
   import { useFileStore } from '../stores/files';
   import { useComicStore } from '../stores/comic';
+  import { filesService } from '../api/services';
+  import { validateFile } from '../utils/formatValidation';
 
   const router = useRouter();
   const fileStore = useFileStore();
@@ -91,17 +93,10 @@
     const file = target.files?.[0];
     if (!file) return;
 
-    // 验证文件类型
-    const supportedFormats = ['.cbz', '.cbr', '.zip', '.rar'];
-    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (!supportedFormats.includes(ext)) {
-      alert('不支持的文件格式。支持的格式：.cbz, .cbr, .zip, .rar');
-      return;
-    }
-
-    // 验证文件大小 (500MB)
-    if (file.size > 500 * 1024 * 1024) {
-      alert('文件大小超过限制 (500MB)');
+    // 使用统一的文件验证工具
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      alert(validation.error);
       return;
     }
 
@@ -110,51 +105,20 @@
     uploadProgress.value = 0;
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const xhr = new XMLHttpRequest();
-
-      // 监听上传进度
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          uploadProgress.value = Math.round((e.loaded / e.total) * 100);
-        }
+      await filesService.uploadFile(file, (progress) => {
+        uploadProgress.value = progress;
       });
 
-      // 处理上传完成
-      xhr.addEventListener('load', async () => {
-        if (xhr.status === 200 || xhr.status === 201) {
-          const response = JSON.parse(xhr.responseText);
-          console.log('上传成功:', response);
-
-          // 上传成功后重新加载漫画列表
-          await loadComics();
-          alert('文件上传成功!');
-        } else {
-          console.error('上传失败:', xhr.statusText);
-          alert('上传失败: ' + xhr.statusText);
-        }
-        uploadingFile.value = false;
-        uploadProgress.value = 0;
-      });
-
-      // 处理上传错误
-      xhr.addEventListener('error', () => {
-        console.error('上传错误');
-        alert('上传失败,请重试');
-        uploadingFile.value = false;
-        uploadProgress.value = 0;
-      });
-
-      xhr.open('POST', 'http://localhost:4399/files/upload');
-      xhr.send(formData);
+      // 上传成功后重新加载漫画列表
+      await loadComics();
+      alert('文件上传成功!');
     } catch (error) {
       console.error('上传错误:', error);
-      alert('上传失败');
+      const errorMessage = error instanceof Error ? error.message : '上传失败';
+      alert(errorMessage);
+    } finally {
       uploadingFile.value = false;
       uploadProgress.value = 0;
-    } finally {
       // 重置文件输入
       if (target) target.value = '';
     }
@@ -193,7 +157,7 @@
             <input
               ref="fileInputRef"
               type="file"
-              accept=".cbz,.cbr,.zip,.rar"
+              accept=".cbz,.zip"
               @change="handleFileSelect"
               class="hidden"
             />

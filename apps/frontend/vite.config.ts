@@ -12,7 +12,10 @@ export default defineConfig({
       '@components': path.resolve(__dirname, './src/components'),
       '@views': path.resolve(__dirname, './src/views'),
       '@stores': path.resolve(__dirname, './src/stores'),
-      '@types': path.resolve(__dirname, '../../packages/types'),
+      '@read-comics/types': path.resolve(
+        __dirname,
+        '../../packages/types/index.ts',
+      ),
       '@utils-shared': path.resolve(__dirname, '../../packages/utils/src'),
     },
   },

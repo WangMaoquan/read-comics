@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Comic, Chapter } from '@read-comics/types';
+import { comicsService } from '../api/services';
 
 interface ComicState {
   comics: Comic[];
@@ -46,13 +47,7 @@ export const useComicStore = defineStore('comic', {
       this.error = null;
 
       try {
-        const response = await fetch('http://localhost:4399/comics');
-        if (!response.ok) {
-          throw new Error('获取漫画列表失败');
-        }
-
-        const comics = await response.json();
-        this.comics = comics;
+        this.comics = await comicsService.getComics();
       } catch (error) {
         this.error =
           error instanceof Error ? error.message : 'Failed to fetch comics';
@@ -67,12 +62,7 @@ export const useComicStore = defineStore('comic', {
       this.error = null;
 
       try {
-        const response = await fetch(`http://localhost:4399/comics/${id}`);
-        if (!response.ok) {
-          throw new Error('获取漫画详情失败');
-        }
-
-        const comic = await response.json();
+        const comic = await comicsService.getComicById(id);
         this.currentComic = comic;
         return comic;
       } catch (error) {
@@ -90,16 +80,8 @@ export const useComicStore = defineStore('comic', {
       this.error = null;
 
       try {
-        const response = await fetch(
-          `http://localhost:4399/chapters?comicId=${comicId}`,
-        );
-        if (!response.ok) {
-          throw new Error('获取章节列表失败');
-        }
-
-        const chapters = await response.json();
-        this.chapters = chapters;
-        return chapters;
+        this.chapters = await comicsService.getComicChapters(comicId);
+        return this.chapters;
       } catch (error) {
         this.error =
           error instanceof Error ? error.message : 'Failed to fetch chapters';

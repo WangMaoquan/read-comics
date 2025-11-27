@@ -3,6 +3,11 @@
   import { useRoute, useRouter } from 'vue-router';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
+  import {
+    comicsService,
+    chaptersService,
+    imagesService,
+  } from '../api/services';
 
   const route = useRoute();
   const router = useRouter();
@@ -77,13 +82,7 @@
   // 加载章节列表
   const loadChapters = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:4399/comics/${comicId.value}/chapters`,
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch chapters');
-      }
-      chapters.value = await response.json();
+      chapters.value = await comicsService.getComicChapters(comicId.value);
     } catch (error) {
       console.error('Failed to load chapters:', error);
     }
@@ -94,22 +93,13 @@
     loading.value = true;
     try {
       // 获取章节详情
-      const response = await fetch(
-        `http://localhost:4399/chapters/${chapterId.value}`,
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch chapter details');
-      }
-
-      const chapter = await response.json();
+      const chapter = await chaptersService.getChapterById(chapterId.value);
       currentChapter.value = chapter;
 
       // 构建图片 URL 列表
       if (chapter.pages && chapter.pages.length > 0) {
         images.value = chapter.pages.map((page: string) => {
-          return `http://localhost:4399/images/view?comicPath=${encodeURIComponent(
-            chapter.imagePath,
-          )}&imagePath=${encodeURIComponent(page)}`;
+          return imagesService.getImageUrl(chapter.imagePath, page);
         });
       } else {
         // Fallback or empty state

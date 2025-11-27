@@ -38,6 +38,9 @@
       "@stores/*": [
         "./src/stores/*"
       ],
+      "@read-comics/types": [
+        "../../packages/types/index.ts"
+      ],
       "@types/*": [
         "../../packages/types/*"
       ],
