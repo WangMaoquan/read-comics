@@ -39,6 +39,11 @@ export class CreateComicDto {
   @IsNotEmpty()
   fileFormat: ComicFormat;
 
+  @ApiProperty({ description: '文件哈希值(MD5)', required: false })
+  @IsString()
+  @IsOptional()
+  hash?: string;
+
   @ApiProperty({ description: '总页数' })
   @IsNumber()
   @IsNotEmpty()
@@ -58,4 +63,19 @@ export class CreateComicDto {
   @IsEnum(ComicStatus)
   @IsOptional()
   status?: ComicStatus;
+
+  @ApiProperty({
+    description: '章节列表',
+    required: false,
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        pages: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  @IsOptional()
+  chapters?: { title: string; pages: string[] }[];
 }

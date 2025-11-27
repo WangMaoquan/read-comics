@@ -23,6 +23,43 @@ export class ImagesController {
   constructor(private readonly imagesService: ImagesService) {}
 
   /**
+   * 查看图片
+   */
+  @Get('view')
+  @ApiOperation({ summary: '查看图片' })
+  @ApiQuery({ name: 'comicPath', description: '漫画文件路径' })
+  @ApiQuery({ name: 'imagePath', description: '图片在压缩包中的路径' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async viewImage(
+    @Query('comicPath') comicPath: string,
+    @Query('imagePath') imagePath: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      const imageBuffer = await this.imagesService.extractImageFromComic(
+        comicPath,
+        imagePath,
+      );
+
+      // 猜测 MIME type
+      const ext = imagePath.toLowerCase().split('.').pop();
+      let contentType = 'image/jpeg';
+      if (ext === 'png') contentType = 'image/png';
+      else if (ext === 'gif') contentType = 'image/gif';
+      else if (ext === 'webp') contentType = 'image/webp';
+
+      res.set({
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000',
+      });
+
+      return new StreamableFile(imageBuffer);
+    } catch (error) {
+      res.status(404).send(error.message);
+    }
+  }
+
+  /**
    * 生成缩略图
    */
   @Post('thumbnail')

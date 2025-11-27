@@ -229,13 +229,43 @@ export class ImagesService implements OnModuleInit {
   /**
    * 从漫画文件中提取图片
    */
+  /**
+   * 从漫画文件中提取图片
+   */
   async extractImageFromComic(
     comicPath: string,
     imagePath: string,
   ): Promise<Buffer> {
-    // 这里需要实现从压缩文件中提取图片的逻辑
-    // 暂时返回一个空的 buffer，实际实现需要结合文件系统服务
-    return Buffer.alloc(0);
+    try {
+      // 检查文件是否存在
+      await fs.access(comicPath);
+
+      const ext = extname(comicPath).toLowerCase();
+      if (
+        ext === '.cbz' ||
+        ext === '.zip' ||
+        ext === '.cbr' ||
+        ext === '.rar'
+      ) {
+        // 使用 adm-zip 读取压缩包
+        // 注意：adm-zip 是同步的，对于大文件可能会阻塞事件循环
+        // 生产环境建议使用 stream-based 的库如 yauzl 或 unzipper，或者放到 worker 线程
+        // 这里为了简单起见暂时使用 adm-zip
+        const zip = new (require('adm-zip'))(comicPath);
+        const entry = zip.getEntry(imagePath);
+
+        if (!entry) {
+          throw new Error(`Image not found in archive: ${imagePath}`);
+        }
+
+        return entry.getData();
+      }
+
+      throw new Error(`Unsupported comic format: ${ext}`);
+    } catch (error) {
+      console.error('Error extracting image from comic:', error);
+      throw new Error(`Failed to extract image: ${error.message}`);
+    }
   }
 
   /**

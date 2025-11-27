@@ -17,6 +17,10 @@ export class CreateChapterDto {
   @IsNotEmpty()
   imagePath: string;
 
+  @ApiProperty({ description: '章节包含的图片列表', type: [String] })
+  @IsOptional()
+  pages?: string[];
+
   @ApiProperty({ description: '所属漫画ID' })
   @IsString()
   @IsNotEmpty()

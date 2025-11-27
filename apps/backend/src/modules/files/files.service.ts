@@ -5,6 +5,7 @@ import { join, extname, dirname, basename } from 'path';
 import * as AdmZip from 'adm-zip';
 import { watch, FSWatcher } from 'chokidar';
 import { ComicFormat, ComicStatus } from '@read-comics/types';
+import * as iconv from 'iconv-lite';
 
 @Injectable()
 export class FilesService implements OnModuleInit {
@@ -14,6 +15,13 @@ export class FilesService implements OnModuleInit {
 
   constructor(private configService: ConfigService) {
     this.comicsPath = this.configService.get<string>('COMICS_PATH', './comics');
+  }
+
+  /**
+   * 获取漫画目录路径
+   */
+  getComicsPath(): string {
+    return this.comicsPath;
   }
 
   async onModuleInit() {
@@ -98,10 +106,19 @@ export class FilesService implements OnModuleInit {
         '.bmp',
       ];
       const imageFiles = entries
-        .filter((entry) =>
-          imageExtensions.includes(extname(entry.name).toLowerCase()),
-        )
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .filter((entry) => {
+          return imageExtensions.includes(
+            extname(entry.entryName).toLowerCase(),
+          );
+        })
+        .sort((a, b) => {
+          const nameA = iconv.decode(a.rawEntryName, 'gbk');
+          const nameB = iconv.decode(b.rawEntryName, 'gbk');
+          return nameA.localeCompare(nameB, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
+        });
 
       // 提取文件名作为漫画标题
       const fileName = basename(filePath, extname(filePath));
@@ -134,7 +151,9 @@ export class FilesService implements OnModuleInit {
 
       for (const entry of imageFiles) {
         // 移除公共前缀
-        const relativePath = entry.entryName.slice(commonPrefix.length);
+        const relativePath = iconv
+          .decode(entry.rawEntryName, 'gbk')
+          .slice(commonPrefix.length);
         const parts = relativePath.split('/');
 
         if (parts.length > 1) {

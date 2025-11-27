@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Comic } from '../../entities/comic.entity';
+import { Chapter } from '../../entities/chapter.entity';
 import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
 import { ComicFilter } from '@read-comics/types';
@@ -14,21 +15,54 @@ export class ComicsService {
     @InjectRepository(Comic)
     private readonly comicRepository: Repository<Comic>,
     private readonly chaptersService: ChaptersService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createComicDto: CreateComicDto): Promise<Comic> {
-    const comic = this.comicRepository.create(createComicDto);
-    const savedComic = await this.comicRepository.save(comic);
+    const queryRunner = this.dataSource.createQueryRunner();
 
-    // Create default chapter
-    await this.chaptersService.create({
-      title: '第 1 话',
-      pageNumber: 1,
-      imagePath: savedComic.filePath,
-      comicId: savedComic.id,
-    });
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    return savedComic;
+    try {
+      const comic = this.comicRepository.create(createComicDto);
+      const savedComic = await queryRunner.manager.save(comic);
+
+      // Create chapters
+      if (createComicDto.chapters && createComicDto.chapters.length > 0) {
+        for (let i = 0; i < createComicDto.chapters.length; i++) {
+          const chapterData = createComicDto.chapters[i];
+          const chapter = queryRunner.manager.create(Chapter, {
+            title: chapterData.title,
+            pageNumber: i + 1,
+            imagePath: savedComic.filePath,
+            pages: chapterData.pages,
+            comic: savedComic,
+          });
+          await queryRunner.manager.save(Chapter, chapter);
+        }
+      } else {
+        // Fallback: Create default chapter
+        const chapter = queryRunner.manager.create(Chapter, {
+          title: '第 1 话',
+          pageNumber: 1,
+          imagePath: savedComic.filePath,
+          pages: [],
+          comic: savedComic,
+        });
+        await queryRunner.manager.save(Chapter, chapter);
+      }
+
+      // ...
+
+      await queryRunner.commitTransaction();
+      return savedComic;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAll(filter?: ComicFilter): Promise<Comic[]> {
@@ -63,6 +97,10 @@ export class ComicsService {
   async findOne(id: string): Promise<Comic> {
     const comic = await this.comicRepository.findOne({ where: { id } });
     return comic!;
+  }
+
+  async findByHash(hash: string): Promise<Comic | null> {
+    return await this.comicRepository.findOne({ where: { hash } });
   }
 
   async update(id: string, updateComicDto: UpdateComicDto): Promise<Comic> {

@@ -50,6 +50,14 @@ export class Comic {
   @Column()
   fileFormat: ComicFormat;
 
+  @ApiProperty({
+    description: '文件哈希值(MD5)',
+    example: 'd41d8cd98f00b204e9800998ecf8427e',
+    required: false,
+  })
+  @Column({ nullable: true })
+  hash?: string;
+
   @ApiProperty({ description: '总页数', example: 139 })
   @Column()
   totalPages: number;

@@ -30,6 +30,14 @@ export class Chapter {
   @Column()
   imagePath: string;
 
+  @ApiProperty({
+    description: '章节包含的图片列表',
+    example: ['01.jpg', '02.jpg'],
+    type: [String],
+  })
+  @Column({ type: 'simple-array', nullable: true })
+  pages: string[];
+
   @ApiProperty({ description: '创建时间' })
   @CreateDateColumn()
   createdAt: Date;
