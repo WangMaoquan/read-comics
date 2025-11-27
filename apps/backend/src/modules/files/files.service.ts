@@ -1,19 +1,24 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createReadStream, promises as fs } from 'fs';
-import { join, extname, dirname, basename } from 'path';
-import * as AdmZip from 'adm-zip';
+import { join, extname, basename } from 'path';
 import { watch, FSWatcher } from 'chokidar';
 import { ComicFormat, ComicStatus } from '@read-comics/types';
-import * as iconv from 'iconv-lite';
+import { ZipUtilsService } from '../../common/utils/zip-utils.service';
 
-@Injectable()
 export class FilesService implements OnModuleInit {
   private comicsPath: string;
   private watchers: Map<string, FSWatcher> = new Map();
-  private supportedFormats = ['.cbz', '.cbr', '.zip', '.rar', '.pdf'];
+  private supportedFormats = ['.cbz', '.zip'];
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private zipUtilsService: ZipUtilsService,
+  ) {
     this.comicsPath = this.configService.get<string>('COMICS_PATH', './comics');
   }
 
@@ -72,11 +77,13 @@ export class FilesService implements OnModuleInit {
   }> {
     const ext = extname(filePath).toLowerCase();
 
-    if (ext === '.cbz' || ext === '.zip' || ext === '.cbr' || ext === '.rar') {
+    if (ext === '.cbz' || ext === '.zip') {
       return this.parseArchiveFile(filePath);
     }
 
-    throw new Error(`Unsupported comic format: ${ext}`);
+    throw new InternalServerErrorException(
+      `Unsupported comic format: ${ext}. Only ZIP/CBZ formats are supported.`,
+    );
   }
 
   /**
@@ -93,8 +100,8 @@ export class FilesService implements OnModuleInit {
     const format = this.getComicFormat(ext);
 
     try {
-      const zip = new AdmZip(filePath);
-      const entries = zip.getEntries();
+      // 使用异步的 ZipUtilsService
+      const allFiles = await this.zipUtilsService.listFilesInZip(filePath);
 
       // 过滤出图片文件
       const imageExtensions = [
@@ -105,16 +112,14 @@ export class FilesService implements OnModuleInit {
         '.webp',
         '.bmp',
       ];
-      const imageFiles = entries
-        .filter((entry) => {
-          return imageExtensions.includes(
-            extname(entry.entryName).toLowerCase(),
-          );
+
+      const imageFiles = allFiles
+        .filter((file) => {
+          const ext = file.toLowerCase().split('.').pop();
+          return ext && imageExtensions.includes(`.${ext}`);
         })
         .sort((a, b) => {
-          const nameA = iconv.decode(a.rawEntryName, 'gbk');
-          const nameB = iconv.decode(b.rawEntryName, 'gbk');
-          return nameA.localeCompare(nameB, undefined, {
+          return a.localeCompare(b, undefined, {
             numeric: true,
             sensitivity: 'base',
           });
@@ -131,16 +136,14 @@ export class FilesService implements OnModuleInit {
       // 计算公共前缀
       let commonPrefix = '';
       if (imageFiles.length > 0) {
-        const firstEntry = imageFiles[0].entryName;
+        const firstEntry = imageFiles[0];
         const parts = firstEntry.split('/');
         // 移除文件名，只保留目录
         parts.pop();
 
         for (let i = 0; i < parts.length; i++) {
           const prefix = parts.slice(0, i + 1).join('/') + '/';
-          const allMatch = imageFiles.every((f) =>
-            f.entryName.startsWith(prefix),
-          );
+          const allMatch = imageFiles.every((f) => f.startsWith(prefix));
           if (allMatch) {
             commonPrefix = prefix;
           } else {
@@ -149,11 +152,9 @@ export class FilesService implements OnModuleInit {
         }
       }
 
-      for (const entry of imageFiles) {
+      for (const file of imageFiles) {
         // 移除公共前缀
-        const relativePath = iconv
-          .decode(entry.rawEntryName, 'gbk')
-          .slice(commonPrefix.length);
+        const relativePath = file.slice(commonPrefix.length);
         const parts = relativePath.split('/');
 
         if (parts.length > 1) {
@@ -162,10 +163,10 @@ export class FilesService implements OnModuleInit {
           if (!folderMap.has(folderName)) {
             folderMap.set(folderName, []);
           }
-          folderMap.get(folderName)!.push(entry.entryName);
+          folderMap.get(folderName)!.push(file);
         } else {
           // 在根目录
-          rootImages.push(entry.entryName);
+          rootImages.push(file);
         }
       }
 
@@ -200,20 +201,22 @@ export class FilesService implements OnModuleInit {
       if (chapters.length === 0 && imageFiles.length > 0) {
         chapters.push({
           title: '默认章节',
-          pages: imageFiles.map((e) => e.entryName),
+          pages: imageFiles,
         });
       }
 
       return {
         title: fileName,
         totalPages: imageFiles.length,
-        images: imageFiles.map((entry) => entry.entryName), // 保持兼容性
+        images: imageFiles,
         format,
         chapters,
       };
     } catch (error) {
       console.error('Error parsing archive file:', error);
-      throw new Error(`Failed to parse comic file: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to parse comic file: ${error.message}`,
+      );
     }
   }
 
@@ -327,7 +330,9 @@ export class FilesService implements OnModuleInit {
       await fs.unlink(fullPath);
     } catch (error) {
       console.error('Error deleting file:', error);
-      throw new Error(`Failed to delete file: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to delete file: ${error.message}`,
+      );
     }
   }
 }

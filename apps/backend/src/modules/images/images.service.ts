@@ -1,21 +1,36 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { promises as fs, createReadStream } from 'fs';
 import { join, extname } from 'path';
 import { createHash } from 'crypto';
 import * as sharp from 'sharp';
 import { StreamableFile } from '@nestjs/common';
+import { LRUCache } from 'lru-cache';
+import { ZipUtilsService } from '../../common/utils/zip-utils.service';
 
 @Injectable()
 export class ImagesService implements OnModuleInit {
   private cachePath: string;
   private thumbnailPath: string;
-  private cacheSize: number = 100; // 缓存最近100张图片
-  private cache: Map<string, { data: Buffer; timestamp: number }> = new Map();
+  private cache: LRUCache<string, Buffer>;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private zipUtilsService: ZipUtilsService,
+  ) {
     this.cachePath = this.configService.get<string>('CACHE_PATH', './cache');
     this.thumbnailPath = join(this.cachePath, 'thumbnails');
+
+    // 初始化 LRU 缓存: 最多 100 个图片，最大 100MB
+    this.cache = new LRUCache<string, Buffer>({
+      max: 100,
+      maxSize: 100 * 1024 * 1024, // 100MB
+      sizeCalculation: (value) => value.length,
+    });
   }
 
   async onModuleInit() {
@@ -82,7 +97,9 @@ export class ImagesService implements OnModuleInit {
         .toBuffer();
     } catch (error) {
       console.error('Error generating thumbnail:', error);
-      throw new Error(`Failed to generate thumbnail: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to generate thumbnail: ${error.message}`,
+      );
     }
   }
 
@@ -133,7 +150,9 @@ export class ImagesService implements OnModuleInit {
       return await processed.toBuffer();
     } catch (error) {
       console.error('Error optimizing image:', error);
-      throw new Error(`Failed to optimize image: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to optimize image: ${error.message}`,
+      );
     }
   }
 
@@ -159,7 +178,9 @@ export class ImagesService implements OnModuleInit {
       };
     } catch (error) {
       console.error('Error getting image info:', error);
-      throw new Error(`Failed to get image info: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to get image info: ${error.message}`,
+      );
     }
   }
 
@@ -167,29 +188,14 @@ export class ImagesService implements OnModuleInit {
    * 从缓存获取图片
    */
   async getCachedImage(cacheKey: string): Promise<Buffer | null> {
-    const cached = this.cache.get(cacheKey);
-    if (cached) {
-      // 更新访问时间
-      cached.timestamp = Date.now();
-      return cached.data;
-    }
-    return null;
+    return this.cache.get(cacheKey) || null;
   }
 
   /**
    * 缓存图片
    */
   async cacheImage(cacheKey: string, imageBuffer: Buffer): Promise<void> {
-    // 如果缓存已满，删除最旧的条目
-    if (this.cache.size >= this.cacheSize) {
-      const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
-    }
-
-    this.cache.set(cacheKey, {
-      data: imageBuffer,
-      timestamp: Date.now(),
-    });
+    this.cache.set(cacheKey, imageBuffer);
   }
 
   /**
@@ -229,9 +235,6 @@ export class ImagesService implements OnModuleInit {
   /**
    * 从漫画文件中提取图片
    */
-  /**
-   * 从漫画文件中提取图片
-   */
   async extractImageFromComic(
     comicPath: string,
     imagePath: string,
@@ -241,30 +244,22 @@ export class ImagesService implements OnModuleInit {
       await fs.access(comicPath);
 
       const ext = extname(comicPath).toLowerCase();
-      if (
-        ext === '.cbz' ||
-        ext === '.zip' ||
-        ext === '.cbr' ||
-        ext === '.rar'
-      ) {
-        // 使用 adm-zip 读取压缩包
-        // 注意：adm-zip 是同步的，对于大文件可能会阻塞事件循环
-        // 生产环境建议使用 stream-based 的库如 yauzl 或 unzipper，或者放到 worker 线程
-        // 这里为了简单起见暂时使用 adm-zip
-        const zip = new (require('adm-zip'))(comicPath);
-        const entry = zip.getEntry(imagePath);
-
-        if (!entry) {
-          throw new Error(`Image not found in archive: ${imagePath}`);
-        }
-
-        return entry.getData();
+      if (ext === '.cbz' || ext === '.zip') {
+        // 使用异步的 ZipUtilsService
+        return await this.zipUtilsService.extractFileFromZip(
+          comicPath,
+          imagePath,
+        );
       }
 
-      throw new Error(`Unsupported comic format: ${ext}`);
+      throw new InternalServerErrorException(
+        `Unsupported comic format: ${ext}. Only ZIP/CBZ formats are supported.`,
+      );
     } catch (error) {
       console.error('Error extracting image from comic:', error);
-      throw new Error(`Failed to extract image: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to extract image: ${error.message}`,
+      );
     }
   }
 
@@ -291,21 +286,10 @@ export class ImagesService implements OnModuleInit {
    * 清理过期缓存
    */
   async cleanExpiredCache(maxAge: number = 24 * 60 * 60 * 1000): Promise<void> {
+    // LRU 缓存会自动管理内存，这里只清理磁盘缓存
     const now = Date.now();
-    const expiredKeys: string[] = [];
-
-    for (const [key, value] of this.cache.entries()) {
-      if (now - value.timestamp > maxAge) {
-        expiredKeys.push(key);
-      }
-    }
-
-    for (const key of expiredKeys) {
-      this.cache.delete(key);
-    }
-
-    // 清理磁盘上的过期文件
     const files = await fs.readdir(this.thumbnailPath);
+
     for (const file of files) {
       const filePath = join(this.thumbnailPath, file);
       const stats = await fs.stat(filePath);
@@ -320,14 +304,16 @@ export class ImagesService implements OnModuleInit {
    * 获取缓存统计信息
    */
   getCacheStats(): {
-    size: number;
+    itemCount: number;
+    maxItems: number;
+    currentSize: number;
     maxSize: number;
-    hitRate: number;
   } {
     return {
-      size: this.cache.size,
-      maxSize: this.cacheSize,
-      hitRate: 0, // 需要实现命中率统计
+      itemCount: this.cache.size,
+      maxItems: this.cache.max,
+      currentSize: this.cache.calculatedSize || 0,
+      maxSize: this.cache.maxSize || 0,
     };
   }
 }

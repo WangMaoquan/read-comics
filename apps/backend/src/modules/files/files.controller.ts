@@ -86,12 +86,15 @@ export class FilesController {
         },
       }),
       fileFilter: (req, file, cb) => {
-        const supportedFormats = ['.cbz', '.cbr', '.zip', '.rar'];
+        const supportedFormats = ['.cbz', '.zip'];
         const ext = extname(file.originalname).toLowerCase();
         if (supportedFormats.includes(ext)) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('不支持的文件格式'), false);
+          cb(
+            new BadRequestException('不支持的文件格式。仅支持 ZIP/CBZ 格式。'),
+            false,
+          );
         }
       },
       limits: {
@@ -327,19 +330,9 @@ export class FilesController {
           description: 'Comic Book ZIP format',
         },
         {
-          extension: '.cbr',
-          format: ComicFormat.CBR,
-          description: 'Comic Book RAR format',
-        },
-        {
           extension: '.zip',
           format: ComicFormat.CBZ,
           description: 'ZIP archive format',
-        },
-        {
-          extension: '.rar',
-          format: ComicFormat.CBR,
-          description: 'RAR archive format',
         },
       ],
     };
