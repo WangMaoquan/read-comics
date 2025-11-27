@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ComicFormat, ComicStatus } from '@read-comics/types';
+import { ComicStatus } from '@read-comics/types';
 import { useComicStore } from './comic';
 
 interface ImportProgress {
@@ -94,6 +94,7 @@ export const useFileStore = defineStore('files', {
                 fileFormat: metadata.format,
                 totalPages: metadata.totalPages,
                 status: ComicStatus.UNREAD,
+                chapters: metadata.chapters,
               }),
             });
 

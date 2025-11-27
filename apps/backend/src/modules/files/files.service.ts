@@ -60,6 +60,7 @@ export class FilesService implements OnModuleInit {
     totalPages: number;
     images: string[];
     format: ComicFormat;
+    chapters: { title: string; pages: string[] }[];
   }> {
     const ext = extname(filePath).toLowerCase();
 
@@ -78,6 +79,7 @@ export class FilesService implements OnModuleInit {
     totalPages: number;
     images: string[];
     format: ComicFormat;
+    chapters: { title: string; pages: string[] }[];
   }> {
     const ext = extname(filePath).toLowerCase();
     const format = this.getComicFormat(ext);
@@ -104,11 +106,91 @@ export class FilesService implements OnModuleInit {
       // 提取文件名作为漫画标题
       const fileName = basename(filePath, extname(filePath));
 
+      // 组织章节结构
+      const chapters: { title: string; pages: string[] }[] = [];
+      const rootImages: string[] = [];
+      const folderMap = new Map<string, string[]>();
+
+      // 计算公共前缀
+      let commonPrefix = '';
+      if (imageFiles.length > 0) {
+        const firstEntry = imageFiles[0].entryName;
+        const parts = firstEntry.split('/');
+        // 移除文件名，只保留目录
+        parts.pop();
+
+        for (let i = 0; i < parts.length; i++) {
+          const prefix = parts.slice(0, i + 1).join('/') + '/';
+          const allMatch = imageFiles.every((f) =>
+            f.entryName.startsWith(prefix),
+          );
+          if (allMatch) {
+            commonPrefix = prefix;
+          } else {
+            break;
+          }
+        }
+      }
+
+      for (const entry of imageFiles) {
+        // 移除公共前缀
+        const relativePath = entry.entryName.slice(commonPrefix.length);
+        const parts = relativePath.split('/');
+
+        if (parts.length > 1) {
+          // 在子文件夹中
+          const folderName = parts[0];
+          if (!folderMap.has(folderName)) {
+            folderMap.set(folderName, []);
+          }
+          folderMap.get(folderName)!.push(entry.entryName);
+        } else {
+          // 在根目录
+          rootImages.push(entry.entryName);
+        }
+      }
+
+      // 如果有根目录图片
+      if (rootImages.length > 0) {
+        // 如果没有子文件夹，说明是扁平结构，每个图片作为一个章节
+        if (folderMap.size === 0) {
+          rootImages.forEach((image, index) => {
+            chapters.push({
+              title: `第 ${index + 1} 话`,
+              pages: [image],
+            });
+          });
+        } else {
+          // 如果有子文件夹，根目录图片归为一个默认章节
+          chapters.push({
+            title: '默认章节',
+            pages: rootImages,
+          });
+        }
+      }
+
+      // 处理子文件夹章节
+      for (const [folderName, pages] of folderMap.entries()) {
+        chapters.push({
+          title: folderName,
+          pages: pages,
+        });
+      }
+
+      // 如果没有识别出任何章节（例如空压缩包或只有根目录但上面逻辑漏了），确保至少有一个
+      if (chapters.length === 0 && imageFiles.length > 0) {
+        chapters.push({
+          title: '默认章节',
+          pages: imageFiles.map((e) => e.entryName),
+        });
+      }
+
       return {
         title: fileName,
         totalPages: imageFiles.length,
-        images: imageFiles.map((entry) => entry.name),
+        images: imageFiles.map((entry) => entry.entryName), // 保持兼容性
         format,
+        chapters,
       };
     } catch (error) {
       console.error('Error parsing archive file:', error);

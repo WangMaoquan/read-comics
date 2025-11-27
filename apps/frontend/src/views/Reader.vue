@@ -2,13 +2,15 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
-  import { ReadingMode } from '@read-comics/types';
+  import { ReadingMode, type Chapter } from '@read-comics/types';
 
   const route = useRoute();
   const router = useRouter();
 
   // 状态管理
   const loading = ref(false);
+  const currentChapter = ref<Chapter | null>(null);
+  const chapters = ref<Chapter[]>([]);
   const images = ref<string[]>([]);
   const currentPage = ref(0);
   const readingMode = ref<ReadingMode>(ReadingMode.SINGLE_PAGE);
@@ -25,6 +27,29 @@
   const progress = computed(() => {
     if (totalPages.value === 0) return 0;
     return Math.round(((currentPage.value + 1) / totalPages.value) * 100);
+  });
+
+  // 计算当前章节索引和是否有下一章
+  const currentChapterIndex = computed(() => {
+    if (!currentChapter.value || chapters.value.length === 0) return -1;
+    return chapters.value.findIndex((ch) => ch.id === currentChapter.value!.id);
+  });
+
+  const hasNextChapter = computed(() => {
+    return (
+      currentChapterIndex.value >= 0 &&
+      currentChapterIndex.value < chapters.value.length - 1
+    );
+  });
+
+  const nextChapter = computed(() => {
+    if (!hasNextChapter.value) return null;
+    return chapters.value[currentChapterIndex.value + 1];
+  });
+
+  // 是否在最后一页
+  const isLastPage = computed(() => {
+    return currentPage.value >= totalPages.value - 1;
   });
 
   // 阅读模式配置
@@ -49,19 +74,47 @@
     },
   ];
 
-  // 模拟加载章节图片
+  // 加载章节列表
+  const loadChapters = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:4399/comics/${comicId.value}/chapters`,
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch chapters');
+      }
+      chapters.value = await response.json();
+    } catch (error) {
+      console.error('Failed to load chapters:', error);
+    }
+  };
+
+  // 加载章节图片
   const loadChapterImages = async () => {
     loading.value = true;
     try {
-      // TODO: 从API加载章节图片
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // 模拟图片数据
-      images.value = Array.from(
-        { length: 30 },
-        (_, i) =>
-          `/comics/${comicId.value}/chapter-${chapterId.value}/page-${i + 1}.jpg`,
+      // 获取章节详情
+      const response = await fetch(
+        `http://localhost:4399/chapters/${chapterId.value}`,
       );
+      if (!response.ok) {
+        throw new Error('Failed to fetch chapter details');
+      }
+
+      const chapter = await response.json();
+      currentChapter.value = chapter;
+
+      // 构建图片 URL 列表
+      if (chapter.pages && chapter.pages.length > 0) {
+        images.value = chapter.pages.map((page: string) => {
+          return `http://localhost:4399/images/view?comicPath=${encodeURIComponent(
+            chapter.imagePath,
+          )}&imagePath=${encodeURIComponent(page)}`;
+        });
+      } else {
+        // Fallback or empty state
+        images.value = [];
+      }
 
       // 恢复阅读进度
       restoreProgress();
@@ -134,6 +187,14 @@
     } else if (currentPage.value < totalPages.value - 1) {
       currentPage.value++;
       saveProgress();
+    }
+  };
+
+  // 跳转到下一章
+  const goToNextChapter = () => {
+    if (nextChapter.value) {
+      saveProgress();
+      router.push(`/reader/${comicId.value}/${nextChapter.value.id}`);
     }
   };
 
@@ -261,9 +322,21 @@
     }
   });
 
+  // 监听路由变化,重新加载章节
+  watch(
+    () => route.params.chapterId,
+    (newChapterId) => {
+      if (newChapterId) {
+        currentPage.value = 0;
+        loadChapterImages();
+      }
+    },
+  );
+
   // 生命周期钩子
-  onMounted(() => {
-    loadChapterImages();
+  onMounted(async () => {
+    await loadChapters();
+    await loadChapterImages();
 
     // 添加键盘和触摸事件监听
     window.addEventListener('keydown', handleKeyDown);
@@ -319,7 +392,7 @@
             <!-- 章节信息 -->
             <div class="text-white">
               <div class="text-sm text-gray-400">
-                第 {{ parseInt(chapterId) }} 话
+                {{ currentChapter?.title }}
               </div>
               <div class="font-medium">
                 {{ currentPage + 1 }} / {{ totalPages }}
@@ -527,10 +600,11 @@
                 <span class="text-gray-300 text-sm">{{ progress }}%</span>
               </div>
 
+              <!-- 下一页或下一章按钮 -->
               <button
+                v-if="!isLastPage"
                 @click="nextPage"
-                :disabled="currentPage >= totalPages - 1"
-                class="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
               >
                 <span>下一页</span>
                 <svg
@@ -546,6 +620,48 @@
                     d="M9 5l7 7-7 7"
                   />
                 </svg>
+              </button>
+
+              <button
+                v-else-if="hasNextChapter"
+                @click="goToNextChapter"
+                class="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors shadow-md hover:shadow-lg"
+              >
+                <span>下一章: {{ nextChapter?.title }}</span>
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+
+              <button
+                v-else
+                @click="goBack"
+                class="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors shadow-md hover:shadow-lg"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <span>已读完</span>
               </button>
             </div>
           </div>
