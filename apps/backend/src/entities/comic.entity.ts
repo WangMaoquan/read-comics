@@ -101,6 +101,10 @@ export class Comic {
   @Column()
   status: ComicStatus;
 
+  @ApiProperty({ description: '是否收藏', example: false })
+  @Column({ default: false })
+  isFavorite: boolean;
+
   @ApiProperty({ description: '章节列表', type: () => Chapter, isArray: true })
   @OneToMany(() => Chapter, (chapter) => chapter.comic)
   chapters: Chapter[];

@@ -77,4 +77,11 @@ export class ComicsController {
   remove(@Param('id') id: string) {
     return this.comicsService.remove(id);
   }
+
+  @Post(':id/favorite')
+  @ApiOperation({ summary: '切换收藏状态' })
+  @ApiResponse({ status: 200, description: '操作成功' })
+  toggleFavorite(@Param('id') id: string) {
+    return this.comicsService.toggleFavorite(id);
+  }
 }

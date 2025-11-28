@@ -18,6 +18,7 @@ export interface Comic {
   tags?: string[];
   rating?: number;
   status: ComicStatus;
+  isFavorite?: boolean;
 }
 
 export interface Chapter {
@@ -28,6 +29,7 @@ export interface Chapter {
   imagePath: string;
   createdAt: Date;
   updatedAt: Date;
+  pages: string[];
 }
 
 export interface ReadingProgress {
@@ -60,7 +62,7 @@ export enum ComicFormat {
   CBR = 'cbr',
   ZIP = 'zip',
   RAR = 'rar',
-  FOLDER = 'folder'
+  FOLDER = 'folder',
 }
 
 export enum ComicStatus {
@@ -68,19 +70,19 @@ export enum ComicStatus {
   READING = 'reading',
   COMPLETED = 'completed',
   ON_HOLD = 'on_hold',
-  DROPPED = 'dropped'
+  DROPPED = 'dropped',
 }
 
 export enum ReadingMode {
   SINGLE_PAGE = 'single_page',
   DOUBLE_PAGE = 'double_page',
-  CONTINUOUS_SCROLL = 'continuous_scroll'
+  CONTINUOUS_SCROLL = 'continuous_scroll',
 }
 
 export enum Theme {
   LIGHT = 'light',
   DARK = 'dark',
-  AUTO = 'auto'
+  AUTO = 'auto',
 }
 
 export interface ComicFilter {
@@ -101,7 +103,7 @@ export enum ComicSortBy {
   UPDATED_AT = 'updated_at',
   LAST_READ_AT = 'last_read_at',
   RATING = 'rating',
-  FILE_SIZE = 'file_size'
+  FILE_SIZE = 'file_size',
 }
 
 export interface ComicStats {

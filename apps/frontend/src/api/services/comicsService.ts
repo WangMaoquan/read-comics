@@ -50,4 +50,11 @@ export const comicsService = {
     }
     return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
   },
+
+  /**
+   * 切换收藏状态
+   */
+  async toggleFavorite(id: string): Promise<Comic> {
+    return apiClient.post<Comic>(`${API_ENDPOINTS.comics.detail(id)}/favorite`);
+  },
 };

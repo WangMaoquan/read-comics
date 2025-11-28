@@ -80,6 +80,23 @@
     router.push(`/comic/${comicId}`);
   };
 
+  // 切换收藏状态
+  const toggleFavorite = async (comic: Comic) => {
+    try {
+      const updatedComic = await comicsService.toggleFavorite(comic.id);
+      // 更新本地状态
+      const index = comicStore.comics.findIndex((c) => c.id === comic.id);
+      if (index !== -1) {
+        // 使用 patch 更新单个漫画
+        const newComics = [...comicStore.comics];
+        newComics[index] = updatedComic;
+        comicStore.$patch({ comics: newComics });
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
+
   // 导入漫画
   const importComics = async () => {
     await fileStore.importComics();
@@ -476,8 +493,29 @@
             />
             <!-- 遮罩层 -->
             <div
-              class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            ></div>
+              class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-start justify-end p-2"
+            >
+              <button
+                @click.stop="toggleFavorite(comic)"
+                class="p-2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm transition-colors text-white"
+                title="收藏"
+              >
+                <svg
+                  class="w-5 h-5 transition-colors duration-300"
+                  :class="{ 'fill-red-500 text-red-500': comic.isFavorite }"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+              </button>
+            </div>
 
             <!-- 进度条 -->
             <div

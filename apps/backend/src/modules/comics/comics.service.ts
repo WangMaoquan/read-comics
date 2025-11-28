@@ -112,6 +112,15 @@ export class ComicsService {
     await this.comicRepository.delete(id);
   }
 
+  async toggleFavorite(id: string): Promise<Comic> {
+    const comic = await this.findOne(id);
+    if (!comic) {
+      throw new Error("Comic not found");
+    }
+    comic.isFavorite = !comic.isFavorite;
+    return await this.comicRepository.save(comic);
+  }
+
   async count(): Promise<number> {
     return await this.comicRepository.count();
   }
