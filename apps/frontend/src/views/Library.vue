@@ -22,6 +22,7 @@
   // 使用防抖，延迟 300ms
   const debouncedSearchQuery = refDebounced(searchQuery, 300);
   const sortBy = ref<'title' | 'date' | 'progress'>('date');
+  const showFavoritesOnly = ref(false);
 
   // 过滤和排序
   const filteredComics = computed(() => {
@@ -31,7 +32,11 @@
   });
 
   // 加载数据
-  const loadComics = async (search?: string, sort?: string) => {
+  const loadComics = async (
+    search?: string,
+    sort?: string,
+    favoritesOnly?: boolean,
+  ) => {
     loading.value = true;
     try {
       // 将前端排序选项映射到后端字段
@@ -42,6 +47,7 @@
       };
       const backendSortBy = sort ? sortMapping[sort] : sortMapping['date'];
       const sortOrder: 'asc' | 'desc' = sort === 'title' ? 'asc' : 'desc';
+      const isFavorite = favoritesOnly ? true : undefined;
 
       if (search && search.trim()) {
         // 如果有搜索词，调用搜索 API
@@ -49,6 +55,7 @@
           search,
           backendSortBy,
           sortOrder,
+          isFavorite,
         );
         // 直接更新 store 的 comics
         comicStore.$patch({ comics: searchResults });
@@ -57,6 +64,7 @@
         const allComics = await comicsService.getComics(
           backendSortBy,
           sortOrder,
+          isFavorite,
         );
         comicStore.$patch({ comics: allComics });
       }
@@ -67,12 +75,17 @@
 
   // 监听防抖后的搜索词变化
   watch(debouncedSearchQuery, (newQuery) => {
-    loadComics(newQuery, sortBy.value);
+    loadComics(newQuery, sortBy.value, showFavoritesOnly.value);
   });
 
   // 监听排序变化
   watch(sortBy, (newSort) => {
-    loadComics(debouncedSearchQuery.value, newSort);
+    loadComics(debouncedSearchQuery.value, newSort, showFavoritesOnly.value);
+  });
+
+  // 监听收藏过滤变化
+  watch(showFavoritesOnly, (newVal) => {
+    loadComics(debouncedSearchQuery.value, sortBy.value, newVal);
   });
 
   // 导航到漫画详情

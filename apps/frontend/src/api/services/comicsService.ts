@@ -12,11 +12,15 @@ export const comicsService = {
   async getComics(
     sortBy?: string,
     sortOrder: 'asc' | 'desc' = 'desc',
+    isFavorite?: boolean,
   ): Promise<Comic[]> {
-    const params: Record<string, string> = {};
+    const params: Record<string, string | boolean> = {};
     if (sortBy) {
       params.sortBy = sortBy;
       params.sortOrder = sortOrder;
+    }
+    if (isFavorite !== undefined) {
+      params.isFavorite = isFavorite;
     }
     return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
   },
@@ -42,11 +46,15 @@ export const comicsService = {
     query: string,
     sortBy?: string,
     sortOrder: 'asc' | 'desc' = 'desc',
+    isFavorite?: boolean,
   ): Promise<Comic[]> {
-    const params: Record<string, string> = { search: query };
+    const params: Record<string, string | boolean> = { search: query };
     if (sortBy) {
       params.sortBy = sortBy;
       params.sortOrder = sortOrder;
+    }
+    if (isFavorite !== undefined) {
+      params.isFavorite = isFavorite;
     }
     return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
   },

@@ -86,6 +86,12 @@ export class ComicsService {
       });
     }
 
+    if (filter?.isFavorite !== undefined) {
+      queryBuilder.andWhere("comic.isFavorite = :isFavorite", {
+        isFavorite: filter.isFavorite,
+      });
+    }
+
     if (filter?.sortBy) {
       const sortOrder = filter.sortOrder === 'desc' ? 'DESC' : 'ASC';
       queryBuilder.orderBy(`comic.${filter.sortBy}`, sortOrder);

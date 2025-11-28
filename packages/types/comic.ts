@@ -94,6 +94,7 @@ export interface ComicFilter {
   rating?: number;
   sortBy?: ComicSortBy;
   sortOrder?: 'asc' | 'desc';
+  isFavorite?: boolean;
 }
 
 export enum ComicSortBy {
