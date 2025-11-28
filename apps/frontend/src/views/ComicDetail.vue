@@ -5,6 +5,7 @@
   import type { Comic, Chapter } from '@read-comics/types';
   import { ComicStatus, ComicFormat } from '@read-comics/types';
   import { useComicStore } from '../stores/comic';
+  import { comicsService } from '../api/services';
 
   const route = useRoute();
   const router = useRouter();
@@ -30,6 +31,28 @@
     ).length;
     return Math.round((readChapters / chapters.value.length) * 100);
   });
+
+  // 切换收藏状态
+  const toggleFavorite = async () => {
+    if (!comic.value) return;
+    try {
+      const updatedComic = await comicsService.toggleFavorite(comic.value.id);
+      // 更新 store 中的当前漫画
+      comicStore.$patch({ currentComic: updatedComic });
+
+      // 如果在列表中也存在，更新列表
+      const index = comicStore.comics.findIndex(
+        (c) => c.id === updatedComic.id,
+      );
+      if (index !== -1) {
+        const newComics = [...comicStore.comics];
+        newComics[index] = updatedComic;
+        comicStore.$patch({ comics: newComics });
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
 
   // 加载漫画详情
   const loadComicDetails = async () => {
@@ -287,10 +310,12 @@
                   <span>开始阅读</span>
                 </button>
                 <button
+                  @click="toggleFavorite"
                   class="w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm hover:shadow-md gap-2"
                 >
                   <svg
-                    class="w-5 h-5"
+                    class="w-5 h-5 transition-colors duration-300"
+                    :class="{ 'fill-red-500 text-red-500': comic.isFavorite }"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -302,7 +327,9 @@
                       d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                     />
                   </svg>
-                  <span>添加到收藏</span>
+                  <span>{{
+                    comic.isFavorite ? '取消收藏' : '添加到收藏'
+                  }}</span>
                 </button>
               </div>
             </div>
