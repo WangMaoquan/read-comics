@@ -413,32 +413,55 @@
             </div>
           </div>
 
-          <!-- 排序选择 -->
-          <div class="relative">
-            <select
-              v-model="sortBy"
-              class="block w-full sm:w-48 pl-3 pr-10 py-2 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all duration-200 appearance-none cursor-pointer"
+          <!-- 右侧控制区 -->
+          <div class="flex items-center gap-4">
+            <!-- 收藏过滤器 -->
+            <label
+              class="flex items-center gap-2 cursor-pointer select-none group"
             >
-              <option value="date">按添加时间排序</option>
-              <option value="title">按标题排序</option>
-              <option value="progress">按阅读进度排序</option>
-            </select>
-            <div
-              class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"
-            >
-              <svg
-                class="w-4 h-4 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
+              <div class="relative">
+                <input
+                  type="checkbox"
+                  v-model="showFavoritesOnly"
+                  class="sr-only peer"
                 />
-              </svg>
+                <div
+                  class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                ></div>
+              </div>
+              <span
+                class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                >只看收藏</span
+              >
+            </label>
+
+            <!-- 排序选择 -->
+            <div class="relative">
+              <select
+                v-model="sortBy"
+                class="block w-full sm:w-48 pl-3 pr-10 py-2 border-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all duration-200 appearance-none cursor-pointer"
+              >
+                <option value="date">按添加时间排序</option>
+                <option value="title">按标题排序</option>
+                <option value="progress">按阅读进度排序</option>
+              </select>
+              <div
+                class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"
+              >
+                <svg
+                  class="w-4 h-4 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
