@@ -44,9 +44,17 @@
   const showControls = ref(true);
   const isScrolling = ref(false);
 
-  // 响应式窗口大小检测（640px 是 Tailwind 的 sm 断点）
+  // 响应式移动端检测（结合窗口大小和设备类型）
   const { width } = useWindowSize();
-  const isMobile = computed(() => width.value < 640);
+
+  // 检测设备类型
+  const isMobileDevice =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+
+  // 组合检测：移动设备 或 窗口宽度小于 640px
+  const isMobile = computed(() => isMobileDevice || width.value < 640);
 
   // 监听窗口大小变化，自动切换缩放模式
   watch(isMobile, (newIsMobile) => {
