@@ -116,11 +116,11 @@ export class FilesService implements OnModuleInit {
 
       const imageFiles = allFiles
         .filter((file) => {
-          const ext = file.toLowerCase().split('.').pop();
+          const ext = file.originName.toLowerCase().split('.').pop();
           return ext && imageExtensions.includes(`.${ext}`);
         })
         .sort((a, b) => {
-          return a.localeCompare(b, undefined, {
+          return a.decodeName.localeCompare(b.decodeName, undefined, {
             numeric: true,
             sensitivity: 'base',
           });
@@ -138,13 +138,15 @@ export class FilesService implements OnModuleInit {
       let commonPrefix = '';
       if (imageFiles.length > 0) {
         const firstEntry = imageFiles[0];
-        const parts = firstEntry.split('/');
+        const parts = firstEntry.originName.split('/');
         // 移除文件名，只保留目录
         parts.pop();
 
         for (let i = 0; i < parts.length; i++) {
           const prefix = parts.slice(0, i + 1).join('/') + '/';
-          const allMatch = imageFiles.every((f) => f.startsWith(prefix));
+          const allMatch = imageFiles.every((f) =>
+            f.originName.startsWith(prefix),
+          );
           if (allMatch) {
             commonPrefix = prefix;
           } else {
@@ -155,7 +157,7 @@ export class FilesService implements OnModuleInit {
 
       for (const file of imageFiles) {
         // 移除公共前缀
-        const relativePath = file.slice(commonPrefix.length);
+        const relativePath = file.decodeName.slice(commonPrefix.length);
         const parts = relativePath.split('/');
 
         if (parts.length > 1) {
@@ -164,10 +166,10 @@ export class FilesService implements OnModuleInit {
           if (!folderMap.has(folderName)) {
             folderMap.set(folderName, []);
           }
-          folderMap.get(folderName)!.push(file);
+          folderMap.get(folderName)!.push(file.originName);
         } else {
           // 在根目录
-          rootImages.push(file);
+          rootImages.push(file.originName);
         }
       }
 
@@ -202,14 +204,14 @@ export class FilesService implements OnModuleInit {
       if (chapters.length === 0 && imageFiles.length > 0) {
         chapters.push({
           title: '默认章节',
-          pages: imageFiles,
+          pages: imageFiles.map((f) => f.originName),
         });
       }
 
       return {
         title: fileName,
         totalPages: imageFiles.length,
-        images: imageFiles,
+        images: imageFiles.map((f) => f.originName),
         format,
         chapters,
       };

@@ -105,37 +105,47 @@ export class ZipUtilsService {
    * @param zipPath ZIP 文件路径
    * @returns 文件路径数组
    */
-  async listFilesInZip(zipPath: string): Promise<string[]> {
+  async listFilesInZip(
+    zipPath: string,
+  ): Promise<{ originName: string; decodeName: string }[]> {
     try {
       const zipfile = await openZip(zipPath, { lazyEntries: true });
 
-      return new Promise<string[]>((resolve, reject) => {
-        const files: string[] = [];
+      return new Promise<{ originName: string; decodeName: string }[]>(
+        (resolve, reject) => {
+          const files: { originName: string; decodeName: string }[] = [];
 
-        zipfile.on('entry', (entry: yauzl.Entry) => {
-          const entryName = this.decodeFileName(entry.fileName);
-          // 只列出文件，不包括目录
-          if (!entryName.endsWith('/')) {
-            files.push(entryName);
-          }
+          zipfile.on('entry', (entry: yauzl.Entry) => {
+            // @ts-ignore 只有 fileNameRaw 属性能 获取到原本的 文件 buffer
+            const fileNameRaw = entry.fileNameRaw as Buffer;
+            const originName = entry.fileName;
+            const decodeName = this.decodeFileName(fileNameRaw);
+            // 只列出文件，不包括目录
+            if (!decodeName.endsWith('/')) {
+              files.push({
+                originName,
+                decodeName,
+              });
+            }
+            zipfile.readEntry();
+          });
+
+          zipfile.on('end', () => {
+            zipfile.close();
+            resolve(files);
+          });
+
+          zipfile.on('error', (error) => {
+            reject(
+              new InternalServerErrorException(
+                `Failed to read ZIP file: ${error.message}`,
+              ),
+            );
+          });
+
           zipfile.readEntry();
-        });
-
-        zipfile.on('end', () => {
-          zipfile.close();
-          resolve(files);
-        });
-
-        zipfile.on('error', (error) => {
-          reject(
-            new InternalServerErrorException(
-              `Failed to read ZIP file: ${error.message}`,
-            ),
-          );
-        });
-
-        zipfile.readEntry();
-      });
+        },
+      );
     } catch (error) {
       throw new InternalServerErrorException(
         `Failed to open ZIP file: ${error.message}`,
@@ -159,10 +169,10 @@ export class ZipUtilsService {
       '.webp',
       '.bmp',
     ],
-  ): Promise<string[]> {
+  ): Promise<{ originName: string; decodeName: string }[]> {
     const allFiles = await this.listFilesInZip(zipPath);
     return allFiles.filter((file) => {
-      const ext = file.toLowerCase().split('.').pop();
+      const ext = file.originName.toLowerCase().split('.').pop();
       return ext && imageExtensions.includes(`.${ext}`);
     });
   }
@@ -175,7 +185,9 @@ export class ZipUtilsService {
    */
   async fileExistsInZip(zipPath: string, filePath: string): Promise<boolean> {
     try {
-      const files = await this.listFilesInZip(zipPath);
+      const files = (await this.listFilesInZip(zipPath)).map(
+        (file) => file.originName,
+      );
       return files.includes(filePath);
     } catch {
       return false;
