@@ -1,12 +1,13 @@
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
+  import { ref, computed, onMounted, watch } from 'vue';
   import { useRouter } from 'vue-router';
+  import { refDebounced } from '@vueuse/core';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import type { Comic } from '@read-comics/types';
   import { ComicStatus } from '@read-comics/types';
   import { useFileStore } from '../stores/files';
   import { useComicStore } from '../stores/comic';
-  import { filesService } from '../api/services';
+  import { filesService, comicsService } from '../api/services';
   import { validateFile } from '../utils/formatValidation';
 
   const router = useRouter();
@@ -18,22 +19,17 @@
   const comics = computed(() => comicStore.comics);
   const viewMode = ref<'grid' | 'list'>('grid');
   const searchQuery = ref('');
+  // 使用防抖，延迟 300ms
+  const debouncedSearchQuery = refDebounced(searchQuery, 300);
   const sortBy = ref<'title' | 'date' | 'progress'>('date');
 
   // 过滤和排序
   const filteredComics = computed(() => {
     let result = [...comics.value];
 
-    // 搜索过滤
-    if (searchQuery.value.trim()) {
-      const query = searchQuery.value.toLowerCase().trim();
-      result = result.filter(
-        (comic) =>
-          comic.title.toLowerCase().includes(query) ||
-          comic.author?.toLowerCase().includes(query) ||
-          comic.tags?.some((tag) => tag.toLowerCase().includes(query)),
-      );
-    }
+    // 搜索过滤 - 现在由后端处理，这里只做前端排序
+    // 如果有搜索词，后端已经返回过滤后的结果
+    // 如果没有搜索词，使用所有漫画
 
     // 排序
     result.sort((a, b) => {
@@ -58,14 +54,27 @@
   });
 
   // 加载数据
-  const loadComics = async () => {
+  const loadComics = async (search?: string) => {
     loading.value = true;
     try {
-      await comicStore.fetchComics();
+      if (search && search.trim()) {
+        // 如果有搜索词，调用搜索 API
+        const searchResults = await comicsService.searchComics(search);
+        // 直接更新 store 的 comics
+        comicStore.$patch({ comics: searchResults });
+      } else {
+        // 否则加载所有漫画
+        await comicStore.fetchComics();
+      }
     } finally {
       loading.value = false;
     }
   };
+
+  // 监听防抖后的搜索词变化
+  watch(debouncedSearchQuery, (newQuery) => {
+    loadComics(newQuery);
+  });
 
   // 导航到漫画详情
   const goToComicDetail = (comicId: string) => {
@@ -146,6 +155,19 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
               共 {{ comics.length }} 部漫画
             </p>
+          </div>
+
+          <!-- 搜索框 -->
+          <div
+            class="flex items-center gap-2 animate-fade-in"
+            style="animation-delay: 0.05s"
+          >
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索漫画..."
+              class="form-input bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
 
           <!-- 操作按钮 -->

@@ -26,4 +26,13 @@ export const comicsService = {
   async getComicChapters(comicId: string): Promise<Chapter[]> {
     return apiClient.get<Chapter[]>(API_ENDPOINTS.comics.chapters(comicId));
   },
+
+  /**
+   * 搜索漫画
+   */
+  async searchComics(query: string): Promise<Comic[]> {
+    return apiClient.get<Comic[]>(
+      `${API_ENDPOINTS.comics.list}?search=${encodeURIComponent(query)}`,
+    );
+  },
 };
