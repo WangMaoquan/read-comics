@@ -10,6 +10,7 @@ import { watch, FSWatcher } from 'chokidar';
 import { ComicFormat, ComicStatus } from '@read-comics/types';
 import { ZipUtilsService } from '../../common/utils/zip-utils.service';
 
+@Injectable()
 export class FilesService implements OnModuleInit {
   private comicsPath: string;
   private watchers: Map<string, FSWatcher> = new Map();
