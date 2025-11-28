@@ -9,8 +9,16 @@ export const comicsService = {
   /**
    * 获取漫画列表
    */
-  async getComics(): Promise<Comic[]> {
-    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list);
+  async getComics(
+    sortBy?: string,
+    sortOrder: 'asc' | 'desc' = 'desc',
+  ): Promise<Comic[]> {
+    const params: Record<string, string> = {};
+    if (sortBy) {
+      params.sortBy = sortBy;
+      params.sortOrder = sortOrder;
+    }
+    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
   },
 
   /**
@@ -30,9 +38,16 @@ export const comicsService = {
   /**
    * 搜索漫画
    */
-  async searchComics(query: string): Promise<Comic[]> {
-    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, {
-      params: { search: query },
-    });
+  async searchComics(
+    query: string,
+    sortBy?: string,
+    sortOrder: 'asc' | 'desc' = 'desc',
+  ): Promise<Comic[]> {
+    const params: Record<string, string> = { search: query };
+    if (sortBy) {
+      params.sortBy = sortBy;
+      params.sortOrder = sortOrder;
+    }
+    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
   },
 };

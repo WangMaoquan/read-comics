@@ -25,46 +25,40 @@
 
   // 过滤和排序
   const filteredComics = computed(() => {
-    let result = [...comics.value];
-
-    // 搜索过滤 - 现在由后端处理，这里只做前端排序
-    // 如果有搜索词，后端已经返回过滤后的结果
-    // 如果没有搜索词，使用所有漫画
-
-    // 排序
-    result.sort((a, b) => {
-      switch (sortBy.value) {
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'date':
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        case 'progress':
-          return (
-            (b.status === 'completed' ? 100 : b.lastReadAt ? 50 : 0) -
-            (a.status === 'completed' ? 100 : a.lastReadAt ? 50 : 0)
-          );
-        default:
-          return 0;
-      }
-    });
-
-    return result;
+    // 现在搜索和排序都由后端处理
+    // 这里只需要返回 store 中的漫画列表
+    return comics.value;
   });
 
   // 加载数据
-  const loadComics = async (search?: string) => {
+  const loadComics = async (search?: string, sort?: string) => {
     loading.value = true;
     try {
+      // 将前端排序选项映射到后端字段
+      const sortMapping: Record<string, string> = {
+        title: 'title',
+        date: 'createdAt',
+        progress: 'lastReadAt',
+      };
+      const backendSortBy = sort ? sortMapping[sort] : sortMapping['date'];
+      const sortOrder: 'asc' | 'desc' = sort === 'title' ? 'asc' : 'desc';
+
       if (search && search.trim()) {
         // 如果有搜索词，调用搜索 API
-        const searchResults = await comicsService.searchComics(search);
+        const searchResults = await comicsService.searchComics(
+          search,
+          backendSortBy,
+          sortOrder,
+        );
         // 直接更新 store 的 comics
         comicStore.$patch({ comics: searchResults });
       } else {
-        // 否则加载所有漫画
-        await comicStore.fetchComics();
+        // 否则加载所有漫画，支持排序
+        const allComics = await comicsService.getComics(
+          backendSortBy,
+          sortOrder,
+        );
+        comicStore.$patch({ comics: allComics });
       }
     } finally {
       loading.value = false;
@@ -73,7 +67,12 @@
 
   // 监听防抖后的搜索词变化
   watch(debouncedSearchQuery, (newQuery) => {
-    loadComics(newQuery);
+    loadComics(newQuery, sortBy.value);
+  });
+
+  // 监听排序变化
+  watch(sortBy, (newSort) => {
+    loadComics(debouncedSearchQuery.value, newSort);
   });
 
   // 导航到漫画详情
@@ -155,19 +154,6 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
               共 {{ comics.length }} 部漫画
             </p>
-          </div>
-
-          <!-- 搜索框 -->
-          <div
-            class="flex items-center gap-2 animate-fade-in"
-            style="animation-delay: 0.05s"
-          >
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="搜索漫画..."
-              class="form-input bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
           </div>
 
           <!-- 操作按钮 -->
