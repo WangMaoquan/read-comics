@@ -424,17 +424,17 @@
         showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
       ]"
     >
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <!-- 左侧：返回按钮 -->
-          <div class="flex items-center space-x-4">
+      <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+        <div class="flex justify-between items-center h-14 sm:h-16">
+          <!-- 左侧：返回按钮 + 信息 -->
+          <div class="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
             <button
               @click="goBack"
-              class="text-gray-300 hover:text-white transition-colors"
+              class="text-gray-300 hover:text-white transition-colors flex-shrink-0"
               title="返回"
             >
               <svg
-                class="w-6 h-6"
+                class="w-5 h-5 sm:w-6 sm:h-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -449,44 +449,57 @@
             </button>
 
             <!-- 章节信息 -->
-            <div class="text-white">
-              <div class="text-sm text-gray-400">
-                {{ currentChapter?.title }}
+            <div class="text-white min-w-0 flex-1">
+              <!-- 小屏只显示页码 -->
+              <div class="sm:hidden">
+                <div class="font-medium text-sm">
+                  {{ currentPage + 1 }} / {{ totalPages }}
+                </div>
               </div>
-              <div class="font-medium">
-                {{ currentPage + 1 }} / {{ totalPages }}
+              <!-- 大屏显示完整信息 -->
+              <div class="hidden sm:block">
+                <div class="text-xs sm:text-sm text-gray-400 truncate">
+                  {{ currentChapter?.title }}
+                </div>
+                <div class="font-medium text-sm">
+                  {{ currentPage + 1 }} / {{ totalPages }}
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 右侧：操作按钮 -->
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             <!-- 阅读模式切换 -->
-            <div class="flex items-center space-x-1 bg-gray-700 rounded-lg p-1">
+            <div
+              class="flex items-center space-x-0.5 sm:space-x-1 bg-gray-700 rounded-lg p-0.5 sm:p-1"
+            >
               <button
                 v-for="mode in readingModes"
                 :key="mode.value"
                 @click="changeReadingMode(mode.value)"
                 :class="[
-                  'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                  'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                   readingMode === mode.value
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-300 hover:text-white',
                 ]"
                 :title="mode.description"
               >
-                {{ mode.label }}
+                <span class="hidden sm:inline">{{ mode.label }}</span>
+                <!-- 小屏只显示首字 -->
+                <span class="sm:hidden">{{ mode.label.charAt(0) }}</span>
               </button>
             </div>
 
             <!-- 设置按钮 -->
             <button
               @click="toggleControls"
-              class="text-gray-300 hover:text-white transition-colors"
-              title="设置"
+              class="text-gray-300 hover:text-white transition-colors p-1 flex-shrink-0"
+              title="隐藏/显示控制栏"
             >
               <svg
-                class="w-6 h-6"
+                class="w-5 h-5 sm:w-6 sm:h-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -624,12 +637,12 @@
         <div
           class="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700"
         >
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
+          <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4">
+            <div class="flex items-center justify-between gap-2">
               <button
                 @click="previousPage"
                 :disabled="currentPage === 0"
-                class="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
               >
                 <svg
                   class="w-4 h-4"
@@ -644,30 +657,34 @@
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-                <span>上一页</span>
+                <span class="hidden sm:inline">上一页</span>
               </button>
 
-              <div class="flex items-center space-x-4">
+              <div
+                class="flex items-center space-x-2 sm:space-x-4 flex-1 justify-center min-w-0"
+              >
                 <!-- 进度条 -->
                 <div class="flex-1 max-w-xs">
-                  <div class="w-full bg-gray-600 rounded-full h-2">
+                  <div class="w-full bg-gray-600 rounded-full h-1.5 sm:h-2">
                     <div
-                      class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      class="bg-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-300"
                       :style="{ width: `${progress}%` }"
                     />
                   </div>
                 </div>
                 <!-- 进度百分比 -->
-                <span class="text-gray-300 text-sm">{{ progress }}%</span>
+                <span class="text-gray-300 text-xs sm:text-sm whitespace-nowrap"
+                  >{{ progress }}%</span
+                >
               </div>
 
               <!-- 下一页或下一章按钮 -->
               <button
                 v-if="!isLastPage"
                 @click="nextPage"
-                class="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+                class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-xs sm:text-sm"
               >
-                <span>下一页</span>
+                <span class="hidden sm:inline">下一页</span>
                 <svg
                   class="w-4 h-4"
                   fill="none"
@@ -686,9 +703,10 @@
               <button
                 v-else-if="hasNextChapter"
                 @click="goToNextChapter"
-                class="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors shadow-md hover:shadow-lg"
+                class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-xs sm:text-sm whitespace-nowrap"
               >
-                <span>下一章: {{ nextChapter?.title }}</span>
+                <span class="hidden xs:inline">下一章</span>
+                <span class="xs:hidden">下一章</span>
                 <svg
                   class="w-4 h-4"
                   fill="none"
@@ -704,26 +722,12 @@
                 </svg>
               </button>
 
-              <button
+              <div
                 v-else
-                @click="goBack"
-                class="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors shadow-md hover:shadow-lg"
+                class="flex items-center px-2 sm:px-4 py-2 text-gray-400 text-xs sm:text-sm"
               >
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span>已读完</span>
-              </button>
+                已完成
+              </div>
             </div>
           </div>
         </div>

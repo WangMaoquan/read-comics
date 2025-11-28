@@ -87,8 +87,8 @@ export class ComicsService {
     }
 
     if (filter?.isFavorite !== undefined) {
-      queryBuilder.andWhere("comic.isFavorite = :isFavorite", {
-        isFavorite: filter.isFavorite,
+      queryBuilder.andWhere('comic.isFavorite = :isFavorite', {
+        isFavorite: filter.isFavorite ? 1 : 0,
       });
     }
 
@@ -121,7 +121,7 @@ export class ComicsService {
   async toggleFavorite(id: string): Promise<Comic> {
     const comic = await this.findOne(id);
     if (!comic) {
-      throw new Error("Comic not found");
+      throw new Error('Comic not found');
     }
     comic.isFavorite = !comic.isFavorite;
     return await this.comicRepository.save(comic);
