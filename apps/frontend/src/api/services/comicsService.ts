@@ -31,8 +31,8 @@ export const comicsService = {
    * 搜索漫画
    */
   async searchComics(query: string): Promise<Comic[]> {
-    return apiClient.get<Comic[]>(
-      `${API_ENDPOINTS.comics.list}?search=${encodeURIComponent(query)}`,
-    );
+    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, {
+      params: { search: query },
+    });
   },
 };
