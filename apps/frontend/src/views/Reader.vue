@@ -43,6 +43,13 @@
   const showControls = ref(true);
   const isScrolling = ref(false);
 
+  // 检测是否为移动设备
+  const isMobile = computed(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+  });
+
   // 监听 store 中的 readingMode 变化
   watch(storedReadingMode, (newMode) => {
     readingMode.value = mapReadingMode(newMode);
@@ -734,10 +741,10 @@
       </div>
     </main>
 
-    <!-- 快捷键提示 -->
+    <!-- 快捷键提示 (仅PC端显示) -->
     <div
-      v-if="showControls"
-      class="fixed top-20 right-4 bg-gray-800 border border-gray-700 rounded-lg p-4 text-sm text-gray-300 z-40"
+      v-if="showControls && !isMobile"
+      class="fixed top-20 right-4 bg-gray-800 border border-gray-700 rounded-lg p-4 text-sm text-gray-300 z-40 hidden sm:block"
     >
       <div class="font-medium mb-2">快捷键:</div>
       <div class="space-y-1 text-xs">
