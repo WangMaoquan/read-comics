@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@config "../tailwind.config.js";
 
 /* ========================================
    设计系统 - CSS 变量
@@ -81,6 +82,13 @@
     radial-gradient(at 80% 100%, rgba(118, 75, 162, 0.3) 0px, transparent 50%);
 }
 
+.dark .gradient-mesh {
+  opacity: 0.15;
+}
+
+/* ========================================
+   玻璃态效果
+   ======================================== */
 /* ========================================
    玻璃态效果
    ======================================== */
@@ -91,10 +99,8 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.glass-dark {
+.dark .glass {
   background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -106,6 +112,13 @@
   box-shadow: var(--shadow-lg);
 }
 
+.dark .glass-card {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Legacy support or alias if needed, but better to use .glass-card everywhere */
 .glass-card-dark {
   background: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(12px);
@@ -237,6 +250,16 @@
   transform: translateY(-2px);
 }
 
+.dark .btn-secondary {
+  background: rgba(30, 41, 59, 0.9);
+  color: #93c5fd; /* lighter blue for dark mode */
+  border-color: #60a5fa;
+}
+
+.dark .btn-secondary:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--color-text-primary-light);
@@ -272,6 +295,12 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   transition: all var(--transition-base);
+}
+
+.dark .card-glass {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-xl);
 }
 
 .card-glass:hover {
@@ -389,21 +418,22 @@
 /* ========================================
    深色模式
    ======================================== */
-@media (prefers-color-scheme: dark) {
-  .card {
-    background: var(--color-surface-dark);
-    color: var(--color-text-primary-dark);
-  }
+/* ========================================
+   深色模式
+   ======================================== */
+.dark .card {
+  background: var(--color-surface-dark);
+  color: var(--color-text-primary-dark);
+}
 
-  .btn-ghost {
-    color: var(--color-text-primary-dark);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
+.dark .btn-ghost {
+  color: var(--color-text-primary-dark);
+  border-color: rgba(255, 255, 255, 0.2);
+}
 
-  .btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
-  }
+.dark .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* ========================================
@@ -433,4 +463,34 @@
     var(--color-primary-end),
     var(--color-primary-start)
   );
+}
+
+/* ========================================
+   全局深色模式文字适配 (Fallback)
+   ======================================== */
+.dark body {
+  color: var(--color-text-primary-dark);
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: var(--color-text-primary-dark);
+}
+
+.dark p,
+.dark span,
+.dark li {
+  color: var(--color-text-secondary-dark);
+}
+
+/* 确保 text-gradient 在深色模式下依然可见且美观 */
+.dark .text-gradient {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

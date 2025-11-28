@@ -306,25 +306,48 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, watch } from 'vue';
+  import { useUIStore } from '../stores/ui';
+
+  const uiStore = useUIStore();
 
   const readingMode = ref('single');
   const readingDirection = ref('ltr');
   const zoomMode = ref('fit');
-  const theme = ref('light');
+  // Use uiStore.theme directly or sync with it
+  const theme = ref(uiStore.theme);
   const fontSize = ref('medium');
   const autoUpdate = ref(false);
   const comicStoragePath = ref('C:/Comics');
 
+  // Watch for store changes
+  watch(
+    () => uiStore.theme,
+    (newTheme) => {
+      theme.value = newTheme;
+    },
+  );
+
+  // Watch for local changes to update store immediately (optional, or on save)
+  // For better UX, let's update store immediately when theme changes in dropdown
+  watch(theme, (newTheme) => {
+    if (newTheme !== uiStore.theme) {
+      uiStore.setTheme(newTheme as 'light' | 'dark' | 'auto');
+    }
+  });
+
   onMounted(() => {
-    // TODO: Load settings from localStorage
+    // Initialize theme from store
+    theme.value = uiStore.theme;
+
+    // TODO: Load other settings from localStorage
     const savedSettings = localStorage.getItem('appSettings');
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
       readingMode.value = settings.readingMode || 'single';
       readingDirection.value = settings.readingDirection || 'ltr';
       zoomMode.value = settings.zoomMode || 'fit';
-      theme.value = settings.theme || 'light';
+      // theme is handled by uiStore
       fontSize.value = settings.fontSize || 'medium';
       autoUpdate.value = settings.autoUpdate || false;
       comicStoragePath.value = settings.comicStoragePath || 'C:/Comics';
@@ -350,7 +373,7 @@
     readingMode.value = 'single';
     readingDirection.value = 'ltr';
     zoomMode.value = 'fit';
-    theme.value = 'light';
+    uiStore.setTheme('auto'); // Reset theme to auto
     fontSize.value = 'medium';
     autoUpdate.value = false;
     comicStoragePath.value = 'C:/Comics';
@@ -361,12 +384,18 @@
       readingMode: readingMode.value,
       readingDirection: readingDirection.value,
       zoomMode: zoomMode.value,
+      // theme is saved by uiStore separately, but we can keep it here for consistency if needed
+      // but uiStore.theme is the source of truth for the app appearance
       theme: theme.value,
       fontSize: fontSize.value,
       autoUpdate: autoUpdate.value,
       comicStoragePath: comicStoragePath.value,
     };
     localStorage.setItem('appSettings', JSON.stringify(settings));
+
+    // Ensure theme is applied (already done by watch, but good to be sure)
+    uiStore.setTheme(theme.value as 'light' | 'dark' | 'auto');
+
     alert('设置已保存');
   };
 </script>

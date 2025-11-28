@@ -1,29 +1,49 @@
 <script setup lang="ts">
   import { computed } from 'vue';
   import { useRoute } from 'vue-router';
+  import { useUIStore } from '../stores/ui';
 
   const route = useRoute();
+  const uiStore = useUIStore();
 
   // 根据路由决定是否显示顶部导航栏
   const showTopNav = computed(() => {
     return !['/reader', '/settings'].includes(route.path);
   });
 
-  console.log(route.path);
-
   const readerBgColor = computed(() =>
     route.path.includes('/reader') ? 'bg-gray-900' : '',
   );
+
+  const toggleTheme = () => {
+    const modes: ('light' | 'dark' | 'auto')[] = ['light', 'dark', 'auto'];
+    const currentIndex = modes.indexOf(uiStore.theme);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    uiStore.setTheme(modes[nextIndex]);
+  };
+
+  const themeTitle = computed(() => {
+    switch (uiStore.theme) {
+      case 'light':
+        return '当前：浅色模式';
+      case 'dark':
+        return '当前：深色模式';
+      case 'auto':
+        return '当前：跟随系统';
+      default:
+        return '切换主题';
+    }
+  });
 </script>
 
 <template>
   <div
-    class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300"
+    class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300"
   >
     <!-- 顶部导航栏 -->
     <header
       v-if="showTopNav"
-      class="fixed top-0 left-0 right-0 glass z-40 transition-all duration-300"
+      class="fixed top-0 left-0 right-0 glass bg-white/70 border-b border-gray-200 dark:border-gray-700 z-40 transition-all duration-300"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
@@ -45,6 +65,59 @@
 
           <!-- 右侧操作 -->
           <div class="flex items-center space-x-2">
+            <!-- 主题切换按钮 -->
+            <button
+              @click="toggleTheme"
+              class="p-2 rounded-full text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:text-gray-400 dark:hover:text-yellow-400 dark:hover:bg-gray-800 transition-all duration-300"
+              :title="themeTitle"
+            >
+              <!-- Light Mode Icon -->
+              <svg
+                v-if="uiStore.theme === 'light'"
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+              <!-- Dark Mode Icon -->
+              <svg
+                v-else-if="uiStore.theme === 'dark'"
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                />
+              </svg>
+              <!-- Auto Mode Icon -->
+              <svg
+                v-else
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </button>
+
             <!-- 设置按钮 -->
             <router-link
               to="/settings"

@@ -13,16 +13,18 @@ interface UIState {
     message: string;
     duration?: number;
   }>;
+  mediaQueryList: MediaQueryList | null;
 }
 
 export const useUIStore = defineStore('ui', {
   state: (): UIState => ({
-    theme: 'light',
+    theme: 'auto',
     fontSize: 'medium',
     sidebarOpen: false,
     loading: false,
     error: null,
     notifications: [],
+    mediaQueryList: null,
   }),
 
   getters: {
@@ -53,6 +55,30 @@ export const useUIStore = defineStore('ui', {
   actions: {
     setTheme(theme: 'light' | 'dark' | 'auto') {
       this.theme = theme;
+      localStorage.setItem('theme', theme);
+      this.applyTheme();
+    },
+
+    initTheme() {
+      const savedTheme = localStorage.getItem('theme') as
+        | 'light'
+        | 'dark'
+        | 'auto'
+        | null;
+      if (savedTheme) {
+        this.theme = savedTheme;
+      } else {
+        this.theme = 'auto';
+      }
+
+      // Setup system theme listener
+      this.mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+      this.mediaQueryList.addEventListener('change', () => {
+        if (this.theme === 'auto') {
+          this.applyTheme();
+        }
+      });
+
       this.applyTheme();
     },
 

@@ -357,7 +357,7 @@
                   :class="[
                     'flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-200',
                     isChapterRead(chapter)
-                      ? 'bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      ? 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
                       : 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800',
                   ]"
                 >

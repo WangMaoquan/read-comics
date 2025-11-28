@@ -3,7 +3,7 @@
     <!-- 渐变网格背景 -->
     <div class="fixed inset-0 gradient-mesh"></div>
     <div
-      class="fixed inset-0 bg-linear-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50"
+      class="fixed inset-0 bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 transition-colors duration-500"
     ></div>
 
     <!-- 主要内容 -->
@@ -17,10 +17,14 @@
           </h1>
 
           <!-- 副标题 -->
-          <p class="text-xl md:text-2xl text-gray-600 mb-4 max-w-2xl mx-auto">
+          <p
+            class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 max-w-2xl mx-auto"
+          >
             开启您的精彩阅读之旅
           </p>
-          <p class="text-base md:text-lg text-gray-500 mb-12 max-w-xl mx-auto">
+          <p
+            class="text-base md:text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-xl mx-auto"
+          >
             沉浸式阅读体验 · 多种阅读模式 · 智能进度管理
           </p>
 
@@ -100,8 +104,10 @@
                 />
               </svg>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-3">快速开始</h3>
-            <p class="text-gray-600 leading-relaxed">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              快速开始
+            </h3>
+            <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
               轻松导入您的漫画文件,即刻开启流畅的阅读体验,支持多种常见格式
             </p>
           </div>
@@ -129,8 +135,10 @@
                 />
               </svg>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-3">多种阅读模式</h3>
-            <p class="text-gray-600 leading-relaxed">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              多种阅读模式
+            </h3>
+            <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
               支持单页、双页、滚动等多种阅读模式,自由切换,满足不同阅读习惯
             </p>
           </div>
@@ -158,8 +166,10 @@
                 />
               </svg>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-3">智能进度管理</h3>
-            <p class="text-gray-600 leading-relaxed">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              智能进度管理
+            </h3>
+            <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
               自动保存阅读进度,随时随地继续阅读,永不丢失您的阅读记录
             </p>
           </div>
@@ -177,10 +187,14 @@
           ></div>
 
           <div class="relative z-10">
-            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+            <h2
+              class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6"
+            >
               准备好开始了吗?
             </h2>
-            <p class="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
+            <p
+              class="text-lg text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto"
+            >
               立即探索您的漫画收藏,享受沉浸式阅读体验
             </p>
             <router-link

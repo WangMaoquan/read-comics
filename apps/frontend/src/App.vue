@@ -1,7 +1,13 @@
 <script setup lang="ts">
+  import { onMounted } from 'vue';
   import Layout from './components/Layout.vue';
+  import { useUIStore } from './stores/ui';
 
-  // App.vue 主入口
+  const uiStore = useUIStore();
+
+  onMounted(() => {
+    uiStore.initTheme();
+  });
 </script>
 
 <template>
