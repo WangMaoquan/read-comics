@@ -307,20 +307,34 @@
 
 <script setup lang="ts">
   import { ref, onMounted, watch } from 'vue';
+  import { storeToRefs } from 'pinia';
   import { useUIStore } from '../stores/ui';
+  import { useSettingsStore } from '../stores/settings';
 
   const uiStore = useUIStore();
+  const settingsStore = useSettingsStore();
 
-  const readingMode = ref('single');
-  const readingDirection = ref('ltr');
-  const zoomMode = ref('fit');
-  // Use uiStore.theme directly or sync with it
+  // 使用 storeToRefs 保持响应性
+  const {
+    readingMode,
+    readingDirection,
+    zoomMode,
+    fontSize,
+    autoUpdate,
+    comicStoragePath,
+  } = storeToRefs(settingsStore);
+
+  // Theme 单独处理，因为它属于 UI Store
   const theme = ref(uiStore.theme);
-  const fontSize = ref('medium');
-  const autoUpdate = ref(false);
-  const comicStoragePath = ref('C:/Comics');
 
-  // Watch for store changes
+  // 监听 theme 变化
+  watch(theme, (newTheme) => {
+    if (newTheme !== uiStore.theme) {
+      uiStore.setTheme(newTheme as 'light' | 'dark' | 'auto');
+    }
+  });
+
+  // 监听 store 中的 theme 变化同步回本地 ref
   watch(
     () => uiStore.theme,
     (newTheme) => {
@@ -328,34 +342,12 @@
     },
   );
 
-  // Watch for local changes to update store immediately (optional, or on save)
-  // For better UX, let's update store immediately when theme changes in dropdown
-  watch(theme, (newTheme) => {
-    if (newTheme !== uiStore.theme) {
-      uiStore.setTheme(newTheme as 'light' | 'dark' | 'auto');
-    }
-  });
-
   onMounted(() => {
-    // Initialize theme from store
     theme.value = uiStore.theme;
-
-    // TODO: Load other settings from localStorage
-    const savedSettings = localStorage.getItem('appSettings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      readingMode.value = settings.readingMode || 'single';
-      readingDirection.value = settings.readingDirection || 'ltr';
-      zoomMode.value = settings.zoomMode || 'fit';
-      // theme is handled by uiStore
-      fontSize.value = settings.fontSize || 'medium';
-      autoUpdate.value = settings.autoUpdate || false;
-      comicStoragePath.value = settings.comicStoragePath || 'C:/Comics';
-    }
   });
 
   const changeStoragePath = () => {
-    // TODO: 实现存储路径更改
+    // TODO: 实现存储路径更改，可能需要调用 Electron API 或后端 API
     alert('存储路径更改功能待实现');
   };
 
@@ -370,32 +362,14 @@
   };
 
   const resetSettings = () => {
-    readingMode.value = 'single';
-    readingDirection.value = 'ltr';
-    zoomMode.value = 'fit';
-    uiStore.setTheme('auto'); // Reset theme to auto
-    fontSize.value = 'medium';
-    autoUpdate.value = false;
-    comicStoragePath.value = 'C:/Comics';
+    settingsStore.resetSettings();
+    uiStore.setTheme('auto');
+    alert('设置已重置');
   };
 
   const saveSettings = () => {
-    const settings = {
-      readingMode: readingMode.value,
-      readingDirection: readingDirection.value,
-      zoomMode: zoomMode.value,
-      // theme is saved by uiStore separately, but we can keep it here for consistency if needed
-      // but uiStore.theme is the source of truth for the app appearance
-      theme: theme.value,
-      fontSize: fontSize.value,
-      autoUpdate: autoUpdate.value,
-      comicStoragePath: comicStoragePath.value,
-    };
-    localStorage.setItem('appSettings', JSON.stringify(settings));
-
-    // Ensure theme is applied (already done by watch, but good to be sure)
-    uiStore.setTheme(theme.value as 'light' | 'dark' | 'auto');
-
+    // 设置已通过 store 自动保存到 localStorage
+    // 这里只提供用户反馈
     alert('设置已保存');
   };
 </script>

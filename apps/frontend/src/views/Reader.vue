@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import { storeToRefs } from 'pinia';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
   import {
@@ -8,9 +9,29 @@
     chaptersService,
     imagesService,
   } from '../api/services';
+  import { useSettingsStore } from '../stores/settings';
 
   const route = useRoute();
   const router = useRouter();
+  const settingsStore = useSettingsStore();
+
+  const {
+    readingMode: storedReadingMode,
+    zoomMode,
+    readingDirection,
+  } = storeToRefs(settingsStore);
+
+  // 辅助函数：映射 store 模式到枚举
+  const mapReadingMode = (mode: string): ReadingMode => {
+    switch (mode) {
+      case 'double':
+        return ReadingMode.DOUBLE_PAGE;
+      case 'scroll':
+        return ReadingMode.CONTINUOUS_SCROLL;
+      default:
+        return ReadingMode.SINGLE_PAGE;
+    }
+  };
 
   // 状态管理
   const loading = ref(false);
@@ -18,9 +39,86 @@
   const chapters = ref<Chapter[]>([]);
   const images = ref<string[]>([]);
   const currentPage = ref(0);
-  const readingMode = ref<ReadingMode>(ReadingMode.SINGLE_PAGE);
+  const readingMode = ref<ReadingMode>(mapReadingMode(storedReadingMode.value));
   const showControls = ref(true);
   const isScrolling = ref(false);
+
+  // 监听 store 中的 readingMode 变化
+  watch(storedReadingMode, (newMode) => {
+    readingMode.value = mapReadingMode(newMode);
+  });
+
+  // 计算图片样式
+  const imageStyle = computed(() => {
+    const style: Record<string, string> = {};
+
+    // 缩放模式
+    if (readingMode.value !== ReadingMode.CONTINUOUS_SCROLL) {
+      if (zoomMode.value === 'fit') {
+        style.maxHeight = '100vh';
+        style.maxWidth = '100vw';
+        style.objectFit = 'contain';
+      } else if (zoomMode.value === 'width') {
+        style.width = '100%';
+        style.height = 'auto';
+      } else {
+        style.width = 'auto';
+        style.height = 'auto';
+      }
+    } else {
+      // 滚动模式下通常宽度自适应
+      if (zoomMode.value === 'fit' || zoomMode.value === 'width') {
+        style.width = '100%';
+        style.height = 'auto';
+      } else {
+        style.width = 'auto';
+        style.height = 'auto';
+        style.maxWidth = 'none';
+      }
+    }
+
+    return style;
+  });
+
+  // 切换阅读模式
+  const changeReadingMode = (mode: ReadingMode) => {
+    readingMode.value = mode;
+    saveProgress();
+
+    // 更新 store
+    let storeMode: 'single' | 'double' | 'scroll' = 'single';
+    if (mode === ReadingMode.DOUBLE_PAGE) storeMode = 'double';
+    if (mode === ReadingMode.CONTINUOUS_SCROLL) storeMode = 'scroll';
+    settingsStore.updateSettings({ readingMode: storeMode });
+
+    // 如果切换到滚动模式，滚动到当前阅读位置
+    if (mode === ReadingMode.CONTINUOUS_SCROLL) {
+      setTimeout(() => {
+        const scrollPosition =
+          (currentPage.value / totalPages.value) * document.body.scrollHeight;
+        window.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth',
+        });
+      }, 100); // 延迟一下确保 DOM 已更新
+    } else {
+      // 切换到其他模式时，可能需要重置页码或其他逻辑
+      // 这里保持原有的页码不变
+    }
+  };
+
+  // 监听阅读模式变化
+  watch(readingMode, (newMode) => {
+    if (newMode === ReadingMode.CONTINUOUS_SCROLL) {
+      // 切换到滚动模式时，添加滚动监听
+      window.addEventListener('scroll', handleScroll);
+      isScrolling.value = true;
+    } else {
+      // 切换到其他模式时，移除滚动监听
+      window.removeEventListener('scroll', handleScroll);
+      isScrolling.value = false;
+    }
+  });
 
   // 获取路由参数
   const comicId = computed(() => route.params.comicId as string);
@@ -188,22 +286,6 @@
     }
   };
 
-  // 切换阅读模式
-  const changeReadingMode = (mode: ReadingMode) => {
-    readingMode.value = mode;
-    saveProgress();
-
-    // 如果切换到滚动模式，滚动到当前位置
-    if (mode === ReadingMode.CONTINUOUS_SCROLL) {
-      const scrollPosition =
-        (currentPage.value / totalPages.value) * document.body.scrollHeight;
-      window.scrollTo({
-        top: scrollPosition,
-        behavior: 'smooth',
-      });
-    }
-  };
-
   // 切换控制栏显示
   const toggleControls = () => {
     showControls.value = !showControls.value;
@@ -298,19 +380,6 @@
       saveProgress();
     }
   };
-
-  // 监听阅读模式变化
-  watch(readingMode, (newMode) => {
-    if (newMode === ReadingMode.CONTINUOUS_SCROLL) {
-      // 切换到滚动模式时，添加滚动监听
-      window.addEventListener('scroll', handleScroll);
-      isScrolling.value = true;
-    } else {
-      // 切换到其他模式时，移除滚动监听
-      window.removeEventListener('scroll', handleScroll);
-      isScrolling.value = false;
-    }
-  });
 
   // 监听路由变化,重新加载章节
   watch(
@@ -482,7 +551,8 @@
             <img
               :src="currentImage"
               :alt="`Page ${currentPage + 1}`"
-              class="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg"
+              class="shadow-lg rounded-lg transition-all duration-300"
+              :style="imageStyle"
               loading="lazy"
             />
             <!-- 页码显示 -->
@@ -504,7 +574,7 @@
               <img
                 :src="images[currentPage - 1]"
                 :alt="`Page ${currentPage}`"
-                class="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg"
+                class="max-w-full max-h-[90vh] object-contain shadow-lg rounded-lg"
                 loading="lazy"
               />
               <div
@@ -519,7 +589,7 @@
             <img
               :src="currentImage"
               :alt="`Page ${currentPage + 1}`"
-              class="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg"
+              class="max-w-full max-h-[90vh] object-contain shadow-lg rounded-lg"
               loading="lazy"
             />
             <div
@@ -537,7 +607,8 @@
               <img
                 :src="image"
                 :alt="`Page ${index + 1}`"
-                class="w-full object-contain shadow-lg rounded-lg mx-auto"
+                class="shadow-lg rounded-lg mx-auto transition-all duration-300"
+                :style="imageStyle"
                 loading="lazy"
               />
               <div
