@@ -12,7 +12,7 @@ export const API_ENDPOINTS = {
   comics: {
     list: '/comics',
     detail: (id: string) => `/comics/${id}`,
-    chapters: (id: string) => `/comics/${id}/chapters`,
+    chapters: (id: string) => `/chapters?comicId=${id}`,
   },
 
   // 章节相关
