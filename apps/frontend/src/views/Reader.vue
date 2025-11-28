@@ -501,7 +501,7 @@
 
             <!-- 设置按钮 -->
             <button
-              @click="toggleControls"
+              @click.stop="toggleControls"
               class="text-gray-300 hover:text-white transition-colors p-1 flex-shrink-0"
               title="隐藏/显示控制栏"
             >
