@@ -59,13 +59,16 @@
   const imageStyle = computed(() => {
     const style: Record<string, string> = {};
 
+    // 小屏幕下强制使用适应屏幕模式
+    const effectiveZoomMode = isMobile.value ? 'fit' : zoomMode.value;
+
     // 缩放模式
     if (readingMode.value !== ReadingMode.CONTINUOUS_SCROLL) {
-      if (zoomMode.value === 'fit') {
+      if (effectiveZoomMode === 'fit') {
         style.maxHeight = '100vh';
         style.maxWidth = '100vw';
         style.objectFit = 'contain';
-      } else if (zoomMode.value === 'width') {
+      } else if (effectiveZoomMode === 'width') {
         style.width = '100%';
         style.height = 'auto';
       } else {
@@ -74,7 +77,7 @@
       }
     } else {
       // 滚动模式下通常宽度自适应
-      if (zoomMode.value === 'fit' || zoomMode.value === 'width') {
+      if (effectiveZoomMode === 'fit' || effectiveZoomMode === 'width') {
         style.width = '100%';
         style.height = 'auto';
       } else {
