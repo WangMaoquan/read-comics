@@ -94,12 +94,16 @@
                   缩放模式
                 </h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  设置图片缩放方式
+                  <span v-if="!isMobile">设置图片缩放方式</span>
+                  <span v-else class="text-yellow-600 dark:text-yellow-400"
+                    >移动端固定为适应屏幕</span
+                  >
                 </p>
               </div>
               <select
                 v-model="zoomMode"
-                class="form-select bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                :disabled="isMobile"
+                class="form-select bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="fit">适应屏幕</option>
                 <option value="width">适应宽度</option>
@@ -306,7 +310,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watch } from 'vue';
+  import { ref, computed, onMounted, watch } from 'vue';
   import { storeToRefs } from 'pinia';
   import { useUIStore } from '../stores/ui';
   import { useSettingsStore } from '../stores/settings';
@@ -326,6 +330,13 @@
 
   // Theme 单独处理，因为它属于 UI Store
   const theme = ref(uiStore.theme);
+
+  // 检测是否为移动设备
+  const isMobile = computed(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+  });
 
   // 监听 theme 变化
   watch(theme, (newTheme) => {
