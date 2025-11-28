@@ -312,6 +312,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, watch } from 'vue';
   import { storeToRefs } from 'pinia';
+  import { useWindowSize } from '@vueuse/core';
   import { useUIStore } from '../stores/ui';
   import { useSettingsStore } from '../stores/settings';
 
@@ -331,12 +332,9 @@
   // Theme 单独处理，因为它属于 UI Store
   const theme = ref(uiStore.theme);
 
-  // 检测是否为移动设备
-  const isMobile = computed(() => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    );
-  });
+  // 响应式窗口大小检测（640px 是 Tailwind 的 sm 断点）
+  const { width } = useWindowSize();
+  const isMobile = computed(() => width.value < 640);
 
   // 监听 theme 变化
   watch(theme, (newTheme) => {

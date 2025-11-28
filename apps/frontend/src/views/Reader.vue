@@ -2,6 +2,7 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { storeToRefs } from 'pinia';
+  import { useWindowSize } from '@vueuse/core';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
   import {
@@ -43,12 +44,9 @@
   const showControls = ref(true);
   const isScrolling = ref(false);
 
-  // 检测是否为移动设备
-  const isMobile = computed(() => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    );
-  });
+  // 响应式窗口大小检测（640px 是 Tailwind 的 sm 断点）
+  const { width } = useWindowSize();
+  const isMobile = computed(() => width.value < 640);
 
   // 监听 store 中的 readingMode 变化
   watch(storedReadingMode, (newMode) => {
