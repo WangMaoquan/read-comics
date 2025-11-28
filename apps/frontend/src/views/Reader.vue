@@ -48,6 +48,14 @@
   const { width } = useWindowSize();
   const isMobile = computed(() => width.value < 640);
 
+  // 监听窗口大小变化，自动切换缩放模式
+  watch(isMobile, (newIsMobile) => {
+    if (newIsMobile && zoomMode.value !== 'fit') {
+      // 进入小屏模式时，自动切换为适应屏幕
+      settingsStore.updateSettings({ zoomMode: 'fit' });
+    }
+  });
+
   // 监听 store 中的 readingMode 变化
   watch(storedReadingMode, (newMode) => {
     readingMode.value = mapReadingMode(newMode);
