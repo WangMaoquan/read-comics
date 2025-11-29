@@ -8,6 +8,7 @@ import { FilesModule } from './modules/files/files.module';
 import { ImagesModule } from './modules/images/images.module';
 import { ChaptersModule } from './modules/chapters/chapters.module';
 import { UsersModule } from './modules/users/users.module';
+import { StatsModule } from './modules/stats/stats.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UsersModule } from './modules/users/users.module';
     ImagesModule,
     ChaptersModule,
     UsersModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
