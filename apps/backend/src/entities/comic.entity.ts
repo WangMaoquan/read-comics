@@ -94,6 +94,14 @@ export class Comic {
   rating?: number;
 
   @ApiProperty({
+    description: '阅读次数',
+    example: 100,
+    required: false,
+  })
+  @Column({ type: 'int', default: 0 })
+  readCount: number;
+
+  @ApiProperty({
     description: '阅读状态',
     enum: ComicStatus,
     example: 'reading',
