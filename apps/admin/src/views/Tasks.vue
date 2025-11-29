@@ -5,10 +5,16 @@
     type Task,
     type TaskStats,
   } from '../api/services/tasksService';
+  import { useApi } from '../composables/useApi';
+  import { useConfirm } from '../composables/useConfirm';
+  import { useToast } from '../composables/useToast';
+
+  // Composables
+  const confirm = useConfirm();
+  const toast = useToast();
 
   // 状态
   const tasks = ref<Task[]>([]);
-  const loading = ref(false);
   const showCreateModal = ref(false);
   let pollInterval: any = null;
 
@@ -28,38 +34,67 @@
     params: {},
   });
 
-  // 获取任务列表
-  const fetchTasks = async () => {
-    // 只有第一次加载显示 loading，后续轮询不显示
-    if (tasks.value.length === 0) loading.value = true;
-    try {
-      const data = await tasksService.getTasks();
-      tasks.value = data;
-    } catch (error) {
-      console.error('Failed to fetch tasks:', error);
-    } finally {
-      loading.value = false;
-    }
-  };
+  // API Hooks
+  const { execute: fetchTasks, loading: tasksLoading } = useApi(
+    tasksService.getTasks,
+    {
+      showError: false, // 轮询时不显示错误 Toast
+      onSuccess: (data) => {
+        tasks.value = data;
+      },
+    },
+  );
 
-  // 获取统计数据
-  const fetchStats = async () => {
-    try {
-      const data = await tasksService.getStats();
+  const { execute: fetchStats } = useApi(tasksService.getStats, {
+    showError: false,
+    onSuccess: (data) => {
       stats.value = data;
-    } catch (error) {
-      console.error('Failed to fetch task stats:', error);
-    }
-  };
+    },
+  });
+
+  const { execute: createTask, loading: creating } = useApi(
+    tasksService.createTask,
+    {
+      successMessage: '任务创建成功',
+      onSuccess: () => {
+        showCreateModal.value = false;
+        createForm.value = { name: '', type: 'scan', params: {} };
+        refreshData();
+      },
+    },
+  );
+
+  const { execute: cancelTask } = useApi(tasksService.cancelTask, {
+    successMessage: '任务已取消',
+    onSuccess: refreshData,
+  });
+
+  const { execute: retryTask } = useApi(tasksService.retryTask, {
+    successMessage: '任务已重试',
+    onSuccess: refreshData,
+  });
+
+  const { execute: deleteTask } = useApi(tasksService.deleteTask, {
+    successMessage: '任务记录已删除',
+    onSuccess: refreshData,
+  });
+
+  const { execute: clearCompleted } = useApi(tasksService.clearCompleted, {
+    successMessage: '已清除所有完成任务',
+    onSuccess: refreshData,
+  });
+
+  function refreshData() {
+    fetchTasks();
+    fetchStats();
+  }
 
   // 初始化和轮询
   onMounted(() => {
-    fetchTasks();
-    fetchStats();
+    refreshData();
     // 每3秒轮询一次状态
     pollInterval = setInterval(() => {
-      fetchTasks();
-      fetchStats();
+      refreshData();
     }, 3000);
   });
 
@@ -67,63 +102,46 @@
     if (pollInterval) clearInterval(pollInterval);
   });
 
-  // 创建任务
-  const handleCreateTask = async () => {
+  // 操作处理
+  const handleCreateTask = () => {
     if (!createForm.value.name) {
-      alert('请输入任务名称');
+      toast.warning('请输入任务名称');
       return;
     }
-
-    try {
-      await tasksService.createTask(createForm.value);
-      showCreateModal.value = false;
-      createForm.value = { name: '', type: 'scan', params: {} };
-      fetchTasks();
-      fetchStats();
-    } catch (error) {
-      console.error('Failed to create task:', error);
-      alert('创建任务失败');
-    }
+    createTask(createForm.value);
   };
 
-  // 任务操作
   const handleCancel = async (id: string) => {
-    try {
-      await tasksService.cancelTask(id);
-      fetchTasks();
-    } catch (error) {
-      console.error('Failed to cancel task:', error);
-    }
+    cancelTask(id);
   };
 
   const handleRetry = async (id: string) => {
-    try {
-      await tasksService.retryTask(id);
-      fetchTasks();
-    } catch (error) {
-      console.error('Failed to retry task:', error);
-    }
+    retryTask(id);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除此任务记录吗？')) return;
-    try {
-      await tasksService.deleteTask(id);
-      fetchTasks();
-      fetchStats();
-    } catch (error) {
-      console.error('Failed to delete task:', error);
+    const confirmed = await confirm({
+      title: '删除任务',
+      message: '确定要删除此任务记录吗？',
+      type: 'danger',
+      confirmText: '删除',
+    });
+
+    if (confirmed) {
+      deleteTask(id);
     }
   };
 
   const handleClearCompleted = async () => {
-    if (!confirm('确定要清除所有已完成的任务记录吗？')) return;
-    try {
-      await tasksService.clearCompleted();
-      fetchTasks();
-      fetchStats();
-    } catch (error) {
-      console.error('Failed to clear completed tasks:', error);
+    const confirmed = await confirm({
+      title: '清除任务',
+      message: '确定要清除所有已完成的任务记录吗？',
+      type: 'danger',
+      confirmText: '清除',
+    });
+
+    if (confirmed) {
+      clearCompleted();
     }
   };
 
@@ -293,7 +311,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-            <tr v-if="loading && tasks.length === 0" class="text-center">
+            <tr v-if="tasksLoading && tasks.length === 0" class="text-center">
               <td colspan="7" class="p-8 text-gray-500">加载中...</td>
             </tr>
             <tr v-else-if="tasks.length === 0" class="text-center">
@@ -441,9 +459,11 @@
           </button>
           <button
             @click="handleCreateTask"
-            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            :disabled="creating"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            创建任务
+            <span v-if="creating" class="animate-spin">⚡</span>
+            {{ creating ? '创建中...' : '创建任务' }}
           </button>
         </div>
       </div>
