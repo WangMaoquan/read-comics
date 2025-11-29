@@ -2,87 +2,97 @@
   import { ref, onMounted, computed } from 'vue';
   import { use } from 'echarts/core';
   import { CanvasRenderer } from 'echarts/renderers';
-  import { LineChart, BarChart, PieChart } from 'echarts/charts';
+  import { LineChart, PieChart, BarChart } from 'echarts/charts';
   import {
-    TitleComponent,
+    GridComponent,
     TooltipComponent,
     LegendComponent,
-    GridComponent,
+    TitleComponent,
   } from 'echarts/components';
   import VChart from 'vue-echarts';
-  import { comicsService } from '../api/services';
+  import { statsService } from '../api/services/statsService';
 
-  // 注册必要的 ECharts 组件
   use([
     CanvasRenderer,
     LineChart,
-    BarChart,
     PieChart,
-    TitleComponent,
+    BarChart,
+    GridComponent,
     TooltipComponent,
     LegendComponent,
-    GridComponent,
+    TitleComponent,
   ]);
 
-  // 真实数据
-  const totalComics = ref(0);
+  // 状态数据
+  const loading = ref(true);
+  const stats = ref({
+    totalComics: 0,
+    newComicsThisWeek: 0,
+    totalUsers: 0,
+    activeUsers: 0,
+    storageUsed: '0 GB',
+  });
 
-  // Mock 数据
-  const mockData = {
-    newComicsThisWeek: 12,
-    storageUsage: '45.2 GB',
-    totalUsers: 156,
-    activeUsers: 43,
-    totalReads: 2847,
+  const trendData = ref<{ date: string; count: number }[]>([]);
+  const storageData = ref<{ name: string; value: number }[]>([]);
+  const topComicsData = ref<any[]>([]);
+
+  // 获取数据
+  const fetchData = async () => {
+    loading.value = true;
+    try {
+      // 并行请求所有数据
+      const [overview, trend, storage, topComics] = await Promise.all([
+        statsService.getOverview(),
+        statsService.getComicsTrend(),
+        statsService.getStorageStats(),
+        statsService.getTopComics(5),
+      ]);
+
+      // 更新状态
+      stats.value = {
+        totalComics: overview.data.totalComics,
+        newComicsThisWeek: overview.data.newComicsThisWeek,
+        totalUsers: overview.data.totalUsers,
+        activeUsers: overview.data.activeUsers,
+        storageUsed: overview.data.storageUsed,
+      };
+
+      trendData.value = trend.data;
+      storageData.value = storage.data.distribution;
+      topComicsData.value = topComics.data;
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      loading.value = false;
+    }
   };
 
-  // 漫画上传趋势（过去7天）
-  const comicsTrendData = {
-    dates: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    counts: [5, 8, 12, 7, 15, 10, 12],
-  };
+  onMounted(() => {
+    fetchData();
+  });
 
-  // 热门漫画 TOP 5
-  const topComics = [
-    { name: 'One Piece', reads: 456 },
-    { name: 'Naruto', reads: 389 },
-    { name: 'Attack on Titan', reads: 345 },
-    { name: 'Demon Slayer', reads: 298 },
-    { name: 'My Hero Academia', reads: 267 },
-  ];
-
-  // 存储分布
-  const storageDistribution = [
-    { name: 'Comics', value: 35.6 },
-    { name: 'Cache', value: 8.3 },
-    { name: 'Thumbnails', value: 1.3 },
-  ];
-
-  // 趋势图配置
-  const trendChartOption = computed(() => ({
+  // 图表配置
+  const lineOption = computed(() => ({
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#333',
-      textStyle: { color: '#fff' },
     },
     xAxis: {
       type: 'category',
-      data: comicsTrendData.dates,
-      axisLine: { lineStyle: { color: '#666' } },
-      axisLabel: { color: '#999' },
+      data: trendData.value.map((item) => item.date),
+      axisLine: { lineStyle: { color: '#9ca3af' } },
     },
     yAxis: {
       type: 'value',
-      axisLine: { lineStyle: { color: '#666' } },
-      axisLabel: { color: '#999' },
-      splitLine: { lineStyle: { color: '#333' } },
+      axisLine: { lineStyle: { color: '#9ca3af' } },
+      splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
     },
     series: [
       {
-        data: comicsTrendData.counts,
+        data: trendData.value.map((item) => item.count),
         type: 'line',
         smooth: true,
+        itemStyle: { color: '#3b82f6' },
         areaStyle: {
           color: {
             type: 'linear',
@@ -92,120 +102,70 @@
             y2: 1,
             colorStops: [
               { offset: 0, color: 'rgba(59, 130, 246, 0.5)' },
-              { offset: 1, color: 'rgba(59, 130, 246, 0.05)' },
+              { offset: 1, color: 'rgba(59, 130, 246, 0)' },
             ],
           },
         },
-        itemStyle: { color: '#3b82f6' },
-        lineStyle: { width: 2 },
       },
     ],
-    grid: { left: 50, right: 20, top: 20, bottom: 30 },
+    grid: { top: 20, right: 20, bottom: 20, left: 40, containLabel: true },
   }));
 
-  // 热门漫画柱状图配置
-  const topComicsChartOption = computed(() => ({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#333',
-      textStyle: { color: '#fff' },
-    },
-    xAxis: {
-      type: 'value',
-      axisLine: { lineStyle: { color: '#666' } },
-      axisLabel: { color: '#999' },
-      splitLine: { lineStyle: { color: '#333' } },
-    },
-    yAxis: {
-      type: 'category',
-      data: topComics.map((c) => c.name),
-      axisLine: { lineStyle: { color: '#666' } },
-      axisLabel: { color: '#999' },
-    },
-    series: [
-      {
-        data: topComics.map((c) => c.reads),
-        type: 'bar',
-        itemStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 1,
-            y2: 0,
-            colorStops: [
-              { offset: 0, color: '#8b5cf6' },
-              { offset: 1, color: '#3b82f6' },
-            ],
-          },
-          borderRadius: [0, 4, 4, 0],
-        },
-        barWidth: 20,
-      },
-    ],
-    grid: { left: 150, right: 20, top: 20, bottom: 20 },
-  }));
-
-  // 存储分布饼图配置
-  const storageChartOption = computed(() => ({
+  const pieOption = computed(() => ({
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#333',
-      textStyle: { color: '#fff' },
-      formatter: '{b}: {c} GB ({d}%)',
     },
     legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      textStyle: { color: '#999' },
+      bottom: '0%',
+      left: 'center',
+      textStyle: { color: '#9ca3af' },
     },
     series: [
       {
+        name: '存储分布',
         type: 'pie',
         radius: ['40%', '70%'],
         avoidLabelOverlap: false,
         itemStyle: {
-          borderRadius: 8,
-          borderColor: '#1f2937',
+          borderRadius: 10,
+          borderColor: '#fff',
           borderWidth: 2,
         },
-        label: {
-          show: false,
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 14,
-            fontWeight: 'bold',
-            color: '#fff',
-          },
-        },
-        data: storageDistribution.map((item, index) => ({
-          value: item.value,
-          name: item.name,
-          itemStyle: {
-            color: ['#3b82f6', '#8b5cf6', '#ec4899'][index],
-          },
-        })),
+        label: { show: false },
+        data: storageData.value,
       },
     ],
   }));
 
-  // 获取真实漫画数据
-  const fetchData = async () => {
-    try {
-      const comics = await comicsService.getComics();
-      totalComics.value = comics.length;
-    } catch (error) {
-      console.error('Failed to fetch comics:', error);
-    }
-  };
-
-  onMounted(fetchData);
+  const barOption = computed(() => ({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+    },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: '#9ca3af' } },
+      splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
+    },
+    yAxis: {
+      type: 'category',
+      data: topComicsData.value.map((item) => item.title),
+      axisLine: { lineStyle: { color: '#9ca3af' } },
+      axisLabel: { width: 100, overflow: 'truncate' },
+    },
+    series: [
+      {
+        name: '阅读次数',
+        type: 'bar',
+        data: topComicsData.value.map((item) => item.readCount),
+        itemStyle: {
+          borderRadius: [0, 4, 4, 0],
+          color: '#10b981',
+        },
+      },
+    ],
+  }));
 </script>
 
 <template>
@@ -215,21 +175,20 @@
     </h1>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-      <!-- 总漫画数 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div
         class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500 dark:text-gray-400">总漫画数</p>
-            <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-              {{ totalComics }}
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ stats.totalComics }}
             </p>
           </div>
-          <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+          <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <svg
-              class="w-8 h-8 text-blue-600"
+              class="w-6 h-6 text-blue-600 dark:text-blue-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -245,20 +204,19 @@
         </div>
       </div>
 
-      <!-- 本周新增 -->
       <div
         class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500 dark:text-gray-400">本周新增</p>
-            <p class="text-3xl font-bold text-blue-600 mt-2">
-              {{ mockData.newComicsThisWeek }}
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ stats.newComicsThisWeek }}
             </p>
           </div>
-          <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+          <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
             <svg
-              class="w-8 h-8 text-green-600"
+              class="w-6 h-6 text-green-600 dark:text-green-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -267,30 +225,31 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                d="M12 4v16m8-8H4"
               />
             </svg>
           </div>
         </div>
       </div>
 
-      <!-- 总用户数 -->
       <div
         class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500 dark:text-gray-400">总用户数</p>
-            <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-              {{ mockData.totalUsers }}
-            </p>
-            <p class="text-xs text-green-500 mt-1">
-              活跃: {{ mockData.activeUsers }}
-            </p>
+            <div class="flex items-end gap-2">
+              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {{ stats.totalUsers }}
+              </p>
+              <span class="text-sm text-green-500 mb-1"
+                >{{ stats.activeUsers }} 活跃</span
+              >
+            </div>
           </div>
-          <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+          <div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
             <svg
-              class="w-8 h-8 text-purple-600"
+              class="w-6 h-6 text-purple-600 dark:text-purple-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -306,20 +265,19 @@
         </div>
       </div>
 
-      <!-- 存储占用 -->
       <div
         class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">存储占用</p>
-            <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-              {{ mockData.storageUsage }}
+            <p class="text-sm text-gray-500 dark:text-gray-400">存储使用</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ stats.storageUsed }}
             </p>
           </div>
-          <div class="p-3 bg-pink-100 dark:bg-pink-900/30 rounded-lg">
+          <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
             <svg
-              class="w-8 h-8 text-pink-600"
+              class="w-6 h-6 text-orange-600 dark:text-orange-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -328,7 +286,7 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+                d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
               />
             </svg>
           </div>
@@ -337,36 +295,42 @@
     </div>
 
     <!-- 图表区域 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <!-- 漫画上传趋势 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- 趋势图 -->
       <div
         class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           漫画上传趋势
         </h3>
-        <v-chart :option="trendChartOption" style="height: 300px" />
+        <div class="h-80">
+          <v-chart class="chart" :option="lineOption" autoresize />
+        </div>
       </div>
 
-      <!-- 存储分布 -->
+      <!-- 热门漫画 -->
       <div
         class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          存储分布
+          热门漫画 TOP 5
         </h3>
-        <v-chart :option="storageChartOption" style="height: 300px" />
+        <div class="h-80">
+          <v-chart class="chart" :option="barOption" autoresize />
+        </div>
       </div>
     </div>
 
-    <!-- 热门漫画排行 -->
+    <!-- 存储分布 -->
     <div
       class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
     >
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        热门漫画 TOP 5
+        存储分布
       </h3>
-      <v-chart :option="topComicsChartOption" style="height: 300px" />
+      <div class="h-80">
+        <v-chart class="chart" :option="pieOption" autoresize />
+      </div>
     </div>
   </div>
 </template>

@@ -1,294 +1,224 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
-
-  interface Backup {
-    id: string;
-    name: string;
-    type: 'full' | 'incremental';
-    size: number; // bytes
-    status: 'completed' | 'failed' | 'in_progress';
-    createdAt: Date;
-    description?: string;
-  }
-
-  // Mock 备份数据
-  const backups = ref<Backup[]>([
-    {
-      id: '1',
-      name: 'backup-2024-01-29-full',
-      type: 'full',
-      size: 1234567890, // ~1.15 GB
-      status: 'completed',
-      createdAt: new Date('2024-01-29T02:00:00'),
-      description: '自动定时备份',
-    },
-    {
-      id: '2',
-      name: 'backup-2024-01-28-incremental',
-      type: 'incremental',
-      size: 123456789, // ~117.7 MB
-      status: 'completed',
-      createdAt: new Date('2024-01-28T02:00:00'),
-    },
-    {
-      id: '3',
-      name: 'backup-2024-01-27-full',
-      type: 'full',
-      size: 1123456789,
-      status: 'completed',
-      createdAt: new Date('2024-01-27T02:00:00'),
-    },
-  ]);
+  import { ref, onMounted, computed } from 'vue';
+  import {
+    backupsService,
+    type Backup,
+    type BackupStats,
+  } from '../api/services/backupsService';
 
   // 状态
+  const backups = ref<Backup[]>([]);
   const loading = ref(false);
-  const backupProgress = ref(0);
-  const isBackingUp = ref(false);
   const showCreateModal = ref(false);
-  const showScheduleModal = ref(false);
 
-  // 创建备份表单
-  const backupForm = ref({
+  // 统计数据
+  const stats = ref<BackupStats>({
+    total: 0,
+    completed: 0,
+    failed: 0,
+    inProgress: 0,
+    totalSize: 0,
+  });
+
+  // 新建备份表单
+  const createForm = ref({
     name: '',
     type: 'full' as 'full' | 'incremental',
-    includeDatabase: true,
-    includeFiles: true,
-    includeConfig: true,
+    description: '',
   });
 
-  // 定时备份设置
-  const scheduleSettings = ref({
-    enabled: false,
-    frequency: 'daily' as 'daily' | 'weekly' | 'monthly',
-    time: '02:00',
-    keepCount: 7,
-    type: 'full' as 'full' | 'incremental',
+  // 获取备份列表
+  const fetchBackups = async () => {
+    loading.value = true;
+    try {
+      const data = await backupsService.getBackups();
+      backups.value = data;
+    } catch (error) {
+      console.error('Failed to fetch backups:', error);
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取统计数据
+  const fetchStats = async () => {
+    try {
+      const data = await backupsService.getStats();
+      stats.value = data;
+    } catch (error) {
+      console.error('Failed to fetch backup stats:', error);
+    }
+  };
+
+  // 初始化
+  onMounted(() => {
+    fetchBackups();
+    fetchStats();
   });
 
-  // 计算属性
-  const totalBackupSize = computed(() => {
-    return backups.value.reduce((sum, b) => sum + b.size, 0);
-  });
-
-  // 辅助函数
-  const formatSize = (bytes: number): string => {
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  const formatDate = (date: Date): string => {
-    return new Date(date).toLocaleString('zh-CN');
-  };
-
-  const getStatusColor = (status: string): string => {
-    const colors = {
-      completed:
-        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-      failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-      in_progress:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    };
-    return colors[status as keyof typeof colors] || '';
-  };
-
-  const getTypeColor = (type: string): string => {
-    return type === 'full'
-      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-  };
-
-  // 操作
-  const createBackup = async () => {
-    if (!backupForm.value.name) {
+  // 创建备份
+  const handleCreateBackup = async () => {
+    if (!createForm.value.name) {
       alert('请输入备份名称');
       return;
     }
 
-    isBackingUp.value = true;
-    backupProgress.value = 0;
-
-    // 模拟备份进度
-    const interval = setInterval(() => {
-      backupProgress.value += 10;
-      if (backupProgress.value >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          // 添加新备份
-          backups.value.unshift({
-            id: Date.now().toString(),
-            name: backupForm.value.name,
-            type: backupForm.value.type,
-            size: Math.floor(Math.random() * 1000000000) + 100000000,
-            status: 'completed',
-            createdAt: new Date(),
-          });
-
-          isBackingUp.value = false;
-          backupProgress.value = 0;
-          showCreateModal.value = false;
-          backupForm.value.name = '';
-          alert('备份创建成功！');
-        }, 500);
-      }
-    }, 300);
-  };
-
-  const downloadBackup = async (backup: Backup) => {
-    alert(
-      `下载备份: ${backup.name}\n大小: ${formatSize(backup.size)}\n（模拟功能）`,
-    );
-  };
-
-  const deleteBackup = async (id: string) => {
-    if (!confirm('确定要删除此备份吗？此操作不可恢复！')) return;
-
-    loading.value = true;
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      backups.value = backups.value.filter((b) => b.id !== id);
-      alert('备份已删除');
-    } finally {
-      loading.value = false;
+      await backupsService.createBackup(createForm.value);
+      showCreateModal.value = false;
+      createForm.value = { name: '', type: 'full', description: '' };
+      fetchBackups();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to create backup:', error);
+      alert('创建备份失败');
     }
   };
 
-  const restoreBackup = async (backup: Backup) => {
-    if (!confirm(`确定要恢复此备份吗？\n${backup.name}\n当前数据将被覆盖！`))
-      return;
+  // 删除备份
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定要删除此备份吗？')) return;
 
-    loading.value = true;
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      alert('恢复成功！请重新加载页面。');
-    } finally {
-      loading.value = false;
+      await backupsService.deleteBackup(id);
+      fetchBackups();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to delete backup:', error);
+      alert('删除备份失败');
     }
   };
 
-  const saveSchedule = async () => {
-    loading.value = true;
+  // 恢复备份
+  const handleRestore = async (id: string) => {
+    if (!confirm('确定要从该备份恢复数据吗？这将覆盖当前数据！')) return;
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      localStorage.setItem(
-        'backup_schedule',
-        JSON.stringify(scheduleSettings.value),
-      );
-      showScheduleModal.value = false;
-      alert('定时备份设置已保存');
-    } finally {
-      loading.value = false;
+      // await backupsService.restoreBackup(id); // 后端尚未实现 restore
+      alert('恢复功能尚未在后端实现');
+    } catch (error) {
+      console.error('Failed to restore backup:', error);
+      alert('恢复失败');
     }
   };
 
-  // 生成默认备份名称
-  const generateBackupName = () => {
-    const now = new Date();
-    const date = now.toISOString().split('T')[0];
-    const type = backupForm.value.type;
-    backupForm.value.name = `backup-${date}-${type}`;
+  // 辅助函数
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatTime = (time: string) => {
+    return new Date(time).toLocaleString();
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'failed':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return '已完成';
+      case 'failed':
+        return '失败';
+      case 'in_progress':
+        return '进行中';
+      default:
+        return status;
+    }
   };
 </script>
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-      备份与恢复
-    </h1>
-
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-      <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700"
-      >
-        <p class="text-sm text-gray-500 dark:text-gray-400">备份总数</p>
-        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-          {{ backups.length }}
-        </p>
-      </div>
-      <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700"
-      >
-        <p class="text-sm text-gray-500 dark:text-gray-400">总占用空间</p>
-        <p class="text-3xl font-bold text-blue-600 mt-2">
-          {{ formatSize(totalBackupSize) }}
-        </p>
-      </div>
-      <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700"
-      >
-        <p class="text-sm text-gray-500 dark:text-gray-400">最近备份</p>
-        <p class="text-lg font-medium text-gray-900 dark:text-white mt-2">
-          {{
-            backups.length > 0
-              ? formatDate(backups[0].createdAt).split(' ')[0]
-              : '-'
-          }}
-        </p>
-      </div>
-    </div>
-
-    <!-- 操作按钮 -->
-    <div class="flex flex-wrap gap-3 mb-6">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">数据备份</h1>
       <button
         @click="showCreateModal = true"
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
       >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
+        <span class="text-xl">+</span>
         创建备份
-      </button>
-      <button
-        @click="showScheduleModal = true"
-        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
-      >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        定时备份设置
       </button>
     </div>
 
-    <!-- 备份进度 -->
-    <div
-      v-if="isBackingUp"
-      class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-    >
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-sm text-blue-900 dark:text-blue-300"
-          >正在创建备份...</span
-        >
-        <span class="text-sm font-medium text-blue-900 dark:text-blue-300"
-          >{{ backupProgress }}%</span
-        >
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">总备份数</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ stats.total }}
+            </p>
+          </div>
+          <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <span class="text-xl">📦</span>
+          </div>
+        </div>
       </div>
-      <div class="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2">
-        <div
-          class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-          :style="{ width: backupProgress + '%' }"
-        ></div>
+
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">总大小</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ formatSize(stats.totalSize) }}
+            </p>
+          </div>
+          <div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+            <span class="text-xl">💾</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">成功</p>
+            <p class="text-2xl font-bold text-green-600 mt-1">
+              {{ stats.completed }}
+            </p>
+          </div>
+          <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <span class="text-xl">✅</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">失败</p>
+            <p class="text-2xl font-bold text-red-600 mt-1">
+              {{ stats.failed }}
+            </p>
+          </div>
+          <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <span class="text-xl">❌</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -297,141 +227,105 @@
       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
     >
       <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 dark:bg-gray-700/50">
-            <tr class="text-left text-sm text-gray-600 dark:text-gray-400">
-              <th class="p-4">备份名称</th>
-              <th class="p-4">类型</th>
-              <th class="p-4">大小</th>
-              <th class="p-4">状态</th>
-              <th class="p-4">创建时间</th>
-              <th class="p-4">操作</th>
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr
+              class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm"
+            >
+              <th class="p-4 font-medium">备份名称</th>
+              <th class="p-4 font-medium">类型</th>
+              <th class="p-4 font-medium">大小</th>
+              <th class="p-4 font-medium">状态</th>
+              <th class="p-4 font-medium">创建时间</th>
+              <th class="p-4 font-medium text-right">操作</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            <tr v-if="loading" class="text-center">
+              <td colspan="6" class="p-8 text-gray-500">加载中...</td>
+            </tr>
+            <tr v-else-if="backups.length === 0" class="text-center">
+              <td colspan="6" class="p-8 text-gray-500">暂无备份</td>
+            </tr>
             <tr
               v-for="backup in backups"
               :key="backup.id"
               class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               <td class="p-4">
-                <div>
-                  <p class="font-medium text-gray-900 dark:text-white">
-                    {{ backup.name }}
-                  </p>
-                  <p
-                    v-if="backup.description"
-                    class="text-xs text-gray-500 mt-1"
-                  >
-                    {{ backup.description }}
-                  </p>
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ backup.name }}
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ backup.description }}
                 </div>
               </td>
               <td class="p-4">
                 <span
-                  :class="[
-                    'px-2 py-1 text-xs rounded-full',
-                    getTypeColor(backup.type),
-                  ]"
+                  class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full"
                 >
-                  {{ backup.type === 'full' ? '完整备份' : '增量备份' }}
+                  {{ backup.type === 'full' ? '全量' : '增量' }}
                 </span>
               </td>
-              <td class="p-4 text-gray-600 dark:text-gray-400">
+              <td class="p-4 text-sm text-gray-500 dark:text-gray-400">
                 {{ formatSize(backup.size) }}
               </td>
               <td class="p-4">
                 <span
-                  :class="[
-                    'px-2 py-1 text-xs rounded-full',
-                    getStatusColor(backup.status),
-                  ]"
+                  class="px-2 py-1 text-xs font-medium rounded-full"
+                  :class="getStatusColor(backup.status)"
                 >
-                  {{
-                    backup.status === 'completed'
-                      ? '已完成'
-                      : backup.status === 'failed'
-                        ? '失败'
-                        : '进行中'
-                  }}
+                  {{ getStatusText(backup.status) }}
                 </span>
               </td>
-              <td class="p-4 text-sm text-gray-600 dark:text-gray-400">
-                {{ formatDate(backup.createdAt) }}
+              <td class="p-4 text-sm text-gray-500 dark:text-gray-400">
+                {{ formatTime(backup.createdAt) }}
               </td>
-              <td class="p-4">
-                <div class="flex gap-2">
-                  <button
-                    @click="downloadBackup(backup)"
-                    class="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    下载
-                  </button>
-                  <button
-                    @click="restoreBackup(backup)"
-                    class="text-green-600 hover:text-green-800 text-sm font-medium"
-                  >
-                    恢复
-                  </button>
-                  <button
-                    @click="deleteBackup(backup.id)"
-                    class="text-red-600 hover:text-red-800 text-sm font-medium"
-                  >
-                    删除
-                  </button>
-                </div>
+              <td class="p-4 text-right space-x-2">
+                <button
+                  @click="handleRestore(backup.id)"
+                  class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  :disabled="backup.status !== 'completed'"
+                >
+                  恢复
+                </button>
+                <button
+                  @click="handleDelete(backup.id)"
+                  class="text-red-600 hover:text-red-800 text-sm font-medium"
+                >
+                  删除
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <!-- 空状态 -->
-      <div v-if="backups.length === 0" class="p-12 text-center">
-        <p class="text-gray-500">暂无备份记录</p>
-        <button
-          @click="showCreateModal = true"
-          class="mt-4 text-blue-600 hover:text-blue-800"
-        >
-          创建第一个备份
-        </button>
       </div>
     </div>
 
     <!-- 创建备份模态框 -->
     <div
       v-if="showCreateModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
     >
       <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"
       >
-        <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-          创建备份
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          创建新备份
         </h2>
 
-        <form @submit.prevent="createBackup" class="space-y-4">
+        <div class="space-y-4">
           <div>
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >备份名称</label
             >
-            <div class="flex gap-2">
-              <input
-                v-model="backupForm.name"
-                type="text"
-                required
-                placeholder="backup-2024-01-29-full"
-                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              <button
-                type="button"
-                @click="generateBackupName"
-                class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm"
-              >
-                自动生成
-              </button>
-            </div>
+            <input
+              v-model="createForm.name"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="例如: backup-2023-11-20"
+            />
           </div>
 
           <div>
@@ -440,168 +334,41 @@
               >备份类型</label
             >
             <select
-              v-model="backupForm.type"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              v-model="createForm.type"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="full">完整备份（包含所有数据）</option>
-              <option value="incremental">增量备份（仅备份变更）</option>
+              <option value="full">全量备份</option>
+              <option value="incremental">增量备份</option>
             </select>
           </div>
 
-          <div class="space-y-2">
+          <div>
             <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >包含内容</label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >描述</label
             >
-            <label class="flex items-center gap-2">
-              <input
-                v-model="backupForm.includeDatabase"
-                type="checkbox"
-                class="rounded border-gray-300 dark:border-gray-600"
-              />
-              <span class="text-sm text-gray-700 dark:text-gray-300"
-                >数据库</span
-              >
-            </label>
-            <label class="flex items-center gap-2">
-              <input
-                v-model="backupForm.includeFiles"
-                type="checkbox"
-                class="rounded border-gray-300 dark:border-gray-600"
-              />
-              <span class="text-sm text-gray-700 dark:text-gray-300"
-                >用户上传文件</span
-              >
-            </label>
-            <label class="flex items-center gap-2">
-              <input
-                v-model="backupForm.includeConfig"
-                type="checkbox"
-                class="rounded border-gray-300 dark:border-gray-600"
-              />
-              <span class="text-sm text-gray-700 dark:text-gray-300"
-                >配置文件</span
-              >
-            </label>
+            <textarea
+              v-model="createForm.description"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            ></textarea>
           </div>
+        </div>
 
-          <div class="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              @click="showCreateModal = false"
-              class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              :disabled="isBackingUp"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              开始备份
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- 定时备份设置模态框 -->
-    <div
-      v-if="showScheduleModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-    >
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6"
-      >
-        <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-          定时备份设置
-        </h2>
-
-        <form @submit.prevent="saveSchedule" class="space-y-4">
-          <div
-            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="showCreateModal = false"
+            class="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
-            <div>
-              <p class="font-medium text-gray-900 dark:text-white">
-                启用定时备份
-              </p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">
-                自动定期备份数据
-              </p>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input
-                v-model="scheduleSettings.enabled"
-                type="checkbox"
-                class="sr-only peer"
-              />
-              <div
-                class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-              ></div>
-            </label>
-          </div>
-
-          <div v-if="scheduleSettings.enabled">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >备份频率</label
-            >
-            <select
-              v-model="scheduleSettings.frequency"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              <option value="daily">每天</option>
-              <option value="weekly">每周</option>
-              <option value="monthly">每月</option>
-            </select>
-          </div>
-
-          <div v-if="scheduleSettings.enabled">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >备份时间</label
-            >
-            <input
-              v-model="scheduleSettings.time"
-              type="time"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
-
-          <div v-if="scheduleSettings.enabled">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >保留备份数量</label
-            >
-            <input
-              v-model.number="scheduleSettings.keepCount"
-              type="number"
-              min="1"
-              max="30"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-            <p class="text-xs text-gray-500 mt-1">
-              超过数量将自动删除最旧的备份
-            </p>
-          </div>
-
-          <div class="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              @click="showScheduleModal = false"
-              class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              :disabled="loading"
-              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              保存设置
-            </button>
-          </div>
-        </form>
+            取消
+          </button>
+          <button
+            @click="handleCreateBackup"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            开始备份
+          </button>
+        </div>
       </div>
     </div>
   </div>

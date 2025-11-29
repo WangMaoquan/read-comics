@@ -1,547 +1,451 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
-
-  type TaskType = 'scan' | 'thumbnail' | 'backup' | 'cleanup' | 'import';
-  type TaskStatus =
-    | 'pending'
-    | 'running'
-    | 'completed'
-    | 'failed'
-    | 'cancelled';
-
-  interface Task {
-    id: string;
-    name: string;
-    type: TaskType;
-    status: TaskStatus;
-    progress: number;
-    startTime?: Date;
-    endTime?: Date;
-    error?: string;
-    result?: {
-      processed?: number;
-      found?: number;
-      failed?: number;
-      message?: string;
-    };
-  }
-
-  // Mock 任务数据
-  const tasks = ref<Task[]>([
-    {
-      id: '1',
-      name: '扫描新漫画',
-      type: 'scan',
-      status: 'running',
-      progress: 65,
-      startTime: new Date(Date.now() - 5 * 60 * 1000),
-    },
-    {
-      id: '2',
-      name: '生成缩略图',
-      type: 'thumbnail',
-      status: 'pending',
-      progress: 0,
-    },
-    {
-      id: '3',
-      name: '数据备份',
-      type: 'backup',
-      status: 'completed',
-      progress: 100,
-      startTime: new Date(Date.now() - 30 * 60 * 1000),
-      endTime: new Date(Date.now() - 25 * 60 * 1000),
-      result: { message: '备份成功：1.2GB' },
-    },
-    {
-      id: '4',
-      name: '清理缓存文件',
-      type: 'cleanup',
-      status: 'completed',
-      progress: 100,
-      startTime: new Date(Date.now() - 60 * 60 * 1000),
-      endTime: new Date(Date.now() - 58 * 60 * 1000),
-      result: { message: '清理完成：2.3GB' },
-    },
-    {
-      id: '5',
-      name: '导入漫画文件',
-      type: 'import',
-      status: 'failed',
-      progress: 45,
-      startTime: new Date(Date.now() - 90 * 60 * 1000),
-      endTime: new Date(Date.now() - 85 * 60 * 1000),
-      error: '文件格式不支持',
-      result: { processed: 5, found: 12, failed: 7 },
-    },
-  ]);
+  import { ref, onMounted, onUnmounted } from 'vue';
+  import {
+    tasksService,
+    type Task,
+    type TaskStats,
+  } from '../api/services/tasksService';
 
   // 状态
+  const tasks = ref<Task[]>([]);
   const loading = ref(false);
   const showCreateModal = ref(false);
+  let pollInterval: any = null;
+
+  // 统计数据
+  const stats = ref<TaskStats>({
+    total: 0,
+    running: 0,
+    pending: 0,
+    completed: 0,
+    failed: 0,
+  });
 
   // 新建任务表单
-  const taskForm = ref({
+  const createForm = ref({
     name: '',
-    type: 'scan' as TaskType,
+    type: 'scan' as 'scan' | 'thumbnail' | 'backup' | 'cleanup' | 'import',
     params: {},
   });
 
-  // 任务类型配置
-  const taskTypes = [
-    {
-      value: 'scan',
-      label: '扫描新漫画',
-      icon: '🔍',
-      description: '扫描指定目录查找新漫画文件',
-    },
-    {
-      value: 'thumbnail',
-      label: '生成缩略图',
-      icon: '🖼️',
-      description: '为漫画生成缩略图以提升浏览速度',
-    },
-    {
-      value: 'backup',
-      label: '数据备份',
-      icon: '💾',
-      description: '备份数据库和文件',
-    },
-    {
-      value: 'cleanup',
-      label: '清理缓存',
-      icon: '🧹',
-      description: '清理过期的缓存文件',
-    },
-    {
-      value: 'import',
-      label: '导入漫画',
-      icon: '📥',
-      description: '从指定路径导入漫画文件',
-    },
-  ];
+  // 获取任务列表
+  const fetchTasks = async () => {
+    // 只有第一次加载显示 loading，后续轮询不显示
+    if (tasks.value.length === 0) loading.value = true;
+    try {
+      const data = await tasksService.getTasks();
+      tasks.value = data;
+    } catch (error) {
+      console.error('Failed to fetch tasks:', error);
+    } finally {
+      loading.value = false;
+    }
+  };
 
-  // 统计
-  const stats = computed(() => {
-    const total = tasks.value.length;
-    const running = tasks.value.filter((t) => t.status === 'running').length;
-    const pending = tasks.value.filter((t) => t.status === 'pending').length;
-    const completed = tasks.value.filter(
-      (t) => t.status === 'completed',
-    ).length;
-    const failed = tasks.value.filter((t) => t.status === 'failed').length;
+  // 获取统计数据
+  const fetchStats = async () => {
+    try {
+      const data = await tasksService.getStats();
+      stats.value = data;
+    } catch (error) {
+      console.error('Failed to fetch task stats:', error);
+    }
+  };
 
-    return { total, running, pending, completed, failed };
+  // 初始化和轮询
+  onMounted(() => {
+    fetchTasks();
+    fetchStats();
+    // 每3秒轮询一次状态
+    pollInterval = setInterval(() => {
+      fetchTasks();
+      fetchStats();
+    }, 3000);
   });
 
-  // 辅助函数
-  const getStatusColor = (status: TaskStatus): string => {
-    const colors = {
-      pending: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-      running:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-      completed:
-        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-      failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-      cancelled:
-        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    };
-    return colors[status];
-  };
+  onUnmounted(() => {
+    if (pollInterval) clearInterval(pollInterval);
+  });
 
-  const getStatusText = (status: TaskStatus): string => {
-    const texts = {
-      pending: '等待中',
-      running: '运行中',
-      completed: '已完成',
-      failed: '失败',
-      cancelled: '已取消',
-    };
-    return texts[status];
-  };
-
-  const getTypeIcon = (type: TaskType): string => {
-    const task = taskTypes.find((t) => t.value === type);
-    return task?.icon || '📋';
-  };
-
-  const formatDuration = (start?: Date, end?: Date): string => {
-    if (!start) return '-';
-    const endTime = end || new Date();
-    const diff = endTime.getTime() - start.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    return `${minutes}分${seconds}秒`;
-  };
-
-  const formatTime = (date?: Date): string => {
-    if (!date) return '-';
-    return new Date(date).toLocaleTimeString('zh-CN');
-  };
-
-  // 操作
-  const createTask = async () => {
-    if (!taskForm.value.name) {
+  // 创建任务
+  const handleCreateTask = async () => {
+    if (!createForm.value.name) {
       alert('请输入任务名称');
       return;
     }
 
-    const newTask: Task = {
-      id: Date.now().toString(),
-      name: taskForm.value.name,
-      type: taskForm.value.type,
-      status: 'pending',
-      progress: 0,
+    try {
+      await tasksService.createTask(createForm.value);
+      showCreateModal.value = false;
+      createForm.value = { name: '', type: 'scan', params: {} };
+      fetchTasks();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to create task:', error);
+      alert('创建任务失败');
+    }
+  };
+
+  // 任务操作
+  const handleCancel = async (id: string) => {
+    try {
+      await tasksService.cancelTask(id);
+      fetchTasks();
+    } catch (error) {
+      console.error('Failed to cancel task:', error);
+    }
+  };
+
+  const handleRetry = async (id: string) => {
+    try {
+      await tasksService.retryTask(id);
+      fetchTasks();
+    } catch (error) {
+      console.error('Failed to retry task:', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定要删除此任务记录吗？')) return;
+    try {
+      await tasksService.deleteTask(id);
+      fetchTasks();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+    }
+  };
+
+  const handleClearCompleted = async () => {
+    if (!confirm('确定要清除所有已完成的任务记录吗？')) return;
+    try {
+      await tasksService.clearCompleted();
+      fetchTasks();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to clear completed tasks:', error);
+    }
+  };
+
+  // 辅助函数
+  const formatTime = (time?: string) => {
+    if (!time) return '-';
+    return new Date(time).toLocaleString();
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'failed':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'running':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    const map: Record<string, string> = {
+      completed: '已完成',
+      failed: '失败',
+      running: '运行中',
+      pending: '等待中',
+      cancelled: '已取消',
     };
-
-    tasks.value.unshift(newTask);
-    showCreateModal.value = false;
-    taskForm.value.name = '';
-
-    // 自动开始任务
-    setTimeout(() => {
-      startTask(newTask.id);
-    }, 500);
+    return map[status] || status;
   };
 
-  const startTask = (id: string) => {
-    const task = tasks.value.find((t) => t.id === id);
-    if (!task || task.status === 'running') return;
-
-    task.status = 'running';
-    task.startTime = new Date();
-    task.progress = 0;
-
-    // 模拟任务进度
-    const interval = setInterval(() => {
-      if (task.progress >= 100) {
-        clearInterval(interval);
-        task.status = 'completed';
-        task.endTime = new Date();
-        task.result = { message: '任务执行成功' };
-        return;
-      }
-      task.progress += Math.floor(Math.random() * 15) + 5;
-      if (task.progress > 100) task.progress = 100;
-    }, 1000);
-  };
-
-  const cancelTask = (id: string) => {
-    const task = tasks.value.find((t) => t.id === id);
-    if (!task || task.status !== 'running') return;
-
-    task.status = 'cancelled';
-    task.endTime = new Date();
-  };
-
-  const retryTask = (id: string) => {
-    const task = tasks.value.find((t) => t.id === id);
-    if (!task) return;
-
-    task.status = 'pending';
-    task.progress = 0;
-    task.error = undefined;
-    delete task.endTime;
-
-    setTimeout(() => startTask(id), 500);
-  };
-
-  const deleteTask = (id: string) => {
-    if (!confirm('确定要删除此任务吗？')) return;
-    tasks.value = tasks.value.filter((t) => t.id !== id);
-  };
-
-  const clearCompleted = () => {
-    if (!confirm('确定要清除所有已完成的任务吗？')) return;
-    tasks.value = tasks.value.filter((t) => t.status !== 'completed');
+  const getTypeLabel = (type: string) => {
+    const map: Record<string, string> = {
+      scan: '库扫描',
+      thumbnail: '生成缩略图',
+      backup: '系统备份',
+      cleanup: '清理缓存',
+      import: '批量导入',
+    };
+    return map[type] || type;
   };
 </script>
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-      任务管理
-    </h1>
-
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <div
-        class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
-      >
-        <p class="text-sm text-gray-500 dark:text-gray-400">总任务</p>
-        <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-          {{ stats.total }}
-        </p>
-      </div>
-      <div
-        class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800"
-      >
-        <p class="text-sm text-blue-600 dark:text-blue-400">运行中</p>
-        <p class="text-2xl font-bold text-blue-900 dark:text-blue-300 mt-1">
-          {{ stats.running }}
-        </p>
-      </div>
-      <div
-        class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
-      >
-        <p class="text-sm text-gray-600 dark:text-gray-400">等待中</p>
-        <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-          {{ stats.pending }}
-        </p>
-      </div>
-      <div
-        class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800"
-      >
-        <p class="text-sm text-green-600 dark:text-green-400">已完成</p>
-        <p class="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">
-          {{ stats.completed }}
-        </p>
-      </div>
-      <div
-        class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800"
-      >
-        <p class="text-sm text-red-600 dark:text-red-400">失败</p>
-        <p class="text-2xl font-bold text-red-900 dark:text-red-300 mt-1">
-          {{ stats.failed }}
-        </p>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">任务队列</h1>
+      <div class="flex gap-3">
+        <button
+          @click="handleClearCompleted"
+          class="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+        >
+          清除已完成
+        </button>
+        <button
+          @click="showCreateModal = true"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <span class="text-xl">+</span>
+          新建任务
+        </button>
       </div>
     </div>
 
-    <!-- 操作按钮 -->
-    <div class="flex gap-3 mb-6">
-      <button
-        @click="showCreateModal = true"
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div
+        class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-        新建任务
-      </button>
-      <button
-        @click="clearCompleted"
-        class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors"
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">总任务</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ stats.total }}
+            </p>
+          </div>
+          <div class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <span class="text-xl">📋</span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
-        清除已完成
-      </button>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">运行中</p>
+            <p class="text-2xl font-bold text-blue-600 mt-1">
+              {{ stats.running }}
+            </p>
+          </div>
+          <div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <span class="text-xl animate-spin">⚡</span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">等待中</p>
+            <p class="text-2xl font-bold text-yellow-600 mt-1">
+              {{ stats.pending }}
+            </p>
+          </div>
+          <div class="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+            <span class="text-xl">⏳</span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">已完成</p>
+            <p class="text-2xl font-bold text-green-600 mt-1">
+              {{ stats.completed }}
+            </p>
+          </div>
+          <div class="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <span class="text-xl">✅</span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">失败</p>
+            <p class="text-2xl font-bold text-red-600 mt-1">
+              {{ stats.failed }}
+            </p>
+          </div>
+          <div class="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <span class="text-xl">❌</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 任务列表 -->
-    <div class="space-y-4">
-      <div
-        v-for="task in tasks"
-        :key="task.id"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
-      >
-        <div class="flex items-start justify-between mb-4">
-          <div class="flex items-start gap-3 flex-1">
-            <span class="text-3xl">{{ getTypeIcon(task.type) }}</span>
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ task.name }}
-              </h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {{ taskTypes.find((t) => t.value === task.type)?.label }}
-              </p>
-            </div>
-          </div>
-          <span
-            :class="[
-              'px-3 py-1 text-sm rounded-full',
-              getStatusColor(task.status),
-            ]"
-          >
-            {{ getStatusText(task.status) }}
-          </span>
-        </div>
-
-        <!-- 进度条 -->
-        <div
-          v-if="task.status === 'running' || task.status === 'pending'"
-          class="mb-4"
-        >
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-gray-600 dark:text-gray-400">进度</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ task.progress }}%</span
+    <div
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+    >
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr
+              class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm"
             >
-          </div>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              :style="{ width: task.progress + '%' }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- 错误信息 -->
-        <div
-          v-if="task.error"
-          class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-        >
-          <p class="text-sm text-red-700 dark:text-red-400">
-            ❌ {{ task.error }}
-          </p>
-        </div>
-
-        <!-- 结果信息 -->
-        <div
-          v-if="task.result && task.status === 'completed'"
-          class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
-        >
-          <p class="text-sm text-green-700 dark:text-green-400">
-            ✅ {{ task.result.message }}
-          </p>
-          <div
-            v-if="task.result.processed !== undefined"
-            class="text-xs text-green-600 dark:text-green-500 mt-1"
-          >
-            处理: {{ task.result.processed }} / 发现: {{ task.result.found }} /
-            失败: {{ task.result.failed || 0 }}
-          </div>
-        </div>
-
-        <!-- 时间信息 -->
-        <div
-          class="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400 mb-4"
-        >
-          <span>开始: {{ formatTime(task.startTime) }}</span>
-          <span v-if="task.endTime">结束: {{ formatTime(task.endTime) }}</span>
-          <span v-if="task.startTime"
-            >耗时: {{ formatDuration(task.startTime, task.endTime) }}</span
-          >
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="flex gap-2">
-          <button
-            v-if="task.status === 'running'"
-            @click="cancelTask(task.id)"
-            class="px-3 py-1.5 text-sm bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors"
-          >
-            取消
-          </button>
-          <button
-            v-if="task.status === 'failed'"
-            @click="retryTask(task.id)"
-            class="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            重试
-          </button>
-          <button
-            v-if="
-              task.status === 'completed' ||
-              task.status === 'failed' ||
-              task.status === 'cancelled'
-            "
-            @click="deleteTask(task.id)"
-            class="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 dark:hover:text-red-400"
-          >
-            删除
-          </button>
-        </div>
-      </div>
-
-      <!-- 空状态 -->
-      <div
-        v-if="tasks.length === 0"
-        class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center"
-      >
-        <p class="text-gray-500">暂无任务</p>
-        <button
-          @click="showCreateModal = true"
-          class="mt-4 text-blue-600 hover:text-blue-800"
-        >
-          创建第一个任务
-        </button>
+              <th class="p-4 font-medium">任务名称</th>
+              <th class="p-4 font-medium">类型</th>
+              <th class="p-4 font-medium">进度</th>
+              <th class="p-4 font-medium">状态</th>
+              <th class="p-4 font-medium">开始时间</th>
+              <th class="p-4 font-medium">耗时</th>
+              <th class="p-4 font-medium text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            <tr v-if="loading && tasks.length === 0" class="text-center">
+              <td colspan="7" class="p-8 text-gray-500">加载中...</td>
+            </tr>
+            <tr v-else-if="tasks.length === 0" class="text-center">
+              <td colspan="7" class="p-8 text-gray-500">暂无任务</td>
+            </tr>
+            <tr
+              v-for="task in tasks"
+              :key="task.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <td class="p-4">
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ task.name }}
+                </div>
+                <div
+                  v-if="task.error"
+                  class="text-xs text-red-500 mt-1 truncate max-w-xs"
+                  :title="task.error"
+                >
+                  {{ task.error }}
+                </div>
+              </td>
+              <td class="p-4 text-sm text-gray-500 dark:text-gray-400">
+                {{ getTypeLabel(task.type) }}
+              </td>
+              <td class="p-4 w-48">
+                <div class="flex items-center gap-2">
+                  <div
+                    class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+                  >
+                    <div
+                      class="h-full bg-blue-600 transition-all duration-500"
+                      :style="{ width: `${task.progress}%` }"
+                      :class="{
+                        'bg-green-500': task.status === 'completed',
+                        'bg-red-500': task.status === 'failed',
+                      }"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-500 w-8 text-right"
+                    >{{ task.progress }}%</span
+                  >
+                </div>
+              </td>
+              <td class="p-4">
+                <span
+                  class="px-2 py-1 text-xs font-medium rounded-full"
+                  :class="getStatusColor(task.status)"
+                >
+                  {{ getStatusText(task.status) }}
+                </span>
+              </td>
+              <td class="p-4 text-sm text-gray-500 dark:text-gray-400">
+                {{ formatTime(task.startTime) }}
+              </td>
+              <td class="p-4 text-sm text-gray-500 dark:text-gray-400">
+                {{
+                  task.endTime && task.startTime
+                    ? Math.round(
+                        (new Date(task.endTime).getTime() -
+                          new Date(task.startTime).getTime()) /
+                          1000,
+                      ) + 's'
+                    : '-'
+                }}
+              </td>
+              <td class="p-4 text-right space-x-2">
+                <button
+                  v-if="task.status === 'running' || task.status === 'pending'"
+                  @click="handleCancel(task.id)"
+                  class="text-yellow-600 hover:text-yellow-800 text-sm font-medium"
+                >
+                  取消
+                </button>
+                <button
+                  v-if="task.status === 'failed' || task.status === 'cancelled'"
+                  @click="handleRetry(task.id)"
+                  class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  重试
+                </button>
+                <button
+                  @click="handleDelete(task.id)"
+                  class="text-red-600 hover:text-red-800 text-sm font-medium"
+                >
+                  删除
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <!-- 创建任务模态框 -->
     <div
       v-if="showCreateModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
     >
       <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"
       >
-        <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
           新建任务
         </h2>
 
-        <form @submit.prevent="createTask" class="space-y-4">
+        <div class="space-y-4">
           <div>
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >任务名称</label
             >
             <input
-              v-model="taskForm.name"
+              v-model="createForm.name"
               type="text"
-              required
-              placeholder="例如：扫描新漫画"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="例如: 扫描新漫画"
             />
           </div>
 
           <div>
             <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >任务类型</label
             >
-            <div class="space-y-2">
-              <label
-                v-for="type in taskTypes"
-                :key="type.value"
-                class="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              >
-                <input
-                  v-model="taskForm.type"
-                  type="radio"
-                  :value="type.value"
-                  class="mt-1"
-                />
-                <div class="flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xl">{{ type.icon }}</span>
-                    <span class="font-medium text-gray-900 dark:text-white">{{
-                      type.label
-                    }}</span>
-                  </div>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {{ type.description }}
-                  </p>
-                </div>
-              </label>
-            </div>
+            <select
+              v-model="createForm.type"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="scan">库扫描</option>
+              <option value="thumbnail">生成缩略图</option>
+              <option value="backup">系统备份</option>
+              <option value="cleanup">清理缓存</option>
+              <option value="import">批量导入</option>
+            </select>
           </div>
+        </div>
 
-          <div class="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              @click="showCreateModal = false"
-              class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              创建并开始
-            </button>
-          </div>
-        </form>
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="showCreateModal = false"
+            class="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="handleCreateTask"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            创建任务
+          </button>
+        </div>
       </div>
     </div>
   </div>
