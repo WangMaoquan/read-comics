@@ -7,6 +7,7 @@ import { ComicsModule } from './modules/comics/comics.module';
 import { FilesModule } from './modules/files/files.module';
 import { ImagesModule } from './modules/images/images.module';
 import { ChaptersModule } from './modules/chapters/chapters.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ChaptersModule } from './modules/chapters/chapters.module';
     FilesModule,
     ImagesModule,
     ChaptersModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

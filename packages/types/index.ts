@@ -7,6 +7,7 @@ export * from './comic';
 
 // API 相关类型
 export * from './api';
+export * from './user';
 
 // 通用工具类型
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

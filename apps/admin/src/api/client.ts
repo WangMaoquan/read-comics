@@ -180,6 +180,34 @@ class ApiClient {
   }
 
   /**
+   * PATCH 请求
+   */
+  async patch<T = any>(
+    endpoint: string,
+    data?: any,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    const { timeout = this.defaultTimeout, ...fetchOptions } = options;
+    const url = this.buildURL(endpoint);
+
+    const response = await this.fetchWithTimeout(
+      url,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...fetchOptions.headers,
+        },
+        body: JSON.stringify(data),
+        ...fetchOptions,
+      },
+      timeout,
+    );
+
+    return this.handleResponse<T>(response);
+  }
+
+  /**
    * DELETE 请求
    */
   async delete<T = any>(

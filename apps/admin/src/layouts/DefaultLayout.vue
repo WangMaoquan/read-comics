@@ -8,6 +8,7 @@
   const menuItems = [
     { name: '仪表盘', path: '/', icon: 'home' },
     { name: '漫画管理', path: '/comics', icon: 'book-open' },
+    { name: '用户管理', path: '/users', icon: 'users' },
     { name: '系统设置', path: '/settings', icon: 'cog' },
   ];
 

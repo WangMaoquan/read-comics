@@ -19,6 +19,11 @@ const router = createRouter({
           name: 'comics',
           component: () => import('../views/Comics.vue'),
         },
+        {
+          path: 'users',
+          name: 'users',
+          component: () => import('../views/Users.vue'),
+        },
       ],
     },
   ],
