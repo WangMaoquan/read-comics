@@ -44,6 +44,11 @@ const router = createRouter({
           name: 'backups',
           component: () => import('../views/Backups.vue'),
         },
+        {
+          path: 'tasks',
+          name: 'tasks',
+          component: () => import('../views/Tasks.vue'),
+        },
       ],
     },
   ],

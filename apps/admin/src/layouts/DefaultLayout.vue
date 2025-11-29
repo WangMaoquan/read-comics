@@ -10,6 +10,7 @@
     { name: '漫画管理', path: '/comics', icon: 'book-open' },
     { name: '文件管理', path: '/files', icon: 'folder' },
     { name: '用户管理', path: '/users', icon: 'users' },
+    { name: '任务队列', path: '/tasks', icon: 'list' },
     { name: '系统日志', path: '/logs', icon: 'file-text' },
     { name: '数据备份', path: '/backups', icon: 'database' },
     { name: '系统设置', path: '/settings', icon: 'cog' },
