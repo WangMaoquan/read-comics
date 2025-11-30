@@ -5,6 +5,8 @@ import { Comic } from '../entities/comic.entity';
 import { Chapter } from '../entities/chapter.entity';
 import { ReadingProgress } from '../entities/reading-progress.entity';
 import { UserPreferences } from '../entities/user-preferences.entity';
+import { User } from '../entities/user.entity';
+import { Favorite } from '../entities/favorite.entity';
 
 @Module({
   imports: [
@@ -20,7 +22,14 @@ import { UserPreferences } from '../entities/user-preferences.entity';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [Comic, Chapter, ReadingProgress, UserPreferences],
+        entities: [
+          Comic,
+          Chapter,
+          ReadingProgress,
+          UserPreferences,
+          User,
+          Favorite,
+        ],
         synchronize: true, // 开发环境使用，生产环境需要关闭
         logging: true,
         extra: {
