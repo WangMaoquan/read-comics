@@ -22,6 +22,7 @@
   const readingMode = ref<ReadingMode>(ReadingMode.SINGLE_PAGE);
   const showControls = ref(true);
   const isScrolling = ref(false);
+  const preloadQueue = ref<Set<string>>(new Set()); // 预加载队列，防止重复加载
 
   // 获取路由参数
   const comicId = computed(() => route.params.comicId as string);
@@ -89,6 +90,61 @@
     }
   };
 
+  // 恢复阅读进度
+  const restoreProgress = async () => {
+    try {
+      // 1. 尝试从云端获取进度
+      const progress = await comicsService.getProgress(comicId.value);
+
+      if (progress && progress.chapterId === chapterId.value) {
+        currentPage.value = Math.min(
+          progress.currentPage,
+          totalPages.value - 1,
+        );
+      } else {
+        // 2. 如果云端没有当前章节的进度，尝试从本地恢复
+        const savedProgress = localStorage.getItem(
+          `reading_progress_${comicId.value}`,
+        );
+        if (savedProgress) {
+          const progressData = JSON.parse(savedProgress);
+          if (progressData.chapterId === chapterId.value) {
+            currentPage.value = Math.min(
+              progressData.currentPage || 0,
+              totalPages.value - 1,
+            );
+            readingMode.value =
+              progressData.readingMode || ReadingMode.SINGLE_PAGE;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore progress:', error);
+    }
+  };
+
+  // 预加载图片
+  const preloadImages = (startIndex: number, count: number = 3) => {
+    if (!images.value.length) return;
+
+    for (let i = 1; i <= count; i++) {
+      const nextIndex = startIndex + i;
+      if (nextIndex < images.value.length) {
+        const imageUrl = images.value[nextIndex];
+        if (!preloadQueue.value.has(imageUrl)) {
+          const img = new Image();
+          img.src = imageUrl;
+          preloadQueue.value.add(imageUrl);
+        }
+      }
+    }
+  };
+
+  // 监听页码变化，触发预加载
+  watch(currentPage, (newPage) => {
+    preloadImages(newPage);
+  });
+
   // 加载章节图片
   const loadChapterImages = async () => {
     loading.value = true;
@@ -108,7 +164,7 @@
       }
 
       // 恢复阅读进度
-      restoreProgress();
+      await restoreProgress();
     } catch (error) {
       console.error('Failed to load chapter images:', error);
     } finally {
@@ -145,39 +201,6 @@
       console.error('Failed to save progress:', error);
     }
   }, 1000);
-
-  // 恢复阅读进度
-  const restoreProgress = async () => {
-    try {
-      // 1. 尝试从云端获取进度
-      const progress = await comicsService.getProgress(comicId.value);
-
-      if (progress && progress.chapterId === chapterId.value) {
-        currentPage.value = Math.min(
-          progress.currentPage,
-          totalPages.value - 1,
-        );
-      } else {
-        // 2. 如果云端没有当前章节的进度，尝试从本地恢复
-        const savedProgress = localStorage.getItem(
-          `reading_progress_${comicId.value}`,
-        );
-        if (savedProgress) {
-          const progressData = JSON.parse(savedProgress);
-          if (progressData.chapterId === chapterId.value) {
-            currentPage.value = Math.min(
-              progressData.currentPage || 0,
-              totalPages.value - 1,
-            );
-            readingMode.value =
-              progressData.readingMode || ReadingMode.SINGLE_PAGE;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to restore progress:', error);
-    }
-  };
 
   // 导航功能
   const goBack = () => {
