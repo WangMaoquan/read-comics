@@ -23,6 +23,11 @@
   const showControls = ref(true);
   const isScrolling = ref(false);
   const preloadQueue = ref<Set<string>>(new Set()); // 预加载队列，防止重复加载
+  const zoomLevel = ref(1); // 缩放比例
+  const panPosition = ref({ x: 0, y: 0 }); // 平移位置
+  const isDragging = ref(false);
+  const startPanPosition = ref({ x: 0, y: 0 });
+  const startMousePosition = ref({ x: 0, y: 0 });
 
   // 获取路由参数
   const comicId = computed(() => route.params.comicId as string);
@@ -143,7 +148,63 @@
   // 监听页码变化，触发预加载
   watch(currentPage, (newPage) => {
     preloadImages(newPage);
+    // 重置缩放和平移
+    zoomLevel.value = 1;
+    panPosition.value = { x: 0, y: 0 };
   });
+
+  // 缩放控制
+  const handleWheel = (event: WheelEvent) => {
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      const delta = event.deltaY > 0 ? -0.1 : 0.1;
+      const newZoom = Math.max(1, Math.min(3, zoomLevel.value + delta));
+      zoomLevel.value = newZoom;
+    }
+  };
+
+  const handleDoubleClick = () => {
+    if (zoomLevel.value > 1) {
+      zoomLevel.value = 1;
+      panPosition.value = { x: 0, y: 0 };
+    } else {
+      zoomLevel.value = 2;
+    }
+  };
+
+  // 拖拽控制
+  const startDrag = (event: MouseEvent) => {
+    if (zoomLevel.value <= 1) return;
+    isDragging.value = true;
+    startMousePosition.value = { x: event.clientX, y: event.clientY };
+    startPanPosition.value = { ...panPosition.value };
+  };
+
+  const onDrag = (event: MouseEvent) => {
+    if (!isDragging.value) return;
+    const deltaX = event.clientX - startMousePosition.value.x;
+    const deltaY = event.clientY - startMousePosition.value.y;
+    panPosition.value = {
+      x: startPanPosition.value.x + deltaX,
+      y: startPanPosition.value.y + deltaY,
+    };
+  };
+
+  const endDrag = () => {
+    isDragging.value = false;
+  };
+
+  // 图片样式
+  const imageStyle = computed(() => ({
+    transform: `scale(${zoomLevel.value}) translate(${panPosition.value.x / zoomLevel.value}px, ${panPosition.value.y / zoomLevel.value}px)`,
+    cursor:
+      zoomLevel.value > 1
+        ? isDragging.value
+          ? 'grabbing'
+          : 'grab'
+        : 'default',
+    transition: isDragging.value ? 'none' : 'transform 0.2s ease-out',
+  }));
 
   // 加载章节图片
   const loadChapterImages = async () => {
@@ -530,16 +591,26 @@
           v-if="readingMode === 'single_page'"
           class="flex items-center justify-center min-h-[80vh] p-4"
         >
-          <div class="relative">
+          <div
+            class="relative overflow-hidden"
+            @wheel="handleWheel"
+            @mousedown="startDrag"
+            @mousemove="onDrag"
+            @mouseup="endDrag"
+            @mouseleave="endDrag"
+            @dblclick="handleDoubleClick"
+          >
             <img
               :src="currentImage"
               :alt="`Page ${currentPage + 1}`"
-              class="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg"
+              class="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg origin-center"
+              :style="imageStyle"
               loading="lazy"
+              draggable="false"
             />
             <!-- 页码显示 -->
             <div
-              class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm"
+              class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm pointer-events-none"
             >
               {{ currentPage + 1 }} / {{ totalPages }}
             </div>
