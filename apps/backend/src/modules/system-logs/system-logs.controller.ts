@@ -1,10 +1,21 @@
-import { Controller, Get, Delete, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Delete, Query, UseGuards } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { SystemLogsService } from './system-logs.service';
 import { QuerySystemLogsDto } from './dto/query-system-logs.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('system-logs')
 @Controller('logs')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('super_admin')
+@ApiBearerAuth()
 export class SystemLogsController {
   constructor(private readonly systemLogsService: SystemLogsService) {}
 

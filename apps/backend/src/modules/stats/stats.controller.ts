@@ -1,10 +1,22 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { StatsService } from './stats.service';
 import { GetStatsQueryDto } from './dto/get-stats-query.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('stats')
 @Controller('stats')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'super_admin')
+@ApiBearerAuth()
 export class StatsController {
   constructor(private readonly statsService: StatsService) {}
 

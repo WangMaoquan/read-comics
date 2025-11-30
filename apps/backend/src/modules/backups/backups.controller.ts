@@ -1,16 +1,31 @@
-import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { BackupsService } from './backups.service';
 import { CreateBackupDto } from './dto/create-backup.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('backups')
 @Controller('backups')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'super_admin')
+@ApiBearerAuth()
 export class BackupsController {
   constructor(private readonly backupsService: BackupsService) {}
 

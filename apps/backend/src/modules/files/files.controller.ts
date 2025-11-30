@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -23,12 +24,16 @@ import {
   ApiParam,
   ApiConsumes,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FilesService } from './files.service';
 import { ComicFormat } from '@read-comics/types';
 import { ComicsService } from '../comics/comics.service';
 import { ChaptersService } from '../chapters/chapters.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('files')
 @Controller('files')
@@ -57,7 +62,10 @@ export class FilesController {
    * 上传漫画文件
    */
   @Post('upload')
-  @ApiOperation({ summary: '上传漫画文件' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '上传漫画文件（管理员及以上）' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -181,7 +189,10 @@ export class FilesController {
    * 扫描漫画目录
    */
   @Get('scan')
-  @ApiOperation({ summary: '扫描漫画目录' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '扫描漫画目录（管理员及以上）' })
   @ApiResponse({ status: 200, description: '扫描成功' })
   async scanComicsDirectory() {
     const files = await this.filesService.scanComicsDirectory();
@@ -296,7 +307,10 @@ export class FilesController {
    * 删除文件
    */
   @Delete(':filePath')
-  @ApiOperation({ summary: '删除文件' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '删除文件（管理员及以上）' })
   @ApiParam({ name: 'filePath', description: '文件路径' })
   @ApiResponse({ status: 200, description: '删除成功' })
   async deleteFile(@Param('filePath') filePath: string) {
