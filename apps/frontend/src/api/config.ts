@@ -34,6 +34,13 @@ export const API_ENDPOINTS = {
     thumbnail: '/images/thumbnail',
     formats: '/images/formats',
   },
+
+  // 认证相关
+  auth: {
+    register: '/auth/register',
+    login: '/auth/login',
+    me: '/auth/me',
+  },
 } as const;
 
 // 请求超时时间（毫秒）

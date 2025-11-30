@@ -319,6 +319,7 @@
   import { ref } from 'vue';
   import { useRouter } from 'vue-router';
   import { useAuthStore } from '../stores/auth';
+  import { authService } from '../api/services';
 
   const router = useRouter();
   const authStore = useAuthStore();
@@ -354,25 +355,33 @@
     loading.value = true;
 
     try {
-      // TODO: 实际的 API 调用
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      let response;
 
-      // Mock 用户数据
-      const mockUser = {
-        id: '1',
-        username: formData.value.username || formData.value.email.split('@')[0],
-        email: formData.value.email,
-        avatar: `https://ui-avatars.com/api/?name=${formData.value.email}&background=random`,
-      };
+      if (isLogin.value) {
+        // 登录
+        response = await authService.login({
+          email: formData.value.email,
+          password: formData.value.password,
+        });
+      } else {
+        // 注册
+        response = await authService.register({
+          username: formData.value.username,
+          email: formData.value.email,
+          password: formData.value.password,
+        });
+      }
 
-      const mockToken = 'mock_token_' + Date.now();
-
-      authStore.setAuth(mockUser, mockToken);
+      // 保存认证信息
+      authStore.setAuth(response.user, response.token);
 
       // 跳转到首页
       router.push('/');
-    } catch (error) {
-      errorMessage.value = '操作失败，请稍后重试';
+    } catch (error: any) {
+      errorMessage.value =
+        error.response?.data?.message ||
+        error.message ||
+        '操作失败，请稍后重试';
     } finally {
       loading.value = false;
     }

@@ -20,6 +20,10 @@ export class User {
   @Column({ unique: true })
   username: string;
 
+  @ApiProperty({ description: '邮箱', example: 'user@example.com' })
+  @Column({ unique: true })
+  email: string;
+
   @ApiProperty({
     description: '密码',
     example: 'password123',

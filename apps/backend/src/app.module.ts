@@ -13,6 +13,7 @@ import { StatsModule } from './modules/stats/stats.module';
 import { SystemLogsModule } from './modules/system-logs/system-logs.module';
 import { BackupsModule } from './modules/backups/backups.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Module({
@@ -31,6 +32,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     SystemLogsModule,
     BackupsModule,
     TasksModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

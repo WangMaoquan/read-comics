@@ -6,3 +6,4 @@ export { comicsService } from './comicsService';
 export { chaptersService } from './chaptersService';
 export { filesService } from './filesService';
 export { imagesService } from './imagesService';
+export { authService } from './authService';

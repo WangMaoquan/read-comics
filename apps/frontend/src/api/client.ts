@@ -34,6 +34,14 @@ class ApiClient {
   }
 
   /**
+   * 获取认证 Header
+   */
+  private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('auth_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  /**
    * 构建完整 URL
    */
   private buildURL(
@@ -111,6 +119,10 @@ class ApiClient {
       url,
       {
         method: 'GET',
+        headers: {
+          ...this.getAuthHeaders(),
+          ...fetchOptions.headers,
+        },
         ...fetchOptions,
       },
       timeout,
@@ -137,9 +149,10 @@ class ApiClient {
       {
         method: 'POST',
         headers: isFormData
-          ? {}
+          ? { ...this.getAuthHeaders() }
           : {
               'Content-Type': 'application/json',
+              ...this.getAuthHeaders(),
               ...fetchOptions.headers,
             },
         body: isFormData ? data : JSON.stringify(data),
@@ -168,6 +181,7 @@ class ApiClient {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
           ...fetchOptions.headers,
         },
         body: JSON.stringify(data),
@@ -193,6 +207,10 @@ class ApiClient {
       url,
       {
         method: 'DELETE',
+        headers: {
+          ...this.getAuthHeaders(),
+          ...fetchOptions.headers,
+        },
         ...fetchOptions,
       },
       timeout,
