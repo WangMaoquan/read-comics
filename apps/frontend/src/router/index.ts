@@ -11,6 +11,14 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: '/auth',
+    name: 'Auth',
+    component: () => import('@views/Auth.vue'),
+    meta: {
+      title: '登录/注册',
+    },
+  },
+  {
     path: '/library',
     name: 'Library',
     component: () => import('@views/Library.vue'),
