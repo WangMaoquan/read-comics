@@ -28,12 +28,16 @@ export class AuthService {
     // 加密密码
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
+    // 检查是否是第一个用户，如果是则设为超级管理员
+    const userCount = await this.usersRepository.count();
+    const role = userCount === 0 ? 'super_admin' : 'user';
+
     // 创建用户
     const user = this.usersRepository.create({
       username: registerDto.username,
       email: registerDto.email,
       password: hashedPassword,
-      role: 'user',
+      role,
     });
 
     await this.usersRepository.save(user);
@@ -43,6 +47,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       username: user.username,
+      role: user.role,
     };
     const token = this.jwtService.sign(payload);
 
@@ -81,6 +86,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       username: user.username,
+      role: user.role,
     };
     const token = this.jwtService.sign(payload);
 

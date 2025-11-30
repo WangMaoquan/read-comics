@@ -6,60 +6,53 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-  ApiBody,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from '../../entities/user.entity';
 
 @ApiTags('users')
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @ApiOperation({ summary: '创建用户' })
-  @ApiBody({ type: CreateUserDto })
-  @ApiResponse({ status: 201, description: '成功创建用户', type: User })
+  @Roles('super_admin')
+  @ApiOperation({ summary: '创建用户（仅超级管理员）' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  @ApiOperation({ summary: '获取用户列表' })
-  @ApiResponse({ status: 200, description: '成功获取用户列表', type: [User] })
+  @Roles('super_admin', 'admin')
+  @ApiOperation({ summary: '获取所有用户（管理员及以上）' })
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: '获取用户详情' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  @ApiResponse({ status: 200, description: '成功获取用户详情', type: User })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: '更新用户' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  @ApiBody({ type: UpdateUserDto })
-  @ApiResponse({ status: 200, description: '成功更新用户', type: User })
+  @Roles('super_admin')
+  @ApiOperation({ summary: '更新用户（仅超级管理员）' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: '删除用户' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  @ApiResponse({ status: 200, description: '成功删除用户' })
+  @Roles('super_admin')
+  @ApiOperation({ summary: '删除用户（仅超级管理员）' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }

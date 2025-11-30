@@ -35,11 +35,11 @@ export class User {
   @ApiProperty({
     description: '用户角色',
     example: 'user',
-    enum: ['admin', 'user'],
+    enum: ['super_admin', 'admin', 'user'],
     default: 'user',
   })
   @Column({ default: 'user' })
-  role: string;
+  role: 'super_admin' | 'admin' | 'user';
 
   @ApiProperty({ description: '创建时间' })
   @CreateDateColumn()
