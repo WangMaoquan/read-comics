@@ -146,5 +146,5 @@ yarn.lock
 # Generated files
 *.generated.*
 
-comics
+/comics
 TODO.md

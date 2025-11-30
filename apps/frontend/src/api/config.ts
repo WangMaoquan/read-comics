@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     list: '/comics',
     detail: (id: string) => `/comics/${id}`,
     chapters: (id: string) => `/chapters?comicId=${id}`,
+    progress: (id: string) => `/comics/${id}/progress`,
   },
 
   // 章节相关

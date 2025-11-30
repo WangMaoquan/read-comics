@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Comic } from '../../entities/comic.entity';
 import { Chapter } from '../../entities/chapter.entity';
+import { ReadingProgress } from '../../entities/reading-progress.entity';
 import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
+import { UpdateProgressDto } from './dto/update-progress.dto';
 import { ComicFilter } from '@read-comics/types';
 
 import { ChaptersService } from '../chapters/chapters.service';
@@ -14,6 +16,8 @@ export class ComicsService {
   constructor(
     @InjectRepository(Comic)
     private readonly comicRepository: Repository<Comic>,
+    @InjectRepository(ReadingProgress)
+    private readonly progressRepository: Repository<ReadingProgress>,
     private readonly chaptersService: ChaptersService,
     private readonly dataSource: DataSource,
   ) {}
@@ -114,5 +118,46 @@ export class ComicsService {
 
   async count(): Promise<number> {
     return await this.comicRepository.count();
+  }
+
+  async updateProgress(
+    comicId: string,
+    updateProgressDto: UpdateProgressDto,
+  ): Promise<ReadingProgress> {
+    let progress = await this.progressRepository.findOne({
+      where: { comicId },
+    });
+
+    if (!progress) {
+      progress = this.progressRepository.create({
+        comicId,
+        ...updateProgressDto,
+        progress: Math.round(
+          (updateProgressDto.currentPage / updateProgressDto.totalPages) * 100,
+        ),
+      });
+    } else {
+      progress.chapterId = updateProgressDto.chapterId;
+      progress.currentPage = updateProgressDto.currentPage;
+      progress.totalPages = updateProgressDto.totalPages;
+      progress.progress = Math.round(
+        (updateProgressDto.currentPage / updateProgressDto.totalPages) * 100,
+      );
+      progress.lastReadAt = new Date();
+    }
+
+    // Update comic lastReadAt
+    await this.comicRepository.update(comicId, {
+      lastReadAt: new Date(),
+      readCount: () => 'readCount + 1', // Simple increment, maybe refine later
+    });
+
+    return await this.progressRepository.save(progress);
+  }
+
+  async getProgress(comicId: string): Promise<ReadingProgress | null> {
+    return await this.progressRepository.findOne({
+      where: { comicId },
+    });
   }
 }

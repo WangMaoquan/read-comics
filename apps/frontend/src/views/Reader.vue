@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import { useDebounceFn } from '@vueuse/core';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
   import {
@@ -116,37 +117,65 @@
   };
 
   // 保存阅读进度
-  const saveProgress = () => {
-    const progressData = {
-      comicId: comicId.value,
-      chapterId: chapterId.value,
-      currentPage: currentPage.value,
-      readingMode: readingMode.value,
-      timestamp: new Date().toISOString(),
-    };
+  const saveProgress = useDebounceFn(async () => {
+    if (!comicId.value || !chapterId.value) return;
 
-    localStorage.setItem(
-      `reading_progress_${comicId.value}_${chapterId.value}`,
-      JSON.stringify(progressData),
-    );
-  };
+    try {
+      // 同步到云端
+      await comicsService.updateProgress(comicId.value, {
+        chapterId: chapterId.value,
+        currentPage: currentPage.value,
+        totalPages: totalPages.value,
+      });
+
+      // 本地备份
+      const progressData = {
+        comicId: comicId.value,
+        chapterId: chapterId.value,
+        currentPage: currentPage.value,
+        readingMode: readingMode.value,
+        timestamp: new Date().toISOString(),
+      };
+
+      localStorage.setItem(
+        `reading_progress_${comicId.value}`,
+        JSON.stringify(progressData),
+      );
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+    }
+  }, 1000);
 
   // 恢复阅读进度
-  const restoreProgress = () => {
-    const savedProgress = localStorage.getItem(
-      `reading_progress_${comicId.value}_${chapterId.value}`,
-    );
-    if (savedProgress) {
-      try {
-        const progressData = JSON.parse(savedProgress);
+  const restoreProgress = async () => {
+    try {
+      // 1. 尝试从云端获取进度
+      const progress = await comicsService.getProgress(comicId.value);
+
+      if (progress && progress.chapterId === chapterId.value) {
         currentPage.value = Math.min(
-          progressData.currentPage || 0,
+          progress.currentPage,
           totalPages.value - 1,
         );
-        readingMode.value = progressData.readingMode || ReadingMode.SINGLE_PAGE;
-      } catch (error) {
-        console.error('Failed to restore progress:', error);
+      } else {
+        // 2. 如果云端没有当前章节的进度，尝试从本地恢复
+        const savedProgress = localStorage.getItem(
+          `reading_progress_${comicId.value}`,
+        );
+        if (savedProgress) {
+          const progressData = JSON.parse(savedProgress);
+          if (progressData.chapterId === chapterId.value) {
+            currentPage.value = Math.min(
+              progressData.currentPage || 0,
+              totalPages.value - 1,
+            );
+            readingMode.value =
+              progressData.readingMode || ReadingMode.SINGLE_PAGE;
+          }
+        }
       }
+    } catch (error) {
+      console.error('Failed to restore progress:', error);
     }
   };
 

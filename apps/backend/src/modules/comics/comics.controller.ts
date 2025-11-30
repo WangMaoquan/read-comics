@@ -20,6 +20,7 @@ import {
 import { ComicsService } from './comics.service';
 import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
+import { UpdateProgressDto } from './dto/update-progress.dto';
 import type { ComicFilter } from '@read-comics/types';
 
 @ApiTags('comics')
@@ -60,6 +61,24 @@ export class ComicsController {
   @ApiResponse({ status: 404, description: '漫画不存在' })
   findOne(@Param('id') id: string) {
     return this.comicsService.findOne(id);
+  }
+
+  @Post(':id/progress')
+  @ApiOperation({ summary: '更新阅读进度' })
+  @ApiBody({ type: UpdateProgressDto })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  updateProgress(
+    @Param('id') id: string,
+    @Body() updateProgressDto: UpdateProgressDto,
+  ) {
+    return this.comicsService.updateProgress(id, updateProgressDto);
+  }
+
+  @Get(':id/progress')
+  @ApiOperation({ summary: '获取阅读进度' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getProgress(@Param('id') id: string) {
+    return this.comicsService.getProgress(id);
   }
 
   @Patch(':id')

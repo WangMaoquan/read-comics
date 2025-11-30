@@ -128,7 +128,7 @@ export class StatsService {
     const totalUsers = await this.usersRepository.count();
 
     // Mock 活跃度数据
-    const activityData = [];
+    const activityData: { date: string; activeUsers: number }[] = [];
     const days = 7;
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
