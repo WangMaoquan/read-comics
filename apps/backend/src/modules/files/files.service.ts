@@ -166,10 +166,10 @@ export class FilesService implements OnModuleInit {
           if (!folderMap.has(folderName)) {
             folderMap.set(folderName, []);
           }
-          folderMap.get(folderName)!.push(file.originName);
+          folderMap.get(folderName)!.push(file.decodeName);
         } else {
           // 在根目录
-          rootImages.push(file.originName);
+          rootImages.push(file.decodeName);
         }
       }
 
@@ -204,14 +204,14 @@ export class FilesService implements OnModuleInit {
       if (chapters.length === 0 && imageFiles.length > 0) {
         chapters.push({
           title: '默认章节',
-          pages: imageFiles.map((f) => f.originName),
+          pages: imageFiles.map((f) => f.decodeName),
         });
       }
 
       return {
         title: fileName,
         totalPages: imageFiles.length,
-        images: imageFiles.map((f) => f.originName),
+        images: imageFiles.map((f) => f.decodeName),
         format,
         chapters,
       };
