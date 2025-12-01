@@ -3,8 +3,8 @@
  */
 
 // API 基础 URL，从环境变量读取
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:4399';
+// 开发环境使用代理，所以用空字符串（相对路径）
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 // API 端点
 export const API_ENDPOINTS = {

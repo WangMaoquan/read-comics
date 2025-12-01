@@ -19,4 +19,13 @@ export default defineConfig({
       '@utils-shared': path.resolve(__dirname, '../../packages/utils/src'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4399',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });
