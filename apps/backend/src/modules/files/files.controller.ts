@@ -82,17 +82,6 @@ export class FilesController {
   @ApiResponse({ status: 400, description: '文件格式不支持' })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './comics', // 直接使用默认路径
-        filename: (req, file, cb) => {
-          // 使用唯一文件名,防止同名不同内容的文件相互覆盖
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          const nameWithoutExt = file.originalname.slice(0, -ext.length);
-          cb(null, `${nameWithoutExt}-${uniqueSuffix}${ext}`);
-        },
-      }),
       fileFilter: (req, file, cb) => {
         const supportedFormats = ['.cbz', '.zip'];
         const ext = extname(file.originalname).toLowerCase();
