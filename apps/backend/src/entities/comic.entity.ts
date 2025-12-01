@@ -79,6 +79,10 @@ export class Comic {
 
   @ApiProperty({ description: '最后阅读时间', required: false })
   @Column({ nullable: true })
+  lastReadAt?: Date;
+
+  @ApiProperty({ description: '出版社', example: '集英社', required: false })
+  @Column({ nullable: true })
   publisher?: string;
 
   @ApiProperty({

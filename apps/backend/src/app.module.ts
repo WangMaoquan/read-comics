@@ -15,6 +15,7 @@ import { BackupsModule } from './modules/backups/backups.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
+import { TagsModule } from './modules/tags/tags.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Module({
@@ -35,6 +36,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     TasksModule,
     AuthModule,
     FavoritesModule,
+    TagsModule,
   ],
   controllers: [AppController],
   providers: [

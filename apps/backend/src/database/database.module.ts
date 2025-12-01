@@ -7,6 +7,7 @@ import { ReadingProgress } from '../entities/reading-progress.entity';
 import { UserPreferences } from '../entities/user-preferences.entity';
 import { User } from '../entities/user.entity';
 import { Favorite } from '../entities/favorite.entity';
+import { Tag } from '../entities/tag.entity';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { Favorite } from '../entities/favorite.entity';
           UserPreferences,
           User,
           Favorite,
+          Tag,
         ],
         synchronize: true, // 开发环境使用，生产环境需要关闭
         logging: true,
