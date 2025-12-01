@@ -41,6 +41,15 @@ export const API_ENDPOINTS = {
     login: '/auth/login',
     me: '/auth/me',
   },
+
+  // 收藏相关
+  favorites: {
+    base: '/favorites',
+    stats: '/favorites/stats',
+    check: (comicId: string) => `/favorites/${comicId}`,
+    update: (comicId: string) => `/favorites/${comicId}`,
+    remove: (comicId: string) => `/favorites/${comicId}`,
+  },
 } as const;
 
 // 请求超时时间（毫秒）

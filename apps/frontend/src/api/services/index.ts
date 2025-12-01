@@ -7,3 +7,4 @@ export { chaptersService } from './chaptersService';
 export { filesService } from './filesService';
 export { imagesService } from './imagesService';
 export { authService } from './authService';
+export { favoritesService } from './favoritesService';

@@ -27,6 +27,14 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: '/favorites',
+    name: 'Favorites',
+    component: () => import('@views/Favorites.vue'),
+    meta: {
+      title: '我的书架',
+    },
+  },
+  {
     path: '/comic/:id',
     name: 'ComicDetail',
     component: () => import('@views/ComicDetail.vue'),
