@@ -191,7 +191,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted, watch } from 'vue';
-  import { useUIStore } from '../stores/ui';
+  import { useUIStore } from '@stores/ui';
 
   const uiStore = useUIStore();
 

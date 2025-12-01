@@ -12,6 +12,8 @@ export default defineConfig({
       '@components': path.resolve(__dirname, './src/components'),
       '@views': path.resolve(__dirname, './src/views'),
       '@stores': path.resolve(__dirname, './src/stores'),
+      '@api': path.resolve(__dirname, './src/api'),
+      '@utils': path.resolve(__dirname, './src/utils'),
       '@read-comics/types': path.resolve(
         __dirname,
         '../../packages/types/index.ts',

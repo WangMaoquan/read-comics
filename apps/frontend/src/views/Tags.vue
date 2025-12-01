@@ -171,8 +171,8 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
-  import { tagsService, type Tag } from '../api/services/tagsService';
-  import TagBadge from '../components/TagBadge.vue';
+  import { tagsService, type Tag } from '@api/services/tagsService';
+  import TagBadge from '@components/TagBadge.vue';
 
   const loading = ref(false);
   const tags = ref<Tag[]>([]);

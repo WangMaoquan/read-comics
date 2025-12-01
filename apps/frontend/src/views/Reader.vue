@@ -2,13 +2,13 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { useDebounceFn } from '@vueuse/core';
-  import LoadingSpinner from '../components/LoadingSpinner.vue';
+  import LoadingSpinner from '@components/LoadingSpinner.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
   import {
     comicsService,
     chaptersService,
     imagesService,
-  } from '../api/services';
+  } from '@api/services';
 
   const route = useRoute();
   const router = useRouter();

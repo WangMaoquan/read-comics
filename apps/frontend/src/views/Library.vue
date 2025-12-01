@@ -1,13 +1,13 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import LoadingSpinner from '../components/LoadingSpinner.vue';
+  import LoadingSpinner from '@components/LoadingSpinner.vue';
   import type { Comic } from '@read-comics/types';
   import { ComicStatus } from '@read-comics/types';
-  import { useFileStore } from '../stores/files';
-  import { useComicStore } from '../stores/comic';
-  import { filesService } from '../api/services';
-  import { validateFile } from '../utils/formatValidation';
+  import { useFileStore } from '@stores/files';
+  import { useComicStore } from '@stores/comic';
+  import { filesService } from '@api/services';
+  import { validateFile } from '@utils/formatValidation';
 
   const router = useRouter();
   const fileStore = useFileStore();

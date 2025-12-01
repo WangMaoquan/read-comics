@@ -9,4 +9,4 @@ export { imagesService } from './imagesService';
 export { authService } from './authService';
 export { favoritesService } from './favoritesService';
 export { tagsService } from './tagsService';
-export { usersService } from './usersService';
+export { usersService, type UpdateProfileData } from './usersService';

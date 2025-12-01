@@ -228,7 +228,7 @@
     favoritesService,
     FavoriteStatus,
     type Favorite,
-  } from '../api/services/favoritesService';
+  } from '@api/services/favoritesService';
 
   const loading = ref(false);
   const favorites = ref<Favorite[]>([]);

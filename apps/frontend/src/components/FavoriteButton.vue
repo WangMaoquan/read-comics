@@ -37,8 +37,8 @@
   import {
     favoritesService,
     FavoriteStatus,
-  } from '../api/services/favoritesService';
-  import { useAuthStore } from '../stores/auth';
+  } from '@api/services/favoritesService';
+  import { useAuthStore } from '@stores/auth';
 
   const props = defineProps<{
     comicId: string;

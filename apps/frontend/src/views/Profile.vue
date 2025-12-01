@@ -386,8 +386,8 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import { useAuthStore } from '../stores/auth';
-  import { usersService } from '../api/services';
+  import { useAuthStore } from '@stores/auth';
+  import { usersService, type UpdateProfileData } from '@api/services';
 
   const authStore = useAuthStore();
   const user = authStore.user;
@@ -426,7 +426,7 @@
     loading.value = true;
 
     try {
-      const updateData: any = {
+      const updateData: UpdateProfileData = {
         username: formData.value.username,
       };
 
@@ -451,3 +451,4 @@
     }
   };
 </script>
+```

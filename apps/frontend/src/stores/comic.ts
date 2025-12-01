@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Comic, Chapter } from '@read-comics/types';
-import { comicsService } from '../api/services';
+import { comicsService } from '@api/services';
 
 interface ComicState {
   comics: Comic[];

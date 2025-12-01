@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue';
-  import { useUIStore } from '../stores/ui';
+  import { useUIStore } from '@stores/ui';
 
   const uiStore = useUIStore();
 

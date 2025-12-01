@@ -45,17 +45,17 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
+  @Patch('profile')
+  @ApiOperation({ summary: '更新个人信息' })
+  updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.usersService.update(req.user.sub, updateProfileDto);
+  }
+
   @Patch(':id')
   @Roles('super_admin')
   @ApiOperation({ summary: '更新用户（仅超级管理员）' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
-  }
-
-  @Patch('profile')
-  @ApiOperation({ summary: '更新个人信息' })
-  updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
-    return this.usersService.update(req.user.sub, updateProfileDto);
   }
 
   @Delete(':id')
