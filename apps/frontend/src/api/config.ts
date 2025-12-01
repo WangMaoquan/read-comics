@@ -50,6 +50,19 @@ export const API_ENDPOINTS = {
     update: (comicId: string) => `/favorites/${comicId}`,
     remove: (comicId: string) => `/favorites/${comicId}`,
   },
+
+  // 标签相关
+  tags: {
+    base: '/tags',
+    detail: (id: string) => `/tags/${id}`,
+    update: (id: string) => `/tags/${id}`,
+    delete: (id: string) => `/tags/${id}`,
+    comics: (tagId: string) => `/tags/${tagId}/comics`,
+    addToComic: (comicId: string, tagId: string) =>
+      `/tags/comics/${comicId}/tags/${tagId}`,
+    removeFromComic: (comicId: string, tagId: string) =>
+      `/tags/comics/${comicId}/tags/${tagId}`,
+  },
 } as const;
 
 // 请求超时时间（毫秒）

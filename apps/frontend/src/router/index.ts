@@ -35,6 +35,14 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: '/tags',
+    name: 'Tags',
+    component: () => import('@views/Tags.vue'),
+    meta: {
+      title: '标签浏览',
+    },
+  },
+  {
     path: '/comic/:id',
     name: 'ComicDetail',
     component: () => import('@views/ComicDetail.vue'),

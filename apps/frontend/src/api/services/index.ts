@@ -8,3 +8,4 @@ export { filesService } from './filesService';
 export { imagesService } from './imagesService';
 export { authService } from './authService';
 export { favoritesService } from './favoritesService';
+export { tagsService } from './tagsService';
