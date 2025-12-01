@@ -7,7 +7,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { ChaptersService } from './chapters.service';
-import { Chapter } from '../../entities/chapter.entity';
+import { Chapter } from '@entities/chapter.entity';
 
 @ApiTags('chapters')
 @Controller('chapters')

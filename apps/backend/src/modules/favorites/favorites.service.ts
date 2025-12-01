@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Favorite, FavoriteStatus } from '../../entities/favorite.entity';
-import { Comic } from '../../entities/comic.entity';
+import { Favorite, FavoriteStatus } from '@entities/favorite.entity';
+import { Comic } from '@entities/comic.entity';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import { UpdateFavoriteDto } from './dto/update-favorite.dto';
 

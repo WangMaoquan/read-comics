@@ -21,7 +21,7 @@ import { FavoritesService } from './favorites.service';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import { UpdateFavoriteDto } from './dto/update-favorite.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { FavoriteStatus } from '../../entities/favorite.entity';
+import { FavoriteStatus } from '@entities/favorite.entity';
 
 @ApiTags('favorites')
 @Controller('favorites')

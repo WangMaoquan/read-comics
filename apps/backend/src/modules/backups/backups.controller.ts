@@ -18,8 +18,8 @@ import {
 import { BackupsService } from './backups.service';
 import { CreateBackupDto } from './dto/create-backup.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 
 @ApiTags('backups')
 @Controller('backups')

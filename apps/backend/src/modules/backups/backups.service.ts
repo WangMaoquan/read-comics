@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Backup } from '../../entities/backup.entity';
+import { Backup } from '@entities/backup.entity';
 import { CreateBackupDto } from './dto/create-backup.dto';
 import * as path from 'path';
 import * as fs from 'fs-extra';

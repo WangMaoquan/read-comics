@@ -8,8 +8,8 @@ import {
 import { SystemLogsService } from './system-logs.service';
 import { QuerySystemLogsDto } from './dto/query-system-logs.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 
 @ApiTags('system-logs')
 @Controller('logs')

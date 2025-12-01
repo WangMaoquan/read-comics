@@ -10,7 +10,7 @@ import { createHash } from 'crypto';
 import * as sharp from 'sharp';
 import { StreamableFile } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
-import { ZipUtilsService } from '../../common/utils/zip-utils.service';
+import { ZipUtilsService } from '@common/utils/zip-utils.service';
 
 @Injectable()
 export class ImagesService implements OnModuleInit {

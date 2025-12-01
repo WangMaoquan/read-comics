@@ -32,8 +32,8 @@ import { ComicFormat } from '@read-comics/types';
 import { ComicsService } from '../comics/comics.service';
 import { ChaptersService } from '../chapters/chapters.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 
 @ApiTags('files')
 @Controller('files')

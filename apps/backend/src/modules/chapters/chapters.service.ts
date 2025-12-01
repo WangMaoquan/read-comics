@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Chapter } from '../../entities/chapter.entity';
+import { Chapter } from '@entities/chapter.entity';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 
 @Injectable()

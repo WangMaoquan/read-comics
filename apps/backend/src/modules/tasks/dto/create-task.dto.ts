@@ -1,6 +1,6 @@
 import { IsString, IsIn, IsOptional, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { TaskType } from '../../../entities/task.entity';
+import { TaskType } from '@entities/task.entity';
 
 export class CreateTaskDto {
   @ApiProperty({ description: '任务名称' })

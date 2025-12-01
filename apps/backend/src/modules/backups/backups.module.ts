@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BackupsController } from './backups.controller';
 import { BackupsService } from './backups.service';
-import { Backup } from '../../entities/backup.entity';
+import { Backup } from '@entities/backup.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Backup])],

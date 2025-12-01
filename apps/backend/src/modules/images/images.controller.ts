@@ -17,7 +17,7 @@ import {
 import { Response } from 'express';
 import { ImagesService, ImageOptions } from './images.service';
 
-import { BypassTransform } from '../../common/decorators/bypass-transform.decorator';
+import { BypassTransform } from '@common/decorators/bypass-transform.decorator';
 
 @ApiTags('images')
 @Controller('images')

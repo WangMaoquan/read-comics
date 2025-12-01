@@ -24,8 +24,8 @@ import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 import type { ComicFilter } from '@read-comics/types';
 
 @ApiTags('comics')

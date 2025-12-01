@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Comic } from '../../entities/comic.entity';
-import { Chapter } from '../../entities/chapter.entity';
-import { ReadingProgress } from '../../entities/reading-progress.entity';
+import { Comic } from '@entities/comic.entity';
+import { Chapter } from '@entities/chapter.entity';
+import { ReadingProgress } from '@entities/reading-progress.entity';
 import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';

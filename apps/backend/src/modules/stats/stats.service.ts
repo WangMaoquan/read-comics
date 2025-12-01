@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Comic } from '../../entities/comic.entity';
-import { User } from '../../entities/user.entity';
+import { Comic } from '@entities/comic.entity';
+import { User } from '@entities/user.entity';
 import { GetStatsQueryDto } from './dto/get-stats-query.dto';
 
 @Injectable()

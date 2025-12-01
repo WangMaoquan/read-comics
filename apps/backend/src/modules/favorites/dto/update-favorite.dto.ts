@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { FavoriteStatus } from '../../../entities/favorite.entity';
+import { FavoriteStatus } from '@entities/favorite.entity';
 
 export class UpdateFavoriteDto {
   @ApiProperty({

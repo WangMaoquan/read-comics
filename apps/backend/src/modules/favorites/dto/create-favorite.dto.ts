@@ -1,6 +1,6 @@
 import { IsEnum, IsUUID, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { FavoriteStatus } from '../../../entities/favorite.entity';
+import { FavoriteStatus } from '@entities/favorite.entity';
 
 export class CreateFavoriteDto {
   @ApiProperty({ description: '漫画ID', example: 'uuid' })

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, Between } from 'typeorm';
-import { SystemLog } from '../../entities/system-log.entity';
+import { SystemLog } from '@entities/system-log.entity';
 import { QuerySystemLogsDto } from './dto/query-system-logs.dto';
 
 @Injectable()
