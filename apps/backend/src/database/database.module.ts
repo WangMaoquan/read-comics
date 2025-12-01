@@ -8,6 +8,7 @@ import { UserPreferences } from '../entities/user-preferences.entity';
 import { User } from '../entities/user.entity';
 import { Favorite } from '../entities/favorite.entity';
 import { Tag } from '../entities/tag.entity';
+import { SystemLog } from '../entities/system-log.entity';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { Tag } from '../entities/tag.entity';
           User,
           Favorite,
           Tag,
+          SystemLog,
         ],
         synchronize: true, // 开发环境使用，生产环境需要关闭
         logging: true,
