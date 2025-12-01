@@ -34,4 +34,12 @@ export const authService = {
   async getProfile(): Promise<any> {
     return apiClient.get(API_ENDPOINTS.auth.me);
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return apiClient.post(API_ENDPOINTS.auth.forgotPassword, { email });
+  },
+
+  async resetPassword(data: any): Promise<{ message: string }> {
+    return apiClient.post(API_ENDPOINTS.auth.resetPassword, data);
+  },
 };

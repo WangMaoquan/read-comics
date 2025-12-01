@@ -37,20 +37,31 @@
           </svg>
         </div>
         <h1 class="text-3xl font-bold text-white mb-2">漫画阅读器</h1>
-        <p class="text-gray-400">{{ isLogin ? '欢迎回来' : '创建新账户' }}</p>
+        <p class="text-gray-400">
+          {{
+            mode === 'login'
+              ? '欢迎回来'
+              : mode === 'register'
+                ? '创建新账户'
+                : '重置密码'
+          }}
+        </p>
       </div>
 
       <!-- 主卡片 -->
       <div
         class="bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 p-8"
       >
-        <!-- 切换按钮 -->
-        <div class="flex mb-8 bg-gray-900/50 rounded-xl p-1">
+        <!-- 切换按钮 (仅在登录/注册模式显示) -->
+        <div
+          v-if="mode !== 'forgot-password'"
+          class="flex mb-8 bg-gray-900/50 rounded-xl p-1"
+        >
           <button
-            @click="isLogin = true"
+            @click="switchMode('login')"
             :class="[
               'flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
-              isLogin
+              mode === 'login'
                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                 : 'text-gray-400 hover:text-white',
             ]"
@@ -58,10 +69,10 @@
             登录
           </button>
           <button
-            @click="isLogin = false"
+            @click="switchMode('register')"
             :class="[
               'flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
-              !isLogin
+              mode === 'register'
                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                 : 'text-gray-400 hover:text-white',
             ]"
@@ -93,10 +104,33 @@
           </div>
         </div>
 
+        <!-- 成功提示 -->
+        <div
+          v-if="successMessage"
+          class="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl"
+        >
+          <div class="flex items-center">
+            <svg
+              class="w-5 h-5 text-green-400 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              ></path>
+            </svg>
+            <p class="text-sm text-green-400">{{ successMessage }}</p>
+          </div>
+        </div>
+
         <!-- 表单 -->
         <form @submit.prevent="handleSubmit" class="space-y-5">
-          <!-- 用户名 (注册时) -->
-          <div v-if="!isLogin" class="group">
+          <!-- 用户名 (仅注册时) -->
+          <div v-if="mode === 'register'" class="group">
             <label class="block text-sm font-medium text-gray-300 mb-2"
               >用户名</label
             >
@@ -127,11 +161,35 @@
             </div>
           </div>
 
+          <!-- 验证码 (仅忘记密码时) -->
+          <div v-if="mode === 'forgot-password'" class="group">
+            <label class="block text-sm font-medium text-gray-300 mb-2"
+              >验证码</label
+            >
+            <div class="flex space-x-2">
+              <input
+                v-model="formData.verificationCode"
+                type="text"
+                required
+                class="flex-1 px-4 py-3 bg-gray-900/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                placeholder="请输入验证码"
+              />
+              <button
+                type="button"
+                @click="sendCode"
+                :disabled="countdown > 0 || loading"
+                class="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {{ countdown > 0 ? `${countdown}s 后重试` : '获取验证码' }}
+              </button>
+            </div>
+          </div>
+
           <!-- 密码 -->
           <div class="group">
-            <label class="block text-sm font-medium text-gray-300 mb-2"
-              >密码</label
-            >
+            <label class="block text-sm font-medium text-gray-300 mb-2">{{
+              mode === 'forgot-password' ? '新密码' : '密码'
+            }}</label>
             <div class="relative">
               <input
                 v-model="formData.password"
@@ -183,8 +241,11 @@
             </div>
           </div>
 
-          <!-- 确认密码 (注册时) -->
-          <div v-if="!isLogin" class="group">
+          <!-- 确认密码 (注册或重置密码时) -->
+          <div
+            v-if="mode === 'register' || mode === 'forgot-password'"
+            class="group"
+          >
             <label class="block text-sm font-medium text-gray-300 mb-2"
               >确认密码</label
             >
@@ -200,7 +261,10 @@
           </div>
 
           <!-- 记住我 / 忘记密码 -->
-          <div v-if="isLogin" class="flex items-center justify-between">
+          <div
+            v-if="mode === 'login'"
+            class="flex items-center justify-between"
+          >
             <label class="flex items-center cursor-pointer">
               <input
                 v-model="formData.rememberMe"
@@ -209,11 +273,13 @@
               />
               <span class="ml-2 text-sm text-gray-400">记住我</span>
             </label>
-            <a
-              href="#"
-              class="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-              >忘记密码？</a
+            <button
+              type="button"
+              @click="switchMode('forgot-password')"
+              class="text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors"
             >
+              忘记密码？
+            </button>
           </div>
 
           <!-- 提交按钮 -->
@@ -222,7 +288,13 @@
             :disabled="loading"
             class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            <span v-if="!loading">{{ isLogin ? '登录' : '注册' }}</span>
+            <span v-if="!loading">{{
+              mode === 'login'
+                ? '登录'
+                : mode === 'register'
+                  ? '注册'
+                  : '重置密码'
+            }}</span>
             <span v-else class="flex items-center justify-center">
               <svg
                 class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -248,8 +320,8 @@
           </button>
         </form>
 
-        <!-- 社交登录 -->
-        <div class="mt-8">
+        <!-- 社交登录 (仅登录/注册模式) -->
+        <div v-if="mode !== 'forgot-password'" class="mt-8">
           <div class="relative">
             <div class="absolute inset-0 flex items-center">
               <div class="w-full border-t border-gray-700"></div>
@@ -302,12 +374,24 @@
       <!-- 底部链接 -->
       <div class="mt-6 text-center">
         <p class="text-sm text-gray-400">
-          {{ isLogin ? '还没有账户？' : '已有账户？' }}
+          {{
+            mode === 'login'
+              ? '还没有账户？'
+              : mode === 'register'
+                ? '已有账户？'
+                : '想起密码了？'
+          }}
           <button
-            @click="isLogin = !isLogin"
+            @click="switchMode(mode === 'login' ? 'register' : 'login')"
             class="text-blue-400 hover:text-blue-300 font-medium transition-colors"
           >
-            {{ isLogin ? '立即注册' : '立即登录' }}
+            {{
+              mode === 'login'
+                ? '立即注册'
+                : mode === 'register'
+                  ? '立即登录'
+                  : '返回登录'
+            }}
           </button>
         </p>
       </div>
@@ -325,24 +409,69 @@
   const route = useRoute();
   const authStore = useAuthStore();
 
-  const isLogin = ref(true);
+  const mode = ref<'login' | 'register' | 'forgot-password'>('login');
   const showPassword = ref(false);
   const loading = ref(false);
   const errorMessage = ref('');
+  const successMessage = ref('');
+  const countdown = ref(0);
 
   const formData = ref({
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
+    verificationCode: '',
     rememberMe: false,
   });
 
-  const handleSubmit = async () => {
+  const switchMode = (newMode: 'login' | 'register' | 'forgot-password') => {
+    mode.value = newMode;
+    errorMessage.value = '';
+    successMessage.value = '';
+    formData.value = {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      verificationCode: '',
+      rememberMe: false,
+    };
+  };
+
+  const sendCode = async () => {
+    if (!formData.value.email) {
+      errorMessage.value = '请输入邮箱';
+      return;
+    }
+
+    loading.value = true;
     errorMessage.value = '';
 
+    try {
+      await authService.forgotPassword(formData.value.email);
+      successMessage.value =
+        '验证码已发送，请检查您的邮箱（模拟环境请查看后端控制台）';
+      countdown.value = 60;
+      const timer = setInterval(() => {
+        countdown.value--;
+        if (countdown.value <= 0) {
+          clearInterval(timer);
+        }
+      }, 1000);
+    } catch (error: any) {
+      errorMessage.value = error.response?.data?.message || '发送验证码失败';
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const handleSubmit = async () => {
+    errorMessage.value = '';
+    successMessage.value = '';
+
     // 验证
-    if (!isLogin.value) {
+    if (mode.value === 'register' || mode.value === 'forgot-password') {
       if (formData.value.password !== formData.value.confirmPassword) {
         errorMessage.value = '两次密码输入不一致';
         return;
@@ -356,29 +485,37 @@
     loading.value = true;
 
     try {
-      let response;
-
-      if (isLogin.value) {
+      if (mode.value === 'login') {
         // 登录
-        response = await authService.login({
+        const response = await authService.login({
           email: formData.value.email,
           password: formData.value.password,
         });
-      } else {
+        authStore.setAuth(response.user, response.token);
+        const redirect = route.query.redirect as string;
+        router.push(redirect || '/');
+      } else if (mode.value === 'register') {
         // 注册
-        response = await authService.register({
+        const response = await authService.register({
           username: formData.value.username,
           email: formData.value.email,
           password: formData.value.password,
         });
+        authStore.setAuth(response.user, response.token);
+        const redirect = route.query.redirect as string;
+        router.push(redirect || '/');
+      } else if (mode.value === 'forgot-password') {
+        // 重置密码
+        await authService.resetPassword({
+          email: formData.value.email,
+          code: formData.value.verificationCode,
+          password: formData.value.password,
+        });
+        successMessage.value = '密码重置成功，请登录';
+        setTimeout(() => {
+          switchMode('login');
+        }, 2000);
       }
-
-      // 保存认证信息
-      authStore.setAuth(response.user, response.token);
-
-      // 跳转到原来要访问的页面，或者首页
-      const redirect = route.query.redirect as string;
-      router.push(redirect || '/');
     } catch (error: any) {
       errorMessage.value =
         error.response?.data?.message ||

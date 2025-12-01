@@ -15,6 +15,8 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @ApiTags('auth')
@@ -36,6 +38,22 @@ export class AuthController {
   @ApiResponse({ status: 401, description: '邮箱或密码错误' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: '忘记密码 - 发送验证码' })
+  @ApiResponse({ status: 200, description: '验证码已发送' })
+  @ApiResponse({ status: 401, description: '邮箱未注册' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: '重置密码' })
+  @ApiResponse({ status: 200, description: '密码重置成功' })
+  @ApiResponse({ status: 401, description: '验证码无效或过期' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @Get('me')

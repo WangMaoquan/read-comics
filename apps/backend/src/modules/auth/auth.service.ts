@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../../entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -101,6 +102,11 @@ export class AuthService {
     };
   }
 
+  private verificationCodes = new Map<
+    string,
+    { code: string; expires: number }
+  >();
+
   async validateUser(userId: string) {
     const user = await this.usersRepository.findOne({
       where: { id: userId },
@@ -116,5 +122,52 @@ export class AuthService {
       email: user.email,
       role: user.role,
     };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new UnauthorizedException('该邮箱未注册');
+    }
+
+    // 生成 6 位验证码
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 存储验证码，有效期 10 分钟
+    this.verificationCodes.set(email, {
+      code,
+      expires: Date.now() + 10 * 60 * 1000,
+    });
+
+    // TODO: 发送邮件
+    console.log(`[Mock Email] To: ${email}, Code: ${code}`);
+
+    return { message: '验证码已发送到您的邮箱' };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { email, code, password } = resetPasswordDto;
+
+    // 验证验证码
+    const stored = this.verificationCodes.get(email);
+    if (!stored || stored.code !== code || stored.expires < Date.now()) {
+      throw new UnauthorizedException('验证码无效或已过期');
+    }
+
+    // 查找用户
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+
+    // 重置密码
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    await this.usersRepository.save(user);
+
+    // 清除验证码
+    this.verificationCodes.delete(email);
+
+    return { message: '密码重置成功' };
   }
 }
