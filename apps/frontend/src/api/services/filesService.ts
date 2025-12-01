@@ -83,7 +83,7 @@ export const filesService = {
       xhr.open('POST', `${apiClient['baseURL']}${API_ENDPOINTS.files.upload}`);
 
       // 添加认证 token
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (token) {
         xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       }
