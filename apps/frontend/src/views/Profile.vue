@@ -117,16 +117,16 @@
                   <div class="grid grid-cols-1 gap-6">
                     <div>
                       <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                       >
                         邮箱地址
                       </label>
-                      <div class="relative">
+                      <div class="relative group">
                         <div
                           class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
                         >
                           <svg
-                            class="h-5 w-5 text-gray-400"
+                            class="h-5 w-5 text-gray-400 transition-colors duration-200"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -143,26 +143,26 @@
                           type="email"
                           :value="user?.email"
                           disabled
-                          class="pl-10 block w-full rounded-lg border-gray-300 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600 text-gray-500 dark:text-gray-400 sm:text-sm cursor-not-allowed"
+                          class="pl-10 block w-full rounded-lg border-gray-200 bg-gray-50/50 dark:bg-gray-700/30 dark:border-gray-600 text-gray-500 dark:text-gray-400 sm:text-sm cursor-not-allowed shadow-inner"
                         />
                       </div>
-                      <p class="mt-1 text-xs text-gray-500">
+                      <p class="mt-1.5 text-xs text-gray-500">
                         邮箱地址用于登录，暂不支持修改。
                       </p>
                     </div>
 
                     <div>
                       <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                       >
                         用户名
                       </label>
-                      <div class="relative">
+                      <div class="relative group">
                         <div
-                          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-200 group-focus-within:text-blue-500"
                         >
                           <svg
-                            class="h-5 w-5 text-gray-400"
+                            class="h-5 w-5 text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300 transition-colors"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -179,7 +179,7 @@
                           v-model="formData.username"
                           type="text"
                           required
-                          class="pl-10 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                          class="pl-10 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 hover:border-gray-400 dark:hover:border-gray-500 sm:text-sm transition-all duration-200 shadow-sm"
                           placeholder="请输入用户名"
                         />
                       </div>
@@ -194,24 +194,25 @@
                     class="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2"
                   >
                     安全设置
-                    <span class="text-xs font-normal text-gray-500 normal-case"
-                      >(留空则不修改)</span
+                    <span
+                      class="text-xs font-normal text-gray-500 normal-case bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full"
+                      >留空则不修改</span
                     >
                   </h4>
 
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                       >
                         新密码
                       </label>
-                      <div class="relative">
+                      <div class="relative group">
                         <div
-                          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-200 group-focus-within:text-blue-500"
                         >
                           <svg
-                            class="h-5 w-5 text-gray-400"
+                            class="h-5 w-5 text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300 transition-colors"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -227,7 +228,7 @@
                         <input
                           v-model="formData.password"
                           type="password"
-                          class="pl-10 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                          class="pl-10 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 hover:border-gray-400 dark:hover:border-gray-500 sm:text-sm transition-all duration-200 shadow-sm"
                           placeholder="••••••••"
                         />
                       </div>
@@ -235,16 +236,16 @@
 
                     <div>
                       <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                       >
                         确认密码
                       </label>
-                      <div class="relative">
+                      <div class="relative group">
                         <div
-                          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-200 group-focus-within:text-blue-500"
                         >
                           <svg
-                            class="h-5 w-5 text-gray-400"
+                            class="h-5 w-5 text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300 transition-colors"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -260,7 +261,7 @@
                         <input
                           v-model="formData.confirmPassword"
                           type="password"
-                          class="pl-10 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                          class="pl-10 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 hover:border-gray-400 dark:hover:border-gray-500 sm:text-sm transition-all duration-200 shadow-sm"
                           placeholder="••••••••"
                         />
                       </div>
