@@ -8,8 +8,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 全局前缀
-  app.setGlobalPrefix('api');
+  // 全局前缀 - 已移除
+  // app.setGlobalPrefix('api');
 
   // 允许跨域
   app.enableCors();
