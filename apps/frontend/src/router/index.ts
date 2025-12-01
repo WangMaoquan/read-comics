@@ -32,6 +32,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@views/Favorites.vue'),
     meta: {
       title: '我的书架',
+      requiresAuth: true, // 需要登录
     },
   },
   {
@@ -88,6 +89,28 @@ router.beforeEach((to, from, next) => {
     ? `${to.meta.title} - 漫画阅读器`
     : '漫画阅读器';
   next();
+});
+
+// 路由守卫：检查登录状态
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token');
+  const isAuthenticated = !!token;
+
+  // 需要登录的路由
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+
+  if (requiresAuth && !isAuthenticated) {
+    // 未登录，重定向到登录页
+    next({
+      path: '/auth',
+      query: { redirect: to.fullPath }, // 保存原始目标路径，登录后可以跳回
+    });
+  } else if (to.path === '/auth' && isAuthenticated) {
+    // 已登录用户访问登录页，重定向到首页
+    next('/');
+  } else {
+    next();
+  }
 });
 
 export default router;

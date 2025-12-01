@@ -317,11 +317,12 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
-  import { useRouter } from 'vue-router';
+  import { useRouter, useRoute } from 'vue-router';
   import { useAuthStore } from '../stores/auth';
   import { authService } from '../api/services';
 
   const router = useRouter();
+  const route = useRoute();
   const authStore = useAuthStore();
 
   const isLogin = ref(true);
@@ -375,8 +376,9 @@
       // 保存认证信息
       authStore.setAuth(response.user, response.token);
 
-      // 跳转到首页
-      router.push('/');
+      // 跳转到原来要访问的页面，或者首页
+      const redirect = route.query.redirect as string;
+      router.push(redirect || '/');
     } catch (error: any) {
       errorMessage.value =
         error.response?.data?.message ||
