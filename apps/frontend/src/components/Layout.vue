@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed } from 'vue';
+  import { computed, ref, onMounted, onUnmounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { useUIStore } from '../stores/ui';
   import { useAuthStore } from '../stores/auth';
@@ -8,11 +8,36 @@
   const router = useRouter();
   const uiStore = useUIStore();
   const authStore = useAuthStore();
+  const userMenuOpen = ref(false);
 
   const handleLogout = () => {
     authStore.clearAuth();
     router.push('/auth');
   };
+
+  const toggleUserMenu = () => {
+    userMenuOpen.value = !userMenuOpen.value;
+  };
+
+  const closeUserMenu = () => {
+    userMenuOpen.value = false;
+  };
+
+  // 点击外部关闭菜单
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.user-menu-container')) {
+      closeUserMenu();
+    }
+  };
+
+  onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+  });
+
+  onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+  });
 
   // 根据路由决定是否显示顶部导航栏
   const showTopNav = computed(() => {
@@ -128,8 +153,9 @@
             </button>
 
             <!-- 用户菜单 -->
-            <div class="relative group">
+            <div class="relative user-menu-container">
               <button
+                @click.stop="toggleUserMenu"
                 class="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none"
               >
                 <div
@@ -141,7 +167,10 @@
                   authStore.user?.username || '用户'
                 }}</span>
                 <svg
-                  class="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+                  :class="[
+                    'w-4 h-4 text-gray-400 transition-all duration-200',
+                    userMenuOpen ? 'rotate-180 text-blue-500' : '',
+                  ]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -156,31 +185,43 @@
               </button>
 
               <!-- 下拉菜单 -->
-              <div
-                class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-100 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50"
+              <transition
+                enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95"
+                enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75"
+                leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95"
               >
-                <router-link
-                  to="/profile"
-                  class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  个人资料
-                </router-link>
-                <router-link
-                  to="/settings"
-                  class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  设置
-                </router-link>
                 <div
-                  class="border-t border-gray-100 dark:border-gray-700 my-1"
-                ></div>
-                <button
-                  @click="handleLogout"
-                  class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  v-show="userMenuOpen"
+                  class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-100 dark:border-gray-700 transform origin-top-right z-50"
                 >
-                  退出登录
-                </button>
-              </div>
+                  <router-link
+                    to="/profile"
+                    @click="closeUserMenu"
+                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    个人资料
+                  </router-link>
+                  <router-link
+                    to="/settings"
+                    @click="closeUserMenu"
+                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    设置
+                  </router-link>
+                  <div
+                    class="border-t border-gray-100 dark:border-gray-700 my-1"
+                  ></div>
+                  <button
+                    @click="handleLogout"
+                    class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    退出登录
+                  </button>
+                </div>
+              </transition>
             </div>
           </div>
         </div>
