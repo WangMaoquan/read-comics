@@ -3,7 +3,7 @@
     <!-- 渐变网格背景 -->
     <div class="fixed inset-0 gradient-mesh"></div>
     <div
-      class="fixed inset-0 bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 transition-colors duration-500"
+      class="fixed inset-0 bg-linear-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 transition-colors duration-500"
     ></div>
 
     <!-- 主要内容 -->

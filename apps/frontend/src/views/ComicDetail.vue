@@ -197,7 +197,7 @@
           <div class="sticky top-24 space-y-6">
             <!-- 封面 -->
             <div
-              class="aspect-[2/3] w-full rounded-lg overflow-hidden shadow-lg relative group"
+              class="aspect-2/3 w-full rounded-lg overflow-hidden shadow-lg relative group"
             >
               <img
                 :src="`http://localhost:4399/images/thumbnail?comicPath=${encodeURIComponent(comic.filePath)}&imagePath=${encodeURIComponent(comic.cover || '')}`"

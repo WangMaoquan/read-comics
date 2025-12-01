@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 p-4"
+    class="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 via-blue-900 to-gray-900 p-4"
   >
     <!-- 背景装饰 -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
@@ -20,7 +20,7 @@
       <!-- Logo 和标题 -->
       <div class="text-center mb-8">
         <div
-          class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg"
+          class="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg"
         >
           <svg
             class="w-10 h-10 text-white"
@@ -62,7 +62,7 @@
             :class="[
               'flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
               mode === 'login'
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                ? 'bg-linear-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                 : 'text-gray-400 hover:text-white',
             ]"
           >
@@ -73,7 +73,7 @@
             :class="[
               'flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
               mode === 'register'
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                ? 'bg-linear-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                 : 'text-gray-400 hover:text-white',
             ]"
           >
@@ -286,7 +286,7 @@
           <button
             type="submit"
             :disabled="loading"
-            class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+            class="w-full py-3.5 bg-linear-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
           >
             <span v-if="!loading">{{
               mode === 'login'

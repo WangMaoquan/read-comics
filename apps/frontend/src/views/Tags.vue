@@ -100,7 +100,7 @@
                 class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700"
               >
                 <div
-                  class="aspect-[3/4] bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
+                  class="aspect-3/4 bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
                 >
                   <img
                     v-if="comic.coverPath"
