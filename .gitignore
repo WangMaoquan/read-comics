@@ -62,12 +62,12 @@ temp/
 *.sqlite3
 
 # Comic files (for development)
-comics/**/*.cbz
-comics/**/*.cbr
-comics/**/*.zip
-apps/backend/comics/**/*.zip
-comics/**/*.rar
-comics/**/*.pdf
+user-upload/**/*.cbz
+user-upload/**/*.cbr
+user-upload/**/*.zip
+apps/backend/user-upload/**/*.zip
+user-upload/**/*.rar
+user-upload/**/*.pdf
 
 # Package manager files
 package-lock.json
@@ -147,5 +147,5 @@ yarn.lock
 # Generated files
 *.generated.*
 
-/comics
+/user-upload
 TODO.md

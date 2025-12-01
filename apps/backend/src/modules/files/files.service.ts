@@ -20,7 +20,10 @@ export class FilesService implements OnModuleInit {
     private configService: ConfigService,
     private zipUtilsService: ZipUtilsService,
   ) {
-    this.comicsPath = this.configService.get<string>('COMICS_PATH', './comics');
+    this.comicsPath = this.configService.get<string>(
+      'COMICS_PATH',
+      './user-upload',
+    );
   }
 
   /**
