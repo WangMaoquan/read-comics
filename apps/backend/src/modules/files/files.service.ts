@@ -166,10 +166,11 @@ export class FilesService implements OnModuleInit {
           if (!folderMap.has(folderName)) {
             folderMap.set(folderName, []);
           }
-          folderMap.get(folderName)!.push(file.decodeName);
+          // 保存进数据库不需要你使用 decodeName 字段, 因为你获取zip 中的图片时, 获取到的文件名是 originName
+          folderMap.get(folderName)!.push(file.originName);
         } else {
           // 在根目录
-          rootImages.push(file.decodeName);
+          rootImages.push(file.originName);
         }
       }
 
@@ -204,14 +205,14 @@ export class FilesService implements OnModuleInit {
       if (chapters.length === 0 && imageFiles.length > 0) {
         chapters.push({
           title: '默认章节',
-          pages: imageFiles.map((f) => f.decodeName),
+          pages: imageFiles.map((f) => f.originName),
         });
       }
 
       return {
         title: fileName,
         totalPages: imageFiles.length,
-        images: imageFiles.map((f) => f.decodeName),
+        images: imageFiles.map((f) => f.originName),
         format,
         chapters,
       };
