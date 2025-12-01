@@ -25,9 +25,19 @@ export class UsersService {
     return this.usersRepository.findOneBy({ id });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async update(id: string, updateUserDto: UpdateUserDto | any) {
+    if (updateUserDto.password) {
+      const bcrypt = await import('bcrypt');
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
     await this.usersRepository.update(id, updateUserDto);
-    return this.findOne(id);
+    // 返回更新后的用户，但不包含密码
+    const user = await this.findOne(id);
+    if (user) {
+      const { password, ...result } = user;
+      return result;
+    }
+    return null;
   }
 
   async remove(id: string) {

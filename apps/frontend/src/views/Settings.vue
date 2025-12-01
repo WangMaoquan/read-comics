@@ -166,126 +166,10 @@
           </div>
         </div>
 
-        <!-- 存储设置 -->
-        <div
-          class="card-glass p-6 animate-slide-up"
-          style="animation-delay: 0.3s"
-        >
-          <h2
-            class="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2"
-          >
-            <span
-              class="w-1 h-6 rounded-full bg-linear-to-b from-pink-500 to-red-500"
-            ></span>
-            存储设置
-          </h2>
-          <div class="space-y-6">
-            <div class="flex items-center justify-between group">
-              <div>
-                <h3
-                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors"
-                >
-                  漫画存储位置
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  设置漫画文件存储路径
-                </p>
-              </div>
-              <div class="flex items-center space-x-3">
-                <span
-                  class="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-md font-mono"
-                  >{{ comicStoragePath }}</span
-                >
-                <button
-                  @click="changeStoragePath"
-                  class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                >
-                  更改
-                </button>
-              </div>
-            </div>
-            <div class="flex items-center justify-between group">
-              <div>
-                <h3
-                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors"
-                >
-                  缓存管理
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  管理应用缓存
-                </p>
-              </div>
-              <button
-                @click="clearCache"
-                class="btn btn-secondary text-sm px-4 py-2"
-              >
-                清除缓存
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 其他设置 -->
-        <div
-          class="card-glass p-6 animate-slide-up"
-          style="animation-delay: 0.4s"
-        >
-          <h2
-            class="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2"
-          >
-            <span
-              class="w-1 h-6 rounded-full bg-linear-to-b from-yellow-500 to-orange-500"
-            ></span>
-            其他设置
-          </h2>
-          <div class="space-y-6">
-            <div class="flex items-center justify-between group">
-              <div>
-                <h3
-                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
-                >
-                  自动更新
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  自动检查应用更新
-                </p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  v-model="autoUpdate"
-                  class="sr-only peer"
-                />
-                <div
-                  class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"
-                ></div>
-              </label>
-            </div>
-            <div class="flex items-center justify-between group">
-              <div>
-                <h3
-                  class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
-                >
-                  数据备份
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  定期备份阅读数据
-                </p>
-              </div>
-              <button
-                @click="backupData"
-                class="btn btn-secondary text-sm px-4 py-2"
-              >
-                备份数据
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- 操作按钮 -->
         <div
           class="flex justify-end space-x-4 pt-4 animate-fade-in"
-          style="animation-delay: 0.5s"
+          style="animation-delay: 0.3s"
         >
           <button
             @click="resetSettings"
@@ -314,11 +198,8 @@
   const readingMode = ref('single');
   const readingDirection = ref('ltr');
   const zoomMode = ref('fit');
-  // Use uiStore.theme directly or sync with it
   const theme = ref(uiStore.theme);
   const fontSize = ref('medium');
-  const autoUpdate = ref(false);
-  const comicStoragePath = ref('C:/Comics');
 
   // Watch for store changes
   watch(
@@ -328,8 +209,7 @@
     },
   );
 
-  // Watch for local changes to update store immediately (optional, or on save)
-  // For better UX, let's update store immediately when theme changes in dropdown
+  // Watch for local changes to update store immediately
   watch(theme, (newTheme) => {
     if (newTheme !== uiStore.theme) {
       uiStore.setTheme(newTheme as 'light' | 'dark' | 'auto');
@@ -340,43 +220,22 @@
     // Initialize theme from store
     theme.value = uiStore.theme;
 
-    // TODO: Load other settings from localStorage
     const savedSettings = localStorage.getItem('appSettings');
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
       readingMode.value = settings.readingMode || 'single';
       readingDirection.value = settings.readingDirection || 'ltr';
       zoomMode.value = settings.zoomMode || 'fit';
-      // theme is handled by uiStore
       fontSize.value = settings.fontSize || 'medium';
-      autoUpdate.value = settings.autoUpdate || false;
-      comicStoragePath.value = settings.comicStoragePath || 'C:/Comics';
     }
   });
-
-  const changeStoragePath = () => {
-    // TODO: 实现存储路径更改
-    alert('存储路径更改功能待实现');
-  };
-
-  const clearCache = () => {
-    // TODO: 实现缓存清理
-    alert('缓存清理功能待实现');
-  };
-
-  const backupData = () => {
-    // TODO: 实现数据备份
-    alert('数据备份功能待实现');
-  };
 
   const resetSettings = () => {
     readingMode.value = 'single';
     readingDirection.value = 'ltr';
     zoomMode.value = 'fit';
-    uiStore.setTheme('auto'); // Reset theme to auto
+    uiStore.setTheme('auto');
     fontSize.value = 'medium';
-    autoUpdate.value = false;
-    comicStoragePath.value = 'C:/Comics';
   };
 
   const saveSettings = () => {
@@ -384,16 +243,11 @@
       readingMode: readingMode.value,
       readingDirection: readingDirection.value,
       zoomMode: zoomMode.value,
-      // theme is saved by uiStore separately, but we can keep it here for consistency if needed
-      // but uiStore.theme is the source of truth for the app appearance
       theme: theme.value,
       fontSize: fontSize.value,
-      autoUpdate: autoUpdate.value,
-      comicStoragePath: comicStoragePath.value,
     };
     localStorage.setItem('appSettings', JSON.stringify(settings));
 
-    // Ensure theme is applied (already done by watch, but good to be sure)
     uiStore.setTheme(theme.value as 'light' | 'dark' | 'auto');
 
     alert('设置已保存');

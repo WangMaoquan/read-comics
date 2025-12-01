@@ -68,6 +68,14 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@views/Profile.vue'),
+    meta: {
+      title: '个人资料',
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@views/NotFound.vue'),

@@ -1,10 +1,18 @@
 <script setup lang="ts">
   import { computed } from 'vue';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
   import { useUIStore } from '../stores/ui';
+  import { useAuthStore } from '../stores/auth';
 
   const route = useRoute();
+  const router = useRouter();
   const uiStore = useUIStore();
+  const authStore = useAuthStore();
+
+  const handleLogout = () => {
+    authStore.clearAuth();
+    router.push('/auth');
+  };
 
   // 根据路由决定是否显示顶部导航栏
   const showTopNav = computed(() => {
@@ -64,7 +72,8 @@
           </div>
 
           <!-- 右侧操作 -->
-          <div class="flex items-center space-x-2">
+          <!-- 右侧操作 -->
+          <div class="flex items-center space-x-4">
             <!-- 主题切换按钮 -->
             <button
               @click="toggleTheme"
@@ -118,32 +127,61 @@
               </svg>
             </button>
 
-            <!-- 设置按钮 -->
-            <router-link
-              to="/settings"
-              class="p-2 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-gray-800 transition-all duration-300"
-              title="设置"
-            >
-              <svg
-                class="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <!-- 用户菜单 -->
+            <div class="relative group">
+              <button
+                class="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </router-link>
+                <div
+                  class="w-8 h-8 rounded-full bg-linear-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm"
+                >
+                  {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+                </div>
+                <span class="hidden sm:inline font-medium">{{
+                  authStore.user?.username || '用户'
+                }}</span>
+                <svg
+                  class="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              <!-- 下拉菜单 -->
+              <div
+                class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-100 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50"
+              >
+                <router-link
+                  to="/profile"
+                  class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  个人资料
+                </router-link>
+                <router-link
+                  to="/settings"
+                  class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  设置
+                </router-link>
+                <div
+                  class="border-t border-gray-100 dark:border-gray-700 my-1"
+                ></div>
+                <button
+                  @click="handleLogout"
+                  class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  退出登录
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
