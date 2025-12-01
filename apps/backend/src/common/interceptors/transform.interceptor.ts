@@ -4,8 +4,10 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { BYPASS_TRANSFORM_KEY } from '../decorators/bypass-transform.decorator';
 
 export interface Response<T> {
   data: T;
@@ -18,10 +20,21 @@ export interface Response<T> {
 export class TransformInterceptor<T>
   implements NestInterceptor<T, Response<T>>
 {
+  constructor(private reflector: Reflector) {}
+
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<Response<T>> {
+    const bypass = this.reflector.get<boolean>(
+      BYPASS_TRANSFORM_KEY,
+      context.getHandler(),
+    );
+
+    if (bypass) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => {
         // 如果返回的数据已经包含了标准格式（例如分页数据），则合并
