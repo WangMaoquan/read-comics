@@ -99,7 +99,10 @@ class ApiClient {
 
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json')) {
-      return response.json();
+      const json = await response.json();
+      // 后端返回格式: { data: T, code, message, success }
+      // 提取 data 字段
+      return json.data !== undefined ? json.data : json;
     }
 
     return response.text() as unknown as T;
