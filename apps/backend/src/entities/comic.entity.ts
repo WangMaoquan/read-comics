@@ -6,11 +6,14 @@ import {
   UpdateDateColumn,
   OneToMany,
   OneToOne,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Chapter } from './chapter.entity';
 import { ReadingProgress } from './reading-progress.entity';
 import { UserPreferences } from './user-preferences.entity';
+import { Tag } from './tag.entity';
 import { ComicFormat, ComicStatus } from '@read-comics/types';
 
 @Entity('comics')
@@ -76,16 +79,7 @@ export class Comic {
 
   @ApiProperty({ description: '最后阅读时间', required: false })
   @Column({ nullable: true })
-  lastReadAt?: Date;
-
-  @ApiProperty({
-    description: '标签',
-    example: ['热血', '战斗', '奇幻'],
-    required: false,
-    type: [String],
-  })
-  @Column({ type: 'simple-array', nullable: true })
-  tags?: string[];
+  publisher?: string;
 
   @ApiProperty({
     description: '评分(1-5)',
@@ -128,4 +122,13 @@ export class Comic {
   @ApiProperty({ description: '用户偏好设置', type: () => UserPreferences })
   @OneToOne(() => UserPreferences, (preferences) => preferences.comic)
   preferences: UserPreferences;
+
+  @ApiProperty({ description: '标签列表', type: () => Tag, isArray: true })
+  @ManyToMany(() => Tag, (tag) => tag.comics)
+  @JoinTable({
+    name: 'comic_tags',
+    joinColumn: { name: 'comicId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
+  })
+  tags: Tag[];
 }
