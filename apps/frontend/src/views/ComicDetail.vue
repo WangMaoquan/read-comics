@@ -5,6 +5,7 @@
   import type { Comic, Chapter } from '@read-comics/types';
   import { ComicStatus, ComicFormat } from '@read-comics/types';
   import { useComicStore } from '../stores/comic';
+  import { comicsService } from '../api/services';
 
   const route = useRoute();
   const router = useRouter();
@@ -46,10 +47,24 @@
     try {
       await comicStore.fetchChapters(comicId.value);
 
+      // 获取阅读进度
+      try {
+        const progress = await comicsService.getProgress(comicId.value);
+        if (progress && progress.chapterId) {
+          const lastReadChapter = chapters.value.find(
+            (ch) => ch.id === progress.chapterId,
+          );
+          if (lastReadChapter) {
+            currentChapter.value = lastReadChapter;
+          }
+        }
+      } catch (err) {
+        // 忽略 404 错误（未读过）
+        console.warn('Failed to load reading progress', err);
+      }
+
       // 设置当前章节为第一个未读章节或最后一章
-      if (chapters.value.length > 0) {
-        // 简单的逻辑：默认第一章，或者如果有阅读记录则使用记录（目前暂无持久化阅读记录）
-        // 这里暂时默认第一章
+      if (!currentChapter.value && chapters.value.length > 0) {
         currentChapter.value = chapters.value[0];
       }
     } catch (error) {

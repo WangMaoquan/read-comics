@@ -93,17 +93,14 @@ router.beforeEach((to, from, next) => {
 
 // 路由守卫：检查登录状态
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('auth_token');
   const isAuthenticated = !!token;
 
-  // 需要登录的路由
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-
-  if (requiresAuth && !isAuthenticated) {
-    // 未登录，重定向到登录页
+  // 如果未登录且访问的不是登录页，重定向到登录页
+  if (to.path !== '/auth' && !isAuthenticated) {
     next({
       path: '/auth',
-      query: { redirect: to.fullPath }, // 保存原始目标路径，登录后可以跳回
+      query: { redirect: to.fullPath },
     });
   } else if (to.path === '/auth' && isAuthenticated) {
     // 已登录用户访问登录页，重定向到首页

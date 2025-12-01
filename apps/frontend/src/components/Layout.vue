@@ -8,7 +8,7 @@
 
   // 根据路由决定是否显示顶部导航栏
   const showTopNav = computed(() => {
-    return !['/reader', '/settings'].includes(route.path);
+    return !['/reader', '/settings', '/auth'].includes(route.path);
   });
 
   const readerBgColor = computed(() =>
