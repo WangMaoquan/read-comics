@@ -9,6 +9,9 @@ export const comicsService = {
   /**
    * 获取漫画列表
    */
+  /**
+   * 获取漫画列表
+   */
   async getComics(
     sortBy?: string,
     sortOrder: 'asc' | 'desc' = 'desc',
@@ -22,21 +25,31 @@ export const comicsService = {
     if (isFavorite !== undefined) {
       params.isFavorite = isFavorite;
     }
-    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
+    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, {
+      params,
+      useCache: true,
+      cacheTTL: 60 * 1000, // 1分钟
+    });
   },
 
   /**
    * 获取漫画详情
    */
   async getComicById(id: string): Promise<Comic> {
-    return apiClient.get<Comic>(API_ENDPOINTS.comics.detail(id));
+    return apiClient.get<Comic>(API_ENDPOINTS.comics.detail(id), {
+      useCache: true,
+      cacheTTL: 5 * 60 * 1000, // 5分钟
+    });
   },
 
   /**
    * 获取漫画的章节列表
    */
   async getComicChapters(comicId: string): Promise<Chapter[]> {
-    return apiClient.get<Chapter[]>(API_ENDPOINTS.comics.chapters(comicId));
+    return apiClient.get<Chapter[]>(API_ENDPOINTS.comics.chapters(comicId), {
+      useCache: true,
+      cacheTTL: 5 * 60 * 1000, // 5分钟
+    });
   },
 
   /**
@@ -56,14 +69,23 @@ export const comicsService = {
     if (isFavorite !== undefined) {
       params.isFavorite = isFavorite;
     }
-    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
+    return apiClient.get<Comic[]>(API_ENDPOINTS.comics.list, {
+      params,
+      useCache: true,
+      cacheTTL: 30 * 1000, // 30秒
+    });
   },
 
   /**
    * 切换收藏状态
    */
   async toggleFavorite(id: string): Promise<Comic> {
-    return apiClient.post<Comic>(`${API_ENDPOINTS.comics.detail(id)}/favorite`);
+    const result = await apiClient.post<Comic>(
+      `${API_ENDPOINTS.comics.detail(id)}/favorite`,
+    );
+    // 清除详情缓存
+    apiClient.invalidateCache(API_ENDPOINTS.comics.detail(id));
+    return result;
   },
 
   /**

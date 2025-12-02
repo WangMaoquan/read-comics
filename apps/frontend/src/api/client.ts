@@ -1,5 +1,8 @@
 import { API_BASE_URL, REQUEST_TIMEOUT } from './config';
 import { STORAGE_KEYS } from '../config';
+import { logger } from '../utils/logger';
+import { apiCache } from '../utils/apiCache';
+import { AppError, ErrorType } from '../utils/errorHandler';
 
 /**
  * API 响应接口
@@ -17,6 +20,9 @@ export interface ApiResponse<T = any> {
 export interface RequestOptions extends RequestInit {
   timeout?: number;
   params?: Record<string, string | number | boolean>;
+  useCache?: boolean;
+  cacheTTL?: number;
+  skipAuth?: boolean;
 }
 
 /**
@@ -53,7 +59,9 @@ class ApiClient {
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, String(value));
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, String(value));
+        }
       });
     }
 
@@ -61,41 +69,54 @@ class ApiClient {
   }
 
   /**
-   * 带超时的 fetch
-   */
-  private async fetchWithTimeout(
-    url: string,
-    options: RequestInit,
-    timeout: number,
-  ): Promise<Response> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      return response;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Request timeout');
-      }
-      throw error;
-    }
-  }
-
-  /**
    * 处理响应
    */
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `HTTP ${response.status}: ${errorText || response.statusText}`,
-      );
+      let errorData: any;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: await response.text() };
+      }
+
+      const message = errorData.message || response.statusText;
+
+      // 根据状态码抛出特定类型的错误
+      if (response.status === 401) {
+        throw new AppError(message, ErrorType.AUTH, {
+          statusCode: 401,
+          data: errorData,
+        });
+      }
+      if (response.status === 403) {
+        throw new AppError(message, ErrorType.AUTH, {
+          statusCode: 403,
+          data: errorData,
+        });
+      }
+      if (response.status === 404) {
+        throw new AppError(message, ErrorType.NOT_FOUND, {
+          statusCode: 404,
+          data: errorData,
+        });
+      }
+      if (response.status >= 500) {
+        throw new AppError(message, ErrorType.SERVER, {
+          statusCode: response.status,
+          data: errorData,
+        });
+      }
+
+      throw new AppError(message, ErrorType.UNKNOWN, {
+        statusCode: response.status,
+        data: errorData,
+      });
+    }
+
+    // 处理 204 No Content
+    if (response.status === 204) {
+      return null as unknown as T;
     }
 
     const contentType = response.headers.get('content-type');
@@ -110,29 +131,96 @@ class ApiClient {
   }
 
   /**
+   * 发送请求
+   */
+  private async request<T>(
+    endpoint: string,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    const {
+      timeout = this.defaultTimeout,
+      params,
+      useCache,
+      cacheTTL,
+      skipAuth,
+      ...fetchOptions
+    } = options;
+
+    // 缓存检查 (仅 GET)
+    if (useCache && fetchOptions.method === 'GET') {
+      const cached = apiCache.get<T>(endpoint, params);
+      if (cached) {
+        logger.debug(`[API] Cache hit: ${endpoint}`, params);
+        return cached;
+      }
+    }
+
+    const url = this.buildURL(endpoint, params);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    const headers: Record<string, string> = {
+      ...(fetchOptions.headers as Record<string, string>),
+    };
+
+    if (!skipAuth) {
+      Object.assign(headers, this.getAuthHeaders());
+    }
+
+    // 自动设置 Content-Type
+    if (
+      fetchOptions.body &&
+      !(fetchOptions.body instanceof FormData) &&
+      !headers['Content-Type']
+    ) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    logger.debug(`[API] Request: ${fetchOptions.method || 'GET'} ${endpoint}`, {
+      params,
+      body: fetchOptions.body,
+    });
+
+    try {
+      const response = await fetch(url, {
+        ...fetchOptions,
+        headers,
+        signal: controller.signal,
+      });
+
+      const data = await this.handleResponse<T>(response);
+
+      // 设置缓存 (仅 GET)
+      if (useCache && fetchOptions.method === 'GET') {
+        apiCache.set(endpoint, data, params, cacheTTL);
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new AppError('请求超时', ErrorType.NETWORK, { cause: error });
+      }
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(
+        error instanceof Error ? error.message : '网络请求失败',
+        ErrorType.NETWORK,
+        { cause: error as Error },
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
    * GET 请求
    */
   async get<T = any>(
     endpoint: string,
     options: RequestOptions = {},
   ): Promise<T> {
-    const { params, timeout = this.defaultTimeout, ...fetchOptions } = options;
-    const url = this.buildURL(endpoint, params);
-
-    const response = await this.fetchWithTimeout(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          ...this.getAuthHeaders(),
-          ...fetchOptions.headers,
-        },
-        ...fetchOptions,
-      },
-      timeout,
-    );
-
-    return this.handleResponse<T>(response);
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
 
   /**
@@ -143,29 +231,8 @@ class ApiClient {
     data?: any,
     options: RequestOptions = {},
   ): Promise<T> {
-    const { timeout = this.defaultTimeout, ...fetchOptions } = options;
-    const url = this.buildURL(endpoint);
-
-    const isFormData = data instanceof FormData;
-
-    const response = await this.fetchWithTimeout(
-      url,
-      {
-        method: 'POST',
-        headers: isFormData
-          ? { ...this.getAuthHeaders() }
-          : {
-              'Content-Type': 'application/json',
-              ...this.getAuthHeaders(),
-              ...fetchOptions.headers,
-            },
-        body: isFormData ? data : JSON.stringify(data),
-        ...fetchOptions,
-      },
-      timeout,
-    );
-
-    return this.handleResponse<T>(response);
+    const body = data instanceof FormData ? data : JSON.stringify(data);
+    return this.request<T>(endpoint, { ...options, method: 'POST', body });
   }
 
   /**
@@ -176,25 +243,11 @@ class ApiClient {
     data?: any,
     options: RequestOptions = {},
   ): Promise<T> {
-    const { timeout = this.defaultTimeout, ...fetchOptions } = options;
-    const url = this.buildURL(endpoint);
-
-    const response = await this.fetchWithTimeout(
-      url,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.getAuthHeaders(),
-          ...fetchOptions.headers,
-        },
-        body: JSON.stringify(data),
-        ...fetchOptions,
-      },
-      timeout,
-    );
-
-    return this.handleResponse<T>(response);
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -205,25 +258,11 @@ class ApiClient {
     data?: any,
     options: RequestOptions = {},
   ): Promise<T> {
-    const { timeout = this.defaultTimeout, ...fetchOptions } = options;
-    const url = this.buildURL(endpoint);
-
-    const response = await this.fetchWithTimeout(
-      url,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.getAuthHeaders(),
-          ...fetchOptions.headers,
-        },
-        body: JSON.stringify(data),
-        ...fetchOptions,
-      },
-      timeout,
-    );
-
-    return this.handleResponse<T>(response);
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -233,23 +272,21 @@ class ApiClient {
     endpoint: string,
     options: RequestOptions = {},
   ): Promise<T> {
-    const { timeout = this.defaultTimeout, ...fetchOptions } = options;
-    const url = this.buildURL(endpoint);
+    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+  }
 
-    const response = await this.fetchWithTimeout(
-      url,
-      {
-        method: 'DELETE',
-        headers: {
-          ...this.getAuthHeaders(),
-          ...fetchOptions.headers,
-        },
-        ...fetchOptions,
-      },
-      timeout,
-    );
+  /**
+   * 清除缓存
+   */
+  invalidateCache(endpoint: string, params?: any): void {
+    apiCache.delete(endpoint, params);
+  }
 
-    return this.handleResponse<T>(response);
+  /**
+   * 清除所有缓存
+   */
+  clearCache(): void {
+    apiCache.clear();
   }
 }
 
