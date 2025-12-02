@@ -82,50 +82,20 @@
         </div>
 
         <!-- 错误提示 -->
-        <div
+        <Alert
           v-if="errorMessage"
-          class="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl"
-        >
-          <div class="flex items-center">
-            <svg
-              class="w-5 h-5 text-red-400 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-            <p class="text-sm text-red-400">{{ errorMessage }}</p>
-          </div>
-        </div>
+          :message="errorMessage"
+          type="error"
+          class="mb-6"
+        />
 
         <!-- 成功提示 -->
-        <div
+        <Alert
           v-if="successMessage"
-          class="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl"
-        >
-          <div class="flex items-center">
-            <svg
-              class="w-5 h-5 text-green-400 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 13l4 4L19 7"
-              ></path>
-            </svg>
-            <p class="text-sm text-green-400">{{ successMessage }}</p>
-          </div>
-        </div>
+          :message="successMessage"
+          type="success"
+          class="mb-6"
+        />
 
         <!-- 表单 -->
         <form @submit.prevent="handleSubmit" class="space-y-5">
@@ -404,6 +374,7 @@
   import { useRouter, useRoute } from 'vue-router';
   import { useAuthStore } from '@stores/auth';
   import { authService } from '@api/services';
+  import Alert from '../components/Alert.vue';
 
   const router = useRouter();
   const route = useRoute();
