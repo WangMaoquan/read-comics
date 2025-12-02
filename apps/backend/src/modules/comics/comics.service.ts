@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { Comic } from '@entities/comic.entity';
 import { Chapter } from '@entities/chapter.entity';
 import { ReadingProgress } from '@entities/reading-progress.entity';
+import { Tag } from '@entities/tag.entity';
 import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
@@ -29,13 +30,43 @@ export class ComicsService {
     await queryRunner.startTransaction();
 
     try {
-      const comic = this.comicRepository.create(createComicDto);
-      const savedComic = await queryRunner.manager.save(comic);
+      // 提取 tags 和 chapters，它们需要特殊处理
+      const {
+        tags: tagNames,
+        chapters: chaptersData,
+        ...comicData
+      } = createComicDto;
 
-      // Create chapters
-      if (createComicDto.chapters && createComicDto.chapters.length > 0) {
-        for (let i = 0; i < createComicDto.chapters.length; i++) {
-          const chapterData = createComicDto.chapters[i];
+      // 创建漫画实体（不包含 tags 和 chapters）
+      const comic = this.comicRepository.create(comicData);
+      const savedComic = await queryRunner.manager.save(Comic, comic);
+
+      // 处理标签
+      if (tagNames && tagNames.length > 0) {
+        const tags: Tag[] = [];
+        for (const tagName of tagNames) {
+          // 查找或创建标签
+          let tag = await queryRunner.manager.findOne(Tag, {
+            where: { name: tagName },
+          });
+
+          if (!tag) {
+            tag = queryRunner.manager.create(Tag, { name: tagName });
+            tag = await queryRunner.manager.save(Tag, tag);
+          }
+
+          tags.push(tag);
+        }
+
+        // 关联标签到漫画
+        savedComic.tags = tags;
+        await queryRunner.manager.save(Comic, savedComic);
+      }
+
+      // 创建章节
+      if (chaptersData && chaptersData.length > 0) {
+        for (let i = 0; i < chaptersData.length; i++) {
+          const chapterData = chaptersData[i];
           const chapter = queryRunner.manager.create(Chapter, {
             title: chapterData.title,
             pageNumber: i + 1,
@@ -46,7 +77,7 @@ export class ComicsService {
           await queryRunner.manager.save(Chapter, chapter);
         }
       } else {
-        // Fallback: Create default chapter
+        // 回退：创建默认章节
         const chapter = queryRunner.manager.create(Chapter, {
           title: '第 1 话',
           pageNumber: 1,
@@ -56,8 +87,6 @@ export class ComicsService {
         });
         await queryRunner.manager.save(Chapter, chapter);
       }
-
-      // ...
 
       await queryRunner.commitTransaction();
       return savedComic;
