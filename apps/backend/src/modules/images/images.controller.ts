@@ -17,6 +17,8 @@ import {
 import { Response } from 'express';
 import { ImagesService, ImageOptions } from './images.service';
 
+import { BypassTransform } from '@common/decorators/bypass-transform.decorator';
+
 @ApiTags('images')
 @Controller('images')
 export class ImagesController {
@@ -26,6 +28,7 @@ export class ImagesController {
    * 查看图片
    */
   @Get('view')
+  @BypassTransform()
   @ApiOperation({ summary: '查看图片' })
   @ApiQuery({ name: 'comicPath', description: '漫画文件路径' })
   @ApiQuery({ name: 'imagePath', description: '图片在压缩包中的路径' })
@@ -63,6 +66,7 @@ export class ImagesController {
    * 生成缩略图
    */
   @Post('thumbnail')
+  @BypassTransform()
   @ApiOperation({ summary: '生成缩略图' })
   @ApiQuery({ name: 'comicPath', description: '漫画文件路径' })
   @ApiQuery({ name: 'imagePath', description: '图片在压缩包中的路径' })
@@ -115,6 +119,7 @@ export class ImagesController {
    * 优化图片
    */
   @Post('optimize')
+  @BypassTransform()
   @ApiOperation({ summary: '优化图片' })
   @ApiQuery({ name: 'comicPath', description: '漫画文件路径' })
   @ApiQuery({ name: 'imagePath', description: '图片在压缩包中的路径' })

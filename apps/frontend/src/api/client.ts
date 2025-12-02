@@ -34,6 +34,14 @@ class ApiClient {
   }
 
   /**
+   * 获取认证 Header
+   */
+  private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('auth_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  /**
    * 构建完整 URL
    */
   private buildURL(
@@ -91,7 +99,10 @@ class ApiClient {
 
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json')) {
-      return response.json();
+      const json = await response.json();
+      // 后端返回格式: { data: T, code, message, success }
+      // 提取 data 字段
+      return json.data !== undefined ? json.data : json;
     }
 
     return response.text() as unknown as T;
@@ -111,6 +122,10 @@ class ApiClient {
       url,
       {
         method: 'GET',
+        headers: {
+          ...this.getAuthHeaders(),
+          ...fetchOptions.headers,
+        },
         ...fetchOptions,
       },
       timeout,
@@ -137,12 +152,42 @@ class ApiClient {
       {
         method: 'POST',
         headers: isFormData
-          ? {}
+          ? { ...this.getAuthHeaders() }
           : {
               'Content-Type': 'application/json',
+              ...this.getAuthHeaders(),
               ...fetchOptions.headers,
             },
         body: isFormData ? data : JSON.stringify(data),
+        ...fetchOptions,
+      },
+      timeout,
+    );
+
+    return this.handleResponse<T>(response);
+  }
+
+  /**
+   * PATCH 请求
+   */
+  async patch<T = any>(
+    endpoint: string,
+    data?: any,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    const { timeout = this.defaultTimeout, ...fetchOptions } = options;
+    const url = this.buildURL(endpoint);
+
+    const response = await this.fetchWithTimeout(
+      url,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+          ...fetchOptions.headers,
+        },
+        body: JSON.stringify(data),
         ...fetchOptions,
       },
       timeout,
@@ -168,6 +213,7 @@ class ApiClient {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
           ...fetchOptions.headers,
         },
         body: JSON.stringify(data),
@@ -193,6 +239,10 @@ class ApiClient {
       url,
       {
         method: 'DELETE',
+        headers: {
+          ...this.getAuthHeaders(),
+          ...fetchOptions.headers,
+        },
         ...fetchOptions,
       },
       timeout,

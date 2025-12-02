@@ -10,6 +10,8 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  UseGuards,
+  Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -23,12 +25,16 @@ import {
   ApiParam,
   ApiConsumes,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FilesService } from './files.service';
 import { ComicFormat } from '@read-comics/types';
 import { ComicsService } from '../comics/comics.service';
 import { ChaptersService } from '../chapters/chapters.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 
 @ApiTags('files')
 @Controller('files')
@@ -57,7 +63,10 @@ export class FilesController {
    * 上传漫画文件
    */
   @Post('upload')
-  @ApiOperation({ summary: '上传漫画文件' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '上传漫画文件（管理员及以上）' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -74,17 +83,6 @@ export class FilesController {
   @ApiResponse({ status: 400, description: '文件格式不支持' })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './comics', // 直接使用默认路径
-        filename: (req, file, cb) => {
-          // 使用唯一文件名,防止同名不同内容的文件相互覆盖
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          const nameWithoutExt = file.originalname.slice(0, -ext.length);
-          cb(null, `${nameWithoutExt}-${uniqueSuffix}${ext}`);
-        },
-      }),
       fileFilter: (req, file, cb) => {
         const supportedFormats = ['.cbz', '.zip'];
         const ext = extname(file.originalname).toLowerCase();
@@ -102,7 +100,16 @@ export class FilesController {
       },
     }),
   )
-  async uploadComicFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadComicFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body()
+    body: {
+      title?: string;
+      author?: string;
+      description?: string;
+      tags?: string | string[];
+    },
+  ) {
     if (!file) {
       throw new BadRequestException('请选择文件');
     }
@@ -128,14 +135,36 @@ export class FilesController {
       const ext = extname(file.originalname);
       const originalTitle = file.originalname.slice(0, -ext.length);
 
+      // 处理标签：如果是字符串（JSON或逗号分隔），尝试解析
+      let tags: string[] = [];
+      if (body.tags) {
+        if (Array.isArray(body.tags)) {
+          tags = body.tags;
+        } else if (typeof body.tags === 'string') {
+          try {
+            // 尝试解析 JSON 数组
+            const parsed = JSON.parse(body.tags);
+            if (Array.isArray(parsed)) tags = parsed;
+          } catch {
+            // 如果不是 JSON，尝试逗号分隔
+            tags = body.tags
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean);
+          }
+        }
+      }
+
       // 4. 创建漫画记录
       const comic = await this.comicsService.create({
-        title: originalTitle, // 使用原始文件名作为标题
+        title: body.title || originalTitle, // 优先使用用户提供的标题
+        author: body.author || '未知',
+        description: body.description,
+        tags: tags,
         filePath: file.path,
         fileFormat: parseResult.format,
         fileSize: file.size,
         totalPages: parseResult.totalPages,
-        author: '未知',
         status: 'unread' as any,
         hash: hash, // 保存文件哈希
         chapters: parseResult.chapters, // 直接传入章节数据
@@ -181,7 +210,10 @@ export class FilesController {
    * 扫描漫画目录
    */
   @Get('scan')
-  @ApiOperation({ summary: '扫描漫画目录' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '扫描漫画目录（管理员及以上）' })
   @ApiResponse({ status: 200, description: '扫描成功' })
   async scanComicsDirectory() {
     const files = await this.filesService.scanComicsDirectory();
@@ -296,7 +328,10 @@ export class FilesController {
    * 删除文件
    */
   @Delete(':filePath')
-  @ApiOperation({ summary: '删除文件' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '删除文件（管理员及以上）' })
   @ApiParam({ name: 'filePath', description: '文件路径' })
   @ApiResponse({ status: 200, description: '删除成功' })
   async deleteFile(@Param('filePath') filePath: string) {

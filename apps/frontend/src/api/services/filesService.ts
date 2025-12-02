@@ -43,11 +43,28 @@ export const filesService = {
    */
   async uploadFile(
     file: File,
+    metadata?: {
+      title?: string;
+      author?: string;
+      description?: string;
+      tags?: string[];
+    },
     onProgress?: UploadProgressCallback,
   ): Promise<UploadResponse> {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', file);
+
+      if (metadata) {
+        if (metadata.title) formData.append('title', metadata.title);
+        if (metadata.author) formData.append('author', metadata.author);
+        if (metadata.description)
+          formData.append('description', metadata.description);
+        if (metadata.tags && metadata.tags.length > 0) {
+          // 将标签数组转换为 JSON 字符串发送，或者逗号分隔
+          formData.append('tags', JSON.stringify(metadata.tags));
+        }
+      }
 
       const xhr = new XMLHttpRequest();
 
@@ -71,7 +88,16 @@ export const filesService = {
             reject(new Error('Failed to parse response'));
           }
         } else {
-          reject(new Error(`Upload failed: ${xhr.statusText}`));
+          try {
+            const errorResponse = JSON.parse(xhr.responseText);
+            reject(
+              new Error(
+                errorResponse.message || `Upload failed: ${xhr.statusText}`,
+              ),
+            );
+          } catch {
+            reject(new Error(`Upload failed: ${xhr.statusText}`));
+          }
         }
       });
 
@@ -81,6 +107,13 @@ export const filesService = {
       });
 
       xhr.open('POST', `${apiClient['baseURL']}${API_ENDPOINTS.files.upload}`);
+
+      // 添加认证 token
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+
       xhr.send(formData);
     });
   },

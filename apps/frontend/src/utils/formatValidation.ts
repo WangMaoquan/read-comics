@@ -1,4 +1,4 @@
-import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '../api/config';
+import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@api/config';
 
 /**
  * 文件格式验证结果

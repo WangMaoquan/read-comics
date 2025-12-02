@@ -24,6 +24,15 @@ export class CreateComicDto {
   @IsOptional()
   description?: string;
 
+  @ApiProperty({ description: '标签', required: false, type: [String] })
+  @IsOptional()
+  tags?: string[];
+
+  @ApiProperty({ description: '封面路径', required: false })
+  @IsString()
+  @IsOptional()
+  cover?: string;
+
   @ApiProperty({ description: '文件路径' })
   @IsString()
   @IsNotEmpty()
@@ -48,11 +57,6 @@ export class CreateComicDto {
   @IsNumber()
   @IsNotEmpty()
   totalPages: number;
-
-  @ApiProperty({ description: '标签', required: false, type: [String] })
-  @IsString({ each: true })
-  @IsOptional()
-  tags?: string[];
 
   @ApiProperty({ description: '评分', required: false })
   @IsNumber()

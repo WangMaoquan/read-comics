@@ -1,22 +1,35 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+// import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 全局前缀 - 已移除
+  // app.setGlobalPrefix('api');
+
+  // 允许跨域
   app.enableCors();
 
-  // 启用全局验证管道
+  // 全局管道 - 验证 DTO
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // 自动移除非装饰属性
-      forbidNonWhitelisted: true, // 当遇到非白名单属性时抛出错误
-      transform: true, // 自动转换类型
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
-  // 配置 Swagger
+  // 全局拦截器 - 统一响应格式
+  // app.useGlobalInterceptors(new TransformInterceptor());
+
+  // 全局过滤器 - 统一异常处理
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Swagger 文档配置
   const config = new DocumentBuilder()
     .setTitle('漫画阅读器 API')
     .setDescription('漫画阅读器后端 API 文档')
@@ -27,14 +40,11 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(
-    `Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
-  );
-  console.log(
-    `Swagger documentation: http://localhost:${process.env.PORT ?? 3000}/api`,
-  );
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`Application is running on: http://localhost:${port}/api`);
+  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
 }
 bootstrap();

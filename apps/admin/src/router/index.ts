@@ -1,0 +1,57 @@
+import { createRouter, createWebHistory } from 'vue-router';
+import DefaultLayout from '../layouts/DefaultLayout.vue';
+import Dashboard from '../views/Dashboard.vue';
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      component: DefaultLayout,
+      children: [
+        {
+          path: '',
+          name: 'dashboard',
+          component: Dashboard,
+        },
+        {
+          path: 'comics',
+          name: 'comics',
+          component: () => import('../views/Comics.vue'),
+        },
+        {
+          path: 'users',
+          name: 'users',
+          component: () => import('../views/Users.vue'),
+        },
+        {
+          path: 'files',
+          name: 'files',
+          component: () => import('../views/Files.vue'),
+        },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('../views/Settings.vue'),
+        },
+        {
+          path: 'logs',
+          name: 'logs',
+          component: () => import('../views/Logs.vue'),
+        },
+        {
+          path: 'backups',
+          name: 'backups',
+          component: () => import('../views/Backups.vue'),
+        },
+        {
+          path: 'tasks',
+          name: 'tasks',
+          component: () => import('../views/Tasks.vue'),
+        },
+      ],
+    },
+  ],
+});
+
+export default router;

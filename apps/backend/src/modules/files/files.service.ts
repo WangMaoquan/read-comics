@@ -8,7 +8,7 @@ import { createReadStream, promises as fs } from 'fs';
 import { join, extname, basename } from 'path';
 import { watch, FSWatcher } from 'chokidar';
 import { ComicFormat, ComicStatus } from '@read-comics/types';
-import { ZipUtilsService } from '../../common/utils/zip-utils.service';
+import { ZipUtilsService } from '@common/utils/zip-utils.service';
 
 @Injectable()
 export class FilesService implements OnModuleInit {
@@ -20,7 +20,10 @@ export class FilesService implements OnModuleInit {
     private configService: ConfigService,
     private zipUtilsService: ZipUtilsService,
   ) {
-    this.comicsPath = this.configService.get<string>('COMICS_PATH', './comics');
+    this.comicsPath = this.configService.get<string>(
+      'COMICS_PATH',
+      './user-upload',
+    );
   }
 
   /**
@@ -166,6 +169,7 @@ export class FilesService implements OnModuleInit {
           if (!folderMap.has(folderName)) {
             folderMap.set(folderName, []);
           }
+          // 保存进数据库不需要你使用 decodeName 字段, 因为你获取zip 中的图片时, 获取到的文件名是 originName
           folderMap.get(folderName)!.push(file.originName);
         } else {
           // 在根目录

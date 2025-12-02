@@ -11,11 +11,36 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: '/auth',
+    name: 'Auth',
+    component: () => import('@views/Auth.vue'),
+    meta: {
+      title: '登录/注册',
+    },
+  },
+  {
     path: '/library',
     name: 'Library',
     component: () => import('@views/Library.vue'),
     meta: {
       title: '漫画库',
+    },
+  },
+  {
+    path: '/favorites',
+    name: 'Favorites',
+    component: () => import('@views/Favorites.vue'),
+    meta: {
+      title: '我的书架',
+      requiresAuth: true, // 需要登录
+    },
+  },
+  {
+    path: '/tags',
+    name: 'Tags',
+    component: () => import('@views/Tags.vue'),
+    meta: {
+      title: '标签浏览',
     },
   },
   {
@@ -43,6 +68,14 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@views/Profile.vue'),
+    meta: {
+      title: '个人资料',
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@views/NotFound.vue'),
@@ -64,6 +97,25 @@ router.beforeEach((to, from, next) => {
     ? `${to.meta.title} - 漫画阅读器`
     : '漫画阅读器';
   next();
+});
+
+// 路由守卫：检查登录状态
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('auth_token');
+  const isAuthenticated = !!token;
+
+  // 如果未登录且访问的不是登录页，重定向到登录页
+  if (to.path !== '/auth' && !isAuthenticated) {
+    next({
+      path: '/auth',
+      query: { redirect: to.fullPath },
+    });
+  } else if (to.path === '/auth' && isAuthenticated) {
+    // 已登录用户访问登录页，重定向到首页
+    next('/');
+  } else {
+    next();
+  }
 });
 
 export default router;

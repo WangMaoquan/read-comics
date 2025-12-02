@@ -1,6 +1,6 @@
 import { apiClient } from '../client';
 import { API_ENDPOINTS } from '../config';
-import type { Comic, Chapter } from '@read-comics/types';
+import type { Comic, Chapter, ReadingProgress } from '@read-comics/types';
 
 /**
  * 漫画服务
@@ -64,5 +64,27 @@ export const comicsService = {
    */
   async toggleFavorite(id: string): Promise<Comic> {
     return apiClient.post<Comic>(`${API_ENDPOINTS.comics.detail(id)}/favorite`);
+  },
+
+  /**
+   * 更新阅读进度
+   */
+  async updateProgress(
+    comicId: string,
+    data: { chapterId: string; currentPage: number; totalPages: number },
+  ): Promise<ReadingProgress> {
+    return apiClient.post<ReadingProgress>(
+      API_ENDPOINTS.comics.progress(comicId),
+      data,
+    );
+  },
+
+  /**
+   * 获取阅读进度
+   */
+  async getProgress(comicId: string): Promise<ReadingProgress> {
+    return apiClient.get<ReadingProgress>(
+      API_ENDPOINTS.comics.progress(comicId),
+    );
   },
 };

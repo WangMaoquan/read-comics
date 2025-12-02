@@ -37,7 +37,6 @@ export class ZipUtilsService {
         let found = false;
 
         zipfile.on('entry', (entry: yauzl.Entry) => {
-          // 尝试多种编码解码文件名
           const entryName = this.decodeFileName(entry.fileName);
 
           if (entryName === filePath) {
