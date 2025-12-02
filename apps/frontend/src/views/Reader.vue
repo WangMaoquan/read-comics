@@ -4,6 +4,12 @@
   import { storeToRefs } from 'pinia';
   import { useWindowSize } from '@vueuse/core';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
+  import ReaderHeader from '../components/reader/ReaderHeader.vue';
+  import ReaderFooter from '../components/reader/ReaderFooter.vue';
+  import ReaderShortcuts from '../components/reader/ReaderShortcuts.vue';
+  import SinglePageView from '../components/reader/SinglePageView.vue';
+  import DoublePageView from '../components/reader/DoublePageView.vue';
+  import ScrollView from '../components/reader/ScrollView.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
   import {
     comicsService,
@@ -442,110 +448,17 @@
 <template>
   <div class="min-h-screen bg-gray-900" @click="showControls = true">
     <!-- 页面标题栏 -->
-    <header
-      :class="[
-        'fixed top-0 left-0 right-0 z-50 bg-gray-800 border-b border-gray-700 transition-all duration-300',
-        showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
-      ]"
-    >
-      <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-        <div class="flex justify-between items-center h-14 sm:h-16">
-          <!-- 左侧：返回按钮 + 信息 -->
-          <div class="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
-            <button
-              @click="goBack"
-              class="text-gray-300 hover:text-white transition-colors flex-shrink-0"
-              title="返回"
-            >
-              <svg
-                class="w-5 h-5 sm:w-6 sm:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-
-            <!-- 章节信息 -->
-            <div class="text-white min-w-0 flex-1">
-              <!-- 小屏只显示页码 -->
-              <div class="sm:hidden">
-                <div class="font-medium text-sm">
-                  {{ currentPage + 1 }} / {{ totalPages }}
-                </div>
-              </div>
-              <!-- 大屏显示完整信息 -->
-              <div class="hidden sm:block">
-                <div class="text-xs sm:text-sm text-gray-400 truncate">
-                  {{ currentChapter?.title }}
-                </div>
-                <div class="font-medium text-sm">
-                  {{ currentPage + 1 }} / {{ totalPages }}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 右侧：操作按钮 -->
-          <div class="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-            <!-- 阅读模式切换 -->
-            <div
-              class="flex items-center space-x-0.5 sm:space-x-1 bg-gray-700 rounded-lg p-0.5 sm:p-1"
-            >
-              <button
-                v-for="mode in readingModes"
-                :key="mode.value"
-                @click="changeReadingMode(mode.value)"
-                :class="[
-                  'px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                  readingMode === mode.value
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:text-white',
-                ]"
-                :title="mode.description"
-              >
-                <span class="hidden sm:inline">{{ mode.label }}</span>
-                <!-- 小屏只显示首字 -->
-                <span class="sm:hidden">{{ mode.label.charAt(0) }}</span>
-              </button>
-            </div>
-
-            <!-- 设置按钮 -->
-            <button
-              @click.stop="toggleControls"
-              class="text-gray-300 hover:text-white transition-colors p-1 flex-shrink-0"
-              title="隐藏/显示控制栏"
-            >
-              <svg
-                class="w-5 h-5 sm:w-6 sm:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
+    <ReaderHeader
+      :show-controls="showControls"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :current-chapter="currentChapter"
+      :reading-mode="readingMode"
+      :reading-modes="readingModes"
+      @go-back="goBack"
+      @toggle-controls="toggleControls"
+      @change-mode="changeReadingMode"
+    />
 
     <!-- 主要内容区域 -->
     <main class="pt-16">
@@ -580,197 +493,45 @@
       <!-- 阅读区域 -->
       <div v-else class="relative">
         <!-- 单页模式 -->
-        <div
+        <SinglePageView
           v-if="readingMode === 'single_page'"
-          class="flex items-center justify-center min-h-[80vh] p-4"
-        >
-          <div class="relative">
-            <img
-              :src="currentImage"
-              :alt="`Page ${currentPage + 1}`"
-              class="shadow-lg rounded-lg transition-all duration-300"
-              :style="imageStyle"
-              loading="lazy"
-            />
-            <!-- 页码显示 -->
-            <div
-              class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm"
-            >
-              {{ currentPage + 1 }} / {{ totalPages }}
-            </div>
-          </div>
-        </div>
+          :current-image="currentImage"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :image-style="imageStyle"
+        />
 
         <!-- 双页模式 -->
-        <div
+        <DoublePageView
           v-else-if="readingMode === 'double_page'"
-          class="flex items-center justify-center min-h-[80vh] p-4 space-x-2"
-        >
-          <template v-if="currentPage > 0">
-            <div class="relative">
-              <img
-                :src="images[currentPage - 1]"
-                :alt="`Page ${currentPage}`"
-                class="max-w-full max-h-[90vh] object-contain shadow-lg rounded-lg"
-                loading="lazy"
-              />
-              <div
-                class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm"
-              >
-                {{ currentPage }}
-              </div>
-            </div>
-          </template>
-
-          <div class="relative">
-            <img
-              :src="currentImage"
-              :alt="`Page ${currentPage + 1}`"
-              class="max-w-full max-h-[90vh] object-contain shadow-lg rounded-lg"
-              loading="lazy"
-            />
-            <div
-              class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm"
-            >
-              {{ currentPage + 1 }}
-            </div>
-          </div>
-        </div>
+          :images="images"
+          :current-image="currentImage"
+          :current-page="currentPage"
+        />
 
         <!-- 滚动模式 -->
-        <div v-else class="relative">
-          <div class="max-w-4xl mx-auto p-4 space-y-8">
-            <div v-for="(image, index) in images" :key="index" class="relative">
-              <img
-                :src="image"
-                :alt="`Page ${index + 1}`"
-                class="shadow-lg rounded-lg mx-auto transition-all duration-300"
-                :style="imageStyle"
-                loading="lazy"
-              />
-              <div
-                class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm"
-              >
-                {{ index + 1 }} / {{ totalPages }}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScrollView
+          v-else
+          :images="images"
+          :total-pages="totalPages"
+          :image-style="imageStyle"
+        />
 
         <!-- 导航按钮 -->
-        <div
-          class="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700"
-        >
-          <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4">
-            <div class="flex items-center justify-between gap-2">
-              <button
-                @click="previousPage"
-                :disabled="currentPage === 0"
-                class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
-              >
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                <span class="hidden sm:inline">上一页</span>
-              </button>
-
-              <div
-                class="flex items-center space-x-2 sm:space-x-4 flex-1 justify-center min-w-0"
-              >
-                <!-- 进度条 -->
-                <div class="flex-1 max-w-xs">
-                  <div class="w-full bg-gray-600 rounded-full h-1.5 sm:h-2">
-                    <div
-                      class="bg-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-300"
-                      :style="{ width: `${progress}%` }"
-                    />
-                  </div>
-                </div>
-                <!-- 进度百分比 -->
-                <span class="text-gray-300 text-xs sm:text-sm whitespace-nowrap"
-                  >{{ progress }}%</span
-                >
-              </div>
-
-              <!-- 下一页或下一章按钮 -->
-              <button
-                v-if="!isLastPage"
-                @click="nextPage"
-                class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-xs sm:text-sm"
-              >
-                <span class="hidden sm:inline">下一页</span>
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-
-              <button
-                v-else-if="hasNextChapter"
-                @click="goToNextChapter"
-                class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-xs sm:text-sm whitespace-nowrap"
-              >
-                <span class="hidden xs:inline">下一章</span>
-                <span class="xs:hidden">下一章</span>
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-
-              <div
-                v-else
-                class="flex items-center px-2 sm:px-4 py-2 text-gray-400 text-xs sm:text-sm"
-              >
-                已完成
-              </div>
-            </div>
-          </div>
-        </div>
+        <ReaderFooter
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :progress="progress"
+          :is-last-page="isLastPage"
+          :has-next-chapter="hasNextChapter"
+          @previous-page="previousPage"
+          @next-page="nextPage"
+          @next-chapter="goToNextChapter"
+        />
       </div>
     </main>
 
     <!-- 快捷键提示 (仅PC端显示) -->
-    <div
-      v-if="showControls && !isMobile"
-      class="fixed top-20 right-4 bg-gray-800 border border-gray-700 rounded-lg p-4 text-sm text-gray-300 z-40 hidden sm:block"
-    >
-      <div class="font-medium mb-2">快捷键:</div>
-      <div class="space-y-1 text-xs">
-        <div>←/→ 或 空格/Enter: 翻页</div>
-        <div>↑/↓: 翻页</div>
-        <div>1/2/3: 切换阅读模式</div>
-        <div>H: 隐藏控制栏</div>
-        <div>ESC: 返回</div>
-      </div>
-    </div>
+    <ReaderShortcuts :show="showControls" :is-mobile="isMobile" />
   </div>
 </template>
