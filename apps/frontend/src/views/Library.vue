@@ -148,6 +148,13 @@
   const confirmUpload = async () => {
     if (!uploadForm.value.file) return;
 
+    // 自动添加输入框中未添加的标签
+    const pendingTag = tagInput.value.trim();
+    if (pendingTag && !uploadForm.value.tags.includes(pendingTag)) {
+      uploadForm.value.tags.push(pendingTag);
+      tagInput.value = '';
+    }
+
     uploadingFile.value = true;
     uploadProgress.value = 0;
 
