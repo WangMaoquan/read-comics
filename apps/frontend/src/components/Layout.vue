@@ -2,6 +2,7 @@
   import { computed, ref, onMounted, onUnmounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import Navigation from './Navigation.vue';
+  import Toast from './Toast.vue';
   import { useUIStore } from '@stores/ui';
   import { useAuthStore } from '@stores/auth';
 
@@ -266,5 +267,8 @@
     <div class="md:hidden" v-if="showTopNav">
       <Navigation />
     </div>
+
+    <!-- Toast 通知 -->
+    <Toast />
   </div>
 </template>

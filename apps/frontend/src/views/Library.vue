@@ -11,6 +11,7 @@
   import UploadModal from '../components/library/UploadModal.vue';
   import ComicCard from '../components/library/ComicCard.vue';
   import ComicListItem from '../components/library/ComicListItem.vue';
+  import { toast } from '../composables/useToast';
 
   const router = useRouter();
   const comicStore = useComicStore();
@@ -120,7 +121,7 @@
     // 使用统一的文件验证工具
     const validation = validateFile(file);
     if (!validation.valid) {
-      alert(validation.error);
+      toast.error(validation.error || '文件验证失败');
       target.value = '';
       return;
     }

@@ -39,6 +39,7 @@
     FavoriteStatus,
   } from '@api/services/favoritesService';
   import { useAuthStore } from '@stores/auth';
+  import { toast } from '../composables/useToast';
 
   const props = defineProps<{
     comicId: string;
@@ -61,7 +62,7 @@
 
   const toggleFavorite = async () => {
     if (!authStore.isAuthenticated) {
-      alert('请先登录');
+      toast.warning('请先登录');
       return;
     }
 
@@ -82,7 +83,7 @@
       }
     } catch (error: any) {
       console.error('收藏操作失败:', error);
-      alert(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || '操作失败');
     } finally {
       loading.value = false;
     }

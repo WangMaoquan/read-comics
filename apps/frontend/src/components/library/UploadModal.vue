@@ -2,6 +2,7 @@
   import { ref, reactive } from 'vue';
   import LoadingSpinner from '../LoadingSpinner.vue';
   import { filesService } from '../../api/services';
+  import { toast } from '../../composables/useToast';
 
   const props = defineProps<{
     modelValue: boolean;
@@ -95,11 +96,11 @@
 
       emit('success');
       closeUploadModal();
-      alert('文件上传成功!');
+      toast.success('文件上传成功!');
     } catch (error) {
       console.error('上传错误:', error);
       const errorMessage = error instanceof Error ? error.message : '上传失败';
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       uploadingFile.value = false;
       uploadProgress.value = 0;

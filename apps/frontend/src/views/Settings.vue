@@ -315,6 +315,7 @@
   import { useWindowSize } from '@vueuse/core';
   import { useUIStore } from '../stores/ui';
   import { useSettingsStore } from '../stores/settings';
+  import { toast } from '../composables/useToast';
 
   const uiStore = useUIStore();
   const settingsStore = useSettingsStore();
@@ -365,28 +366,28 @@
 
   const changeStoragePath = () => {
     // TODO: 实现存储路径更改，可能需要调用 Electron API 或后端 API
-    alert('存储路径更改功能待实现');
+    toast.info('存储路径更改功能待实现');
   };
 
   const clearCache = () => {
     // TODO: 实现缓存清理
-    alert('缓存清理功能待实现');
+    toast.info('缓存清理功能待实现');
   };
 
   const backupData = () => {
     // TODO: 实现数据备份
-    alert('数据备份功能待实现');
+    toast.info('数据备份功能待实现');
   };
 
   const resetSettings = () => {
     settingsStore.resetSettings();
     uiStore.setTheme('auto');
-    alert('设置已重置');
+    toast.success('设置已重置');
   };
 
   const saveSettings = () => {
     // 设置已通过 store 自动保存到 localStorage
     // 这里只提供用户反馈
-    alert('设置已保存');
+    toast.success('设置已保存');
   };
 </script>
