@@ -11,6 +11,7 @@ import {
   UploadedFile,
   BadRequestException,
   UseGuards,
+  Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -99,7 +100,16 @@ export class FilesController {
       },
     }),
   )
-  async uploadComicFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadComicFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body()
+    body: {
+      title?: string;
+      author?: string;
+      description?: string;
+      tags?: string | string[];
+    },
+  ) {
     if (!file) {
       throw new BadRequestException('请选择文件');
     }
@@ -125,14 +135,36 @@ export class FilesController {
       const ext = extname(file.originalname);
       const originalTitle = file.originalname.slice(0, -ext.length);
 
+      // 处理标签：如果是字符串（JSON或逗号分隔），尝试解析
+      let tags: string[] = [];
+      if (body.tags) {
+        if (Array.isArray(body.tags)) {
+          tags = body.tags;
+        } else if (typeof body.tags === 'string') {
+          try {
+            // 尝试解析 JSON 数组
+            const parsed = JSON.parse(body.tags);
+            if (Array.isArray(parsed)) tags = parsed;
+          } catch {
+            // 如果不是 JSON，尝试逗号分隔
+            tags = body.tags
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean);
+          }
+        }
+      }
+
       // 4. 创建漫画记录
       const comic = await this.comicsService.create({
-        title: originalTitle, // 使用原始文件名作为标题
+        title: body.title || originalTitle, // 优先使用用户提供的标题
+        author: body.author || '未知',
+        description: body.description,
+        tags: tags,
         filePath: file.path,
         fileFormat: parseResult.format,
         fileSize: file.size,
         totalPages: parseResult.totalPages,
-        author: '未知',
         status: 'unread' as any,
         hash: hash, // 保存文件哈希
         chapters: parseResult.chapters, // 直接传入章节数据

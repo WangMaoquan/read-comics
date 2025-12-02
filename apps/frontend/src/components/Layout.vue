@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed, ref, onMounted, onUnmounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import Navigation from './Navigation.vue';
   import { useUIStore } from '@stores/ui';
   import { useAuthStore } from '@stores/auth';
 
@@ -9,6 +10,12 @@
   const uiStore = useUIStore();
   const authStore = useAuthStore();
   const userMenuOpen = ref(false);
+
+  const navItems = [
+    { name: '漫画库', path: '/library' },
+    { name: '书架', path: '/favorites' },
+    { name: '标签', path: '/tags' },
+  ];
 
   const handleLogout = () => {
     authStore.clearAuth();
@@ -82,21 +89,37 @@
         <div class="flex justify-between items-center h-16">
           <!-- Logo 和标题 -->
           <div class="flex items-center">
-            <router-link to="/" class="flex items-center space-x-3 group">
+            <router-link to="/" class="flex items-center space-x-3 group mr-8">
               <div
                 class="w-10 h-10 rounded-xl bg-linear-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
               >
                 <span class="text-white font-bold text-lg">M</span>
               </div>
               <h1
-                class="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300"
+                class="hidden md:block text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300"
               >
                 漫画阅读器
               </h1>
             </router-link>
+
+            <!-- 桌面端导航链接 (仅在大屏显示) -->
+            <nav class="hidden md:flex items-center space-x-1">
+              <router-link
+                v-for="item in navItems"
+                :key="item.path"
+                :to="item.path"
+                class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                :class="[
+                  route.path === item.path
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white',
+                ]"
+              >
+                {{ item.name }}
+              </router-link>
+            </nav>
           </div>
 
-          <!-- 右侧操作 -->
           <!-- 右侧操作 -->
           <div class="flex items-center space-x-4">
             <!-- 主题切换按钮 -->
@@ -232,11 +255,16 @@
     <main
       :class="[
         'transition-all duration-300 min-h-screen',
-        showTopNav ? 'pt-20 pb-8' : '',
+        showTopNav ? 'pt-20 pb-20 md:pb-8' : '',
         readerBgColor,
       ]"
     >
       <slot />
     </main>
+
+    <!-- 移动端底部导航栏 -->
+    <div class="md:hidden" v-if="showTopNav">
+      <Navigation />
+    </div>
   </div>
 </template>

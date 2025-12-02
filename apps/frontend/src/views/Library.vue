@@ -4,13 +4,11 @@
   import LoadingSpinner from '@components/LoadingSpinner.vue';
   import type { Comic } from '@read-comics/types';
   import { ComicStatus } from '@read-comics/types';
-  import { useFileStore } from '@stores/files';
   import { useComicStore } from '@stores/comic';
   import { filesService } from '@api/services';
   import { validateFile } from '@utils/formatValidation';
 
   const router = useRouter();
-  const fileStore = useFileStore();
   const comicStore = useComicStore();
 
   // 状态管理
@@ -72,15 +70,20 @@
     router.push(`/comic/${comicId}`);
   };
 
-  // 导入漫画
-  const importComics = async () => {
-    await fileStore.importComics();
-  };
-
   // 文件上传相关
   const uploadingFile = ref(false);
   const uploadProgress = ref(0);
   const fileInputRef = ref<HTMLInputElement | null>(null);
+  const showUploadModal = ref(false);
+  const tagInput = ref('');
+
+  const uploadForm = ref({
+    file: null as File | null,
+    title: '',
+    author: '',
+    description: '',
+    tags: [] as string[],
+  });
 
   // 触发文件选择
   const triggerFileUpload = () => {
@@ -91,26 +94,80 @@
   const handleFileSelect = async (event: Event) => {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
-    if (!file) return;
+
+    if (!file) {
+      return;
+    }
 
     // 使用统一的文件验证工具
     const validation = validateFile(file);
     if (!validation.valid) {
       alert(validation.error);
+      target.value = '';
       return;
     }
 
-    // 上传文件
+    // 初始化表单并打开模态框
+    uploadForm.value = {
+      file,
+      title: file.name.replace(/\.(cbz|zip)$/i, ''),
+      author: '',
+      description: '',
+      tags: [],
+    };
+    tagInput.value = '';
+    showUploadModal.value = true;
+
+    // 重置 input，以便下次可以选择相同文件
+    target.value = '';
+  };
+
+  const closeUploadModal = () => {
+    showUploadModal.value = false;
+    uploadForm.value = {
+      file: null,
+      title: '',
+      author: '',
+      description: '',
+      tags: [],
+    };
+  };
+
+  const addTag = () => {
+    const tag = tagInput.value.trim();
+    if (tag && !uploadForm.value.tags.includes(tag)) {
+      uploadForm.value.tags.push(tag);
+      tagInput.value = '';
+    }
+  };
+
+  const removeTag = (index: number) => {
+    uploadForm.value.tags.splice(index, 1);
+  };
+
+  const confirmUpload = async () => {
+    if (!uploadForm.value.file) return;
+
     uploadingFile.value = true;
     uploadProgress.value = 0;
 
     try {
-      await filesService.uploadFile(file, (progress) => {
-        uploadProgress.value = progress;
-      });
+      await filesService.uploadFile(
+        uploadForm.value.file,
+        {
+          title: uploadForm.value.title,
+          author: uploadForm.value.author,
+          description: uploadForm.value.description,
+          tags: uploadForm.value.tags,
+        },
+        (progress) => {
+          uploadProgress.value = progress;
+        },
+      );
 
       // 上传成功后重新加载漫画列表
       await loadComics();
+      closeUploadModal();
       alert('文件上传成功!');
     } catch (error) {
       console.error('上传错误:', error);
@@ -119,8 +176,6 @@
     } finally {
       uploadingFile.value = false;
       uploadProgress.value = 0;
-      // 重置文件输入
-      if (target) target.value = '';
     }
   };
 
@@ -165,11 +220,9 @@
             <!-- 上传文件按钮 -->
             <button
               @click="triggerFileUpload"
-              :disabled="uploadingFile"
-              class="btn btn-secondary text-sm px-4 py-2 hover-glow disabled:opacity-50 disabled:cursor-not-allowed"
+              class="btn btn-primary text-sm px-4 py-2 hover-glow"
             >
               <svg
-                v-if="!uploadingFile"
                 class="w-4 h-4 mr-2"
                 fill="none"
                 stroke="currentColor"
@@ -182,45 +235,7 @@
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              <LoadingSpinner v-else size="sm" class="mr-2" />
-              {{ uploadingFile ? `上传中 ${uploadProgress}%` : '上传文件' }}
-            </button>
-
-            <!-- 导入按钮 -->
-            <button
-              @click="importComics"
-              :disabled="
-                fileStore.status === 'scanning' ||
-                fileStore.status === 'importing'
-              "
-              class="btn btn-primary text-sm px-4 py-2 hover-glow disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg
-                v-if="
-                  fileStore.status === 'idle' ||
-                  fileStore.status === 'completed' ||
-                  fileStore.status === 'error'
-                "
-                class="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              <LoadingSpinner v-else size="sm" class="mr-2" />
-              {{
-                fileStore.status === 'scanning'
-                  ? '扫描中...'
-                  : fileStore.status === 'importing'
-                    ? '导入中...'
-                    : '导入漫画'
-              }}
+              上传漫画
             </button>
 
             <!-- 视图切换 -->
@@ -274,67 +289,6 @@
                 </svg>
               </button>
             </div>
-          </div>
-        </div>
-
-        <!-- 导入进度条 -->
-        <div v-if="fileStore.status !== 'idle'" class="mt-4 animate-fade-in">
-          <div class="flex justify-between text-sm mb-1">
-            <span class="text-gray-600 dark:text-gray-300">
-              {{
-                fileStore.status === 'scanning'
-                  ? '正在扫描文件...'
-                  : fileStore.status === 'completed'
-                    ? '导入完成'
-                    : `正在导入: ${fileStore.current}/${fileStore.total}`
-              }}
-            </span>
-            <span class="text-gray-500 dark:text-gray-400">
-              {{
-                fileStore.status === 'completed'
-                  ? '100%'
-                  : fileStore.total > 0
-                    ? Math.round((fileStore.current / fileStore.total) * 100) +
-                      '%'
-                    : '...'
-              }}
-            </span>
-          </div>
-          <div
-            class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden"
-          >
-            <div
-              class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-              :style="{
-                width:
-                  fileStore.status === 'completed'
-                    ? '100%'
-                    : fileStore.total > 0
-                      ? `${(fileStore.current / fileStore.total) * 100}%`
-                      : '0%',
-              }"
-            ></div>
-          </div>
-          <div
-            v-if="fileStore.logs.length > 0"
-            class="mt-2 text-xs text-gray-500 dark:text-gray-400 max-h-20 overflow-y-auto font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded"
-          >
-            <div v-for="(log, index) in fileStore.logs.slice(-5)" :key="index">
-              {{ log }}
-            </div>
-          </div>
-          <div
-            v-if="
-              fileStore.status === 'completed' || fileStore.status === 'error'
-            "
-            class="mt-2 text-right"
-          >
-            <button
-              @click="fileStore.resetStatus()"
-              class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              关闭
-            </button>
           </div>
         </div>
 
@@ -403,6 +357,181 @@
               </svg>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 上传模态框 -->
+    <div
+      v-if="showUploadModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-scale-in"
+      >
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+            上传漫画
+          </h3>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <!-- 文件信息 -->
+          <div
+            class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center gap-3"
+          >
+            <div
+              class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p
+                class="text-sm font-medium text-gray-900 dark:text-white truncate"
+              >
+                {{ uploadForm.file?.name }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{
+                  uploadForm.file
+                    ? (uploadForm.file.size / 1024 / 1024).toFixed(2)
+                    : 0
+                }}
+                MB
+              </p>
+            </div>
+          </div>
+
+          <!-- 标题 -->
+          <div>
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >标题</label
+            >
+            <input
+              v-model="uploadForm.title"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <!-- 作者 -->
+          <div>
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >作者</label
+            >
+            <input
+              v-model="uploadForm.author"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <!-- 标签 -->
+          <div>
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >标签</label
+            >
+            <div class="flex gap-2 mb-2">
+              <input
+                v-model="tagInput"
+                type="text"
+                placeholder="输入标签后按回车"
+                @keyup.enter="addTag"
+                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+              <button
+                type="button"
+                @click="addTag"
+                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+              >
+                添加
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="(tag, index) in uploadForm.tags"
+                :key="index"
+                class="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-sm flex items-center gap-1"
+              >
+                {{ tag }}
+                <button
+                  type="button"
+                  @click="removeTag(index)"
+                  class="hover:text-red-600"
+                >
+                  ×
+                </button>
+              </span>
+            </div>
+          </div>
+
+          <!-- 描述 -->
+          <div>
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >描述</label
+            >
+            <textarea
+              v-model="uploadForm.description"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+            ></textarea>
+          </div>
+
+          <!-- 进度条 -->
+          <div v-if="uploadingFile" class="space-y-2">
+            <div
+              class="flex justify-between text-sm text-gray-600 dark:text-gray-400"
+            >
+              <span>上传中...</span>
+              <span>{{ uploadProgress }}%</span>
+            </div>
+            <div
+              class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden"
+            >
+              <div
+                class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                :style="{ width: `${uploadProgress}%` }"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3"
+        >
+          <button
+            type="button"
+            @click="closeUploadModal"
+            :disabled="uploadingFile"
+            class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            @click="confirmUpload"
+            :disabled="uploadingFile"
+            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            <LoadingSpinner v-if="uploadingFile" size="sm" />
+            {{ uploadingFile ? '上传中...' : '确认上传' }}
+          </button>
         </div>
       </div>
     </div>
