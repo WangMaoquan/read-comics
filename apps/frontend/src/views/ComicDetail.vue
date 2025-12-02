@@ -123,6 +123,14 @@
     });
   };
 
+  // 图片加载失败处理
+  const handleImageError = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = '/placeholder.png';
+    }
+  };
+
   // 初始化
   onMounted(async () => {
     await loadComicDetails();
@@ -203,7 +211,7 @@
                 :src="`http://localhost:4399/images/thumbnail?comicPath=${encodeURIComponent(comic.filePath)}&imagePath=${encodeURIComponent(comic.cover || '')}`"
                 :alt="comic.title"
                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                @error="$event.target.src = '/placeholder.png'"
+                @error="handleImageError"
               />
               <div
                 class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-300"

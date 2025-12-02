@@ -103,8 +103,8 @@
                   class="aspect-3/4 bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
                 >
                   <img
-                    v-if="comic.coverPath"
-                    :src="`/api${comic.coverPath}`"
+                    v-if="comic.cover"
+                    :src="`/api${comic.cover}`"
                     :alt="comic.title"
                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />

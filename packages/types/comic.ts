@@ -7,7 +7,7 @@ export interface Comic {
   title: string;
   author?: string;
   description?: string;
-  coverPath?: string;
+  cover?: string;
   filePath: string;
   fileSize: number;
   fileFormat: ComicFormat;

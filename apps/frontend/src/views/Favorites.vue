@@ -114,7 +114,7 @@
       <div class="flex gap-2 mb-6">
         <button
           v-for="tab in tabs"
-          :key="tab.value"
+          :key="tab.value || 'all'"
           @click="currentTab = tab.value"
           class="px-4 py-2 rounded-lg font-medium transition-all duration-300"
           :class="[
@@ -152,8 +152,8 @@
               class="aspect-3/4 bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
             >
               <img
-                v-if="favorite.comic?.coverPath"
-                :src="`/api${favorite.comic.coverPath}`"
+                v-if="favorite.comic?.cover"
+                :src="`/api${favorite.comic.cover}`"
                 :alt="favorite.comic?.title"
                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />

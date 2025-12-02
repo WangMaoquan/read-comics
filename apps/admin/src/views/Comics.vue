@@ -35,14 +35,9 @@
   const selectedCount = computed(() => selectedComics.value.length);
 
   const getCoverUrl = (comic: Comic) => {
-    if (!comic.coverPath) return '';
-    if (comic.coverPath.startsWith('http')) return comic.coverPath;
-    return imagesService.getThumbnailUrl(
-      comic.filePath,
-      comic.coverPath,
-      100,
-      150,
-    );
+    if (!comic.cover) return '';
+    if (comic.cover.startsWith('http')) return comic.cover;
+    return imagesService.getThumbnailUrl(comic.filePath, comic.cover, 100, 150);
   };
 
   const fetchComics = async () => {
@@ -119,7 +114,10 @@
         (c) => c.id === editingComic.value!.id,
       );
       if (index > -1) {
-        Object.assign(comics.value[index], formData.value);
+        const target = comics.value[index];
+        if (target) {
+          Object.assign(target, formData.value);
+        }
       }
 
       showEditModal.value = false;
@@ -291,7 +289,7 @@
                   class="w-12 h-16 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden"
                 >
                   <img
-                    v-if="comic.coverPath"
+                    v-if="comic.cover"
                     :src="getCoverUrl(comic)"
                     class="w-full h-full object-cover"
                     alt="cover"

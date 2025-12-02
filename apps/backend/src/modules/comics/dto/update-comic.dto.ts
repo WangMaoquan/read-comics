@@ -18,6 +18,11 @@ export class UpdateComicDto {
   @IsOptional()
   description?: string;
 
+  @ApiProperty({ description: '封面路径', required: false })
+  @IsString()
+  @IsOptional()
+  cover?: string;
+
   @ApiProperty({ description: '评分', required: false })
   @IsNumber()
   @IsOptional()

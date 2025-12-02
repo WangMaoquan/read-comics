@@ -24,6 +24,11 @@ export class CreateComicDto {
   @IsOptional()
   description?: string;
 
+  @ApiProperty({ description: '封面路径', required: false })
+  @IsString()
+  @IsOptional()
+  cover?: string;
+
   @ApiProperty({ description: '文件路径' })
   @IsString()
   @IsNotEmpty()

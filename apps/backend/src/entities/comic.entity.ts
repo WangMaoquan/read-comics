@@ -47,7 +47,7 @@ export class Comic {
 
   @ApiProperty({ description: '封面路径', required: false })
   @Column({ nullable: true })
-  coverPath?: string;
+  cover?: string;
 
   @ApiProperty({ description: '文件大小(字节)', example: 524288000 })
   @Column()

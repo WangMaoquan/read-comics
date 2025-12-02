@@ -461,7 +461,7 @@
             class="aspect-w-3 aspect-h-4 bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
           >
             <img
-              :src="comic.coverPath || '/placeholder-cover.jpg'"
+              :src="comic.cover || '/placeholder-cover.jpg'"
               :alt="comic.title"
               class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               loading="lazy"
@@ -537,7 +537,7 @@
             class="shrink-0 w-16 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm"
           >
             <img
-              :src="comic.coverPath || '/placeholder-cover.jpg'"
+              :src="comic.cover || '/placeholder-cover.jpg'"
               :alt="comic.title"
               class="w-full h-full object-cover"
               loading="lazy"

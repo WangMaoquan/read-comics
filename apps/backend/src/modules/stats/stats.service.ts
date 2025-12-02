@@ -87,7 +87,7 @@ export class StatsService {
         readCount: 'DESC',
       },
       take: limit,
-      select: ['id', 'title', 'author', 'readCount', 'rating', 'coverPath'],
+      select: ['id', 'title', 'author', 'readCount', 'rating', 'cover'],
     });
   }
 
