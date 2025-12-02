@@ -53,10 +53,10 @@ export const CACHE_CONFIG = {
 // 本地存储 Keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
-  USER_INFO: 'user_info',
+  USER_INFO: 'user_info', // 之前代码用的是 user_data, 现在统一为 user_info
   THEME: 'theme',
-  READING_SETTINGS: 'reading_settings',
-  UI_SETTINGS: 'ui_settings',
+  APP_SETTINGS: 'app_settings', // 之前代码用的是 appSettings
+  READING_PROGRESS_PREFIX: 'reading_progress_',
 } as const;
 
 // API 端点

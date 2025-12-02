@@ -13,12 +13,14 @@
       label: string;
       description: string;
     }[];
+    isFullscreen: boolean;
   }>();
 
   defineEmits<{
     (e: 'go-back'): void;
     (e: 'toggle-controls'): void;
     (e: 'change-mode', mode: ReadingMode): void;
+    (e: 'toggle-fullscreen'): void;
   }>();
 </script>
 
@@ -35,7 +37,7 @@
         <div class="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
           <button
             @click="$emit('go-back')"
-            class="text-gray-300 hover:text-white transition-colors flex-shrink-0"
+            class="text-gray-300 hover:text-white transition-colors shrink-0"
             title="返回"
           >
             <svg
@@ -74,7 +76,7 @@
         </div>
 
         <!-- 右侧：操作按钮 -->
-        <div class="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+        <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
           <!-- 阅读模式切换 -->
           <div
             class="flex items-center space-x-0.5 sm:space-x-1 bg-gray-700 rounded-lg p-0.5 sm:p-1"
@@ -97,10 +99,46 @@
             </button>
           </div>
 
+          <!-- 全屏按钮 -->
+          <button
+            @click="$emit('toggle-fullscreen')"
+            class="text-gray-300 hover:text-white transition-colors p-1 shrink-0"
+            :title="isFullscreen ? '退出全屏' : '全屏'"
+          >
+            <svg
+              v-if="!isFullscreen"
+              class="w-5 h-5 sm:w-6 sm:h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+              />
+            </svg>
+            <svg
+              v-else
+              class="w-5 h-5 sm:w-6 sm:h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 16h6m0 0v6m0-6L5 21M19 16h-6m0 0v6m0-6l6 5M5 8h6m0 0V2m0 6L5 3m14 5h-6m0 0V2m0 6l6-5"
+              />
+            </svg>
+          </button>
+
           <!-- 设置按钮 -->
           <button
             @click.stop="$emit('toggle-controls')"
-            class="text-gray-300 hover:text-white transition-colors p-1 flex-shrink-0"
+            class="text-gray-300 hover:text-white transition-colors p-1 shrink-0"
             title="隐藏/显示控制栏"
           >
             <svg

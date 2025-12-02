@@ -1,196 +1,128 @@
 import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import { useColorMode, useStorage } from '@vueuse/core';
+import { STORAGE_KEYS } from '../config';
 
-interface UIState {
-  theme: 'light' | 'dark' | 'auto';
-  fontSize: 'small' | 'medium' | 'large';
-  sidebarOpen: boolean;
-  loading: boolean;
-  error: string | null;
-  notifications: Array<{
-    id: string;
-    type: 'success' | 'error' | 'warning' | 'info';
-    title: string;
-    message: string;
-    duration?: number;
-  }>;
-  mediaQueryList: MediaQueryList | null;
-}
-
-export const useUIStore = defineStore('ui', {
-  state: (): UIState => ({
-    theme: 'auto',
-    fontSize: 'medium',
-    sidebarOpen: false,
-    loading: false,
-    error: null,
-    notifications: [],
-    mediaQueryList: null,
-  }),
-
-  getters: {
-    isDarkMode: (state) => {
-      if (state.theme === 'auto') {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
-      }
-      return state.theme === 'dark';
+export const useUIStore = defineStore('ui', () => {
+  // 主题管理 - 使用 useColorMode 自动处理 class 和 storage
+  const mode = useColorMode({
+    storageKey: STORAGE_KEYS.THEME,
+    modes: {
+      light: '',
+      dark: 'dark',
+      auto: 'auto',
     },
+  });
 
-    getFontSize: (state) => {
-      const sizes = {
-        small: '14px',
-        medium: '16px',
-        large: '18px',
-      };
-      return sizes[state.fontSize];
+  // 为了保持 API 兼容性，提供 theme 属性
+  const theme = computed({
+    get: () => mode.value,
+    set: (val) => {
+      mode.value = val;
     },
+  });
 
-    hasNotifications: (state) => state.notifications.length > 0,
+  // 字体大小
+  const fontSize = useStorage<'small' | 'medium' | 'large'>(
+    'ui_font_size',
+    'medium',
+  );
 
-    getNotifications: (state) => state.notifications,
+  // 侧边栏状态
+  const sidebarOpen = ref(false);
 
-    getActiveNotifications: (state) =>
-      state.notifications.filter((n) => !n.duration || n.duration > 0),
-  },
+  // 加载状态
+  const loading = ref(false);
 
-  actions: {
-    setTheme(theme: 'light' | 'dark' | 'auto') {
-      this.theme = theme;
-      localStorage.setItem('theme', theme);
-      this.applyTheme();
-    },
+  // 错误状态
+  const error = ref<string | null>(null);
 
-    initTheme() {
-      const savedTheme = localStorage.getItem('theme') as
-        | 'light'
-        | 'dark'
-        | 'auto'
-        | null;
-      if (savedTheme) {
-        this.theme = savedTheme;
-      } else {
-        this.theme = 'auto';
-      }
+  // Getters
+  const isDarkMode = computed(() => {
+    if (mode.value === 'auto') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return mode.value === 'dark';
+  });
 
-      // Setup system theme listener
-      this.mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
-      this.mediaQueryList.addEventListener('change', () => {
-        if (this.theme === 'auto') {
-          this.applyTheme();
-        }
-      });
+  const getFontSizeValue = computed(() => {
+    const sizes = {
+      small: '14px',
+      medium: '16px',
+      large: '18px',
+    };
+    return sizes[fontSize.value];
+  });
 
-      this.applyTheme();
-    },
+  // Actions
+  const setTheme = (newTheme: 'light' | 'dark' | 'auto') => {
+    mode.value = newTheme;
+  };
 
-    setFontSize(fontSize: 'small' | 'medium' | 'large') {
-      this.fontSize = fontSize;
-      this.applyFontSize();
-    },
+  // initTheme 不再需要，useColorMode 会自动初始化
+  const initTheme = () => {
+    // 空实现以保持兼容性
+  };
 
-    toggleSidebar() {
-      this.sidebarOpen = !this.sidebarOpen;
-    },
+  const setFontSize = (size: 'small' | 'medium' | 'large') => {
+    fontSize.value = size;
+    applyFontSize();
+  };
 
-    openSidebar() {
-      this.sidebarOpen = true;
-    },
+  const applyFontSize = () => {
+    const root = document.documentElement;
+    root.style.fontSize = getFontSizeValue.value;
+  };
 
-    closeSidebar() {
-      this.sidebarOpen = false;
-    },
+  const toggleSidebar = () => {
+    sidebarOpen.value = !sidebarOpen.value;
+  };
 
-    setLoading(loading: boolean) {
-      this.loading = loading;
-    },
+  const openSidebar = () => {
+    sidebarOpen.value = true;
+  };
 
-    setError(error: string | null) {
-      this.error = error;
-    },
+  const closeSidebar = () => {
+    sidebarOpen.value = false;
+  };
 
-    addNotification(notification: Omit<UIState['notifications'][0], 'id'>) {
-      const id = Date.now().toString();
-      this.notifications.push({
-        id,
-        ...notification,
-      });
+  const setLoading = (isLoading: boolean) => {
+    loading.value = isLoading;
+  };
 
-      // Auto remove notification if duration is specified
-      if (notification.duration && notification.duration > 0) {
-        setTimeout(() => {
-          this.removeNotification(id as string);
-        }, notification.duration);
-      }
+  const setError = (err: string | null) => {
+    error.value = err;
+  };
 
-      return id;
-    },
+  const clear = () => {
+    mode.value = 'auto';
+    fontSize.value = 'medium';
+    sidebarOpen.value = false;
+    loading.value = false;
+    error.value = null;
+    applyFontSize();
+  };
 
-    removeNotification(id: string) {
-      this.notifications = this.notifications.filter((n) => n.id !== id);
-    },
+  // 初始化字体
+  applyFontSize();
 
-    clearNotifications() {
-      this.notifications = [];
-    },
-
-    showSuccess(title: string, message: string, duration: number = 3000) {
-      return this.addNotification({
-        type: 'success',
-        title,
-        message,
-        duration,
-      });
-    },
-
-    showError(title: string, message: string, duration: number = 5000) {
-      return this.addNotification({
-        type: 'error',
-        title,
-        message,
-        duration,
-      });
-    },
-
-    showWarning(title: string, message: string, duration: number = 4000) {
-      return this.addNotification({
-        type: 'warning',
-        title,
-        message,
-        duration,
-      });
-    },
-
-    showInfo(title: string, message: string, duration: number = 3000) {
-      return this.addNotification({
-        type: 'info',
-        title,
-        message,
-        duration,
-      });
-    },
-
-    applyTheme() {
-      const root = document.documentElement;
-      if (this.isDarkMode) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    },
-
-    applyFontSize() {
-      const root = document.documentElement;
-      root.style.fontSize = this.getFontSize;
-    },
-
-    clear() {
-      this.theme = 'light';
-      this.fontSize = 'medium';
-      this.sidebarOpen = false;
-      this.loading = false;
-      this.error = null;
-      this.notifications = [];
-      this.applyTheme();
-      this.applyFontSize();
-    },
-  },
+  return {
+    theme,
+    mode,
+    fontSize,
+    sidebarOpen,
+    loading,
+    error,
+    isDarkMode,
+    getFontSize: getFontSizeValue,
+    setTheme,
+    initTheme,
+    setFontSize,
+    toggleSidebar,
+    openSidebar,
+    closeSidebar,
+    setLoading,
+    setError,
+    clear,
+  };
 });

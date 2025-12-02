@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
+import { computed } from 'vue';
+import { useStorage } from '@vueuse/core';
+import { STORAGE_KEYS } from '../config';
 
 export interface AppSettings {
   readingMode: 'single' | 'double' | 'scroll';
@@ -20,71 +22,85 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 export const useSettingsStore = defineStore('settings', () => {
-  // 从 localStorage 初始化状态
-  const savedSettings = localStorage.getItem('appSettings');
-  const initialSettings = savedSettings
-    ? { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) }
-    : DEFAULT_SETTINGS;
+  // 迁移逻辑：检查旧 key 是否存在
+  if (localStorage.getItem('appSettings')) {
+    try {
+      const oldSettings = JSON.parse(
+        localStorage.getItem('appSettings') || '{}',
+      );
+      if (oldSettings && Object.keys(oldSettings).length > 0) {
+        // 将旧数据写入新 key (useStorage 会读取这个新 key)
+        localStorage.setItem(
+          STORAGE_KEYS.APP_SETTINGS,
+          JSON.stringify({
+            ...DEFAULT_SETTINGS,
+            ...oldSettings,
+          }),
+        );
+        // 删除旧 key
+        localStorage.removeItem('appSettings');
+      }
+    } catch (e) {
+      console.error('Failed to migrate settings', e);
+    }
+  }
 
-  const readingMode = ref<AppSettings['readingMode']>(
-    initialSettings.readingMode,
+  // 使用 useStorage 自动管理持久化
+  // mergeDefaults: true 确保新增加的设置项会有默认值
+  const settings = useStorage<AppSettings>(
+    STORAGE_KEYS.APP_SETTINGS,
+    DEFAULT_SETTINGS,
+    localStorage,
+    { mergeDefaults: true },
   );
-  const readingDirection = ref<AppSettings['readingDirection']>(
-    initialSettings.readingDirection,
-  );
-  const zoomMode = ref<AppSettings['zoomMode']>(initialSettings.zoomMode);
-  const fontSize = ref<AppSettings['fontSize']>(initialSettings.fontSize);
-  const autoUpdate = ref<boolean>(initialSettings.autoUpdate);
-  const comicStoragePath = ref<string>(initialSettings.comicStoragePath);
+
+  // 为了保持 API 兼容性，使用 computed 暴露各个属性
+  // 这样修改这些属性会自动更新 settings 对象，进而触发 useStorage 的保存
+  const readingMode = computed({
+    get: () => settings.value.readingMode,
+    set: (val) => (settings.value.readingMode = val),
+  });
+
+  const readingDirection = computed({
+    get: () => settings.value.readingDirection,
+    set: (val) => (settings.value.readingDirection = val),
+  });
+
+  const zoomMode = computed({
+    get: () => settings.value.zoomMode,
+    set: (val) => (settings.value.zoomMode = val),
+  });
+
+  const fontSize = computed({
+    get: () => settings.value.fontSize,
+    set: (val) => (settings.value.fontSize = val),
+  });
+
+  const autoUpdate = computed({
+    get: () => settings.value.autoUpdate,
+    set: (val) => (settings.value.autoUpdate = val),
+  });
+
+  const comicStoragePath = computed({
+    get: () => settings.value.comicStoragePath,
+    set: (val) => (settings.value.comicStoragePath = val),
+  });
 
   // 更新设置的方法
   const updateSettings = (partialSettings: Partial<AppSettings>) => {
-    if (partialSettings.readingMode)
-      readingMode.value = partialSettings.readingMode;
-    if (partialSettings.readingDirection)
-      readingDirection.value = partialSettings.readingDirection;
-    if (partialSettings.zoomMode) zoomMode.value = partialSettings.zoomMode;
-    if (partialSettings.fontSize) fontSize.value = partialSettings.fontSize;
-    if (partialSettings.autoUpdate !== undefined)
-      autoUpdate.value = partialSettings.autoUpdate;
-    if (partialSettings.comicStoragePath)
-      comicStoragePath.value = partialSettings.comicStoragePath;
+    settings.value = {
+      ...settings.value,
+      ...partialSettings,
+    };
   };
 
   // 重置设置
   const resetSettings = () => {
-    readingMode.value = DEFAULT_SETTINGS.readingMode;
-    readingDirection.value = DEFAULT_SETTINGS.readingDirection;
-    zoomMode.value = DEFAULT_SETTINGS.zoomMode;
-    fontSize.value = DEFAULT_SETTINGS.fontSize;
-    autoUpdate.value = DEFAULT_SETTINGS.autoUpdate;
-    comicStoragePath.value = DEFAULT_SETTINGS.comicStoragePath;
+    settings.value = { ...DEFAULT_SETTINGS };
   };
 
-  // 监听状态变化并保存到 localStorage
-  watch(
-    [
-      readingMode,
-      readingDirection,
-      zoomMode,
-      fontSize,
-      autoUpdate,
-      comicStoragePath,
-    ],
-    () => {
-      const settings: AppSettings = {
-        readingMode: readingMode.value,
-        readingDirection: readingDirection.value,
-        zoomMode: zoomMode.value,
-        fontSize: fontSize.value,
-        autoUpdate: autoUpdate.value,
-        comicStoragePath: comicStoragePath.value,
-      };
-      localStorage.setItem('appSettings', JSON.stringify(settings));
-    },
-  );
-
   return {
+    settings, // 暴露整个对象以备后用
     readingMode,
     readingDirection,
     zoomMode,

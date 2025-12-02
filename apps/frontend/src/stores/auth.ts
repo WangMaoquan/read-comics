@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed } from 'vue';
+import { useStorage } from '@vueuse/core';
+import { STORAGE_KEYS } from '../config';
 
 export interface User {
   id: string;
@@ -9,44 +11,44 @@ export interface User {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null);
-  const token = ref<string | null>(localStorage.getItem('auth_token'));
-  const isAuthenticated = ref(!!token.value);
+  // 迁移逻辑：检查旧 key 是否存在
+  if (localStorage.getItem('user_data')) {
+    try {
+      const oldUserData = JSON.parse(
+        localStorage.getItem('user_data') || 'null',
+      );
+      if (oldUserData) {
+        localStorage.setItem(
+          STORAGE_KEYS.USER_INFO,
+          JSON.stringify(oldUserData),
+        );
+        localStorage.removeItem('user_data');
+      }
+    } catch {}
+  }
+
+  // 使用 useStorage 自动管理持久化
+  const user = useStorage<User | null>(STORAGE_KEYS.USER_INFO, null);
+  const token = useStorage<string | null>(STORAGE_KEYS.AUTH_TOKEN, null);
+
+  // isAuthenticated 作为一个 computed 属性
+  const isAuthenticated = computed(() => !!token.value);
 
   const setAuth = (userData: User, authToken: string) => {
     user.value = userData;
     token.value = authToken;
-    isAuthenticated.value = true;
-    localStorage.setItem('auth_token', authToken);
-    localStorage.setItem('user_data', JSON.stringify(userData));
   };
 
   const clearAuth = () => {
     user.value = null;
     token.value = null;
-    isAuthenticated.value = false;
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
   };
 
+  // restoreAuth 不再需要手动调用，useStorage 会自动恢复
+  // 但为了保持 API 兼容性，保留空函数
   const restoreAuth = () => {
-    const savedToken = localStorage.getItem('auth_token');
-    const savedUser = localStorage.getItem('user_data');
-
-    if (savedToken && savedUser) {
-      try {
-        user.value = JSON.parse(savedUser);
-        token.value = savedToken;
-        isAuthenticated.value = true;
-      } catch (error) {
-        console.error('Failed to restore auth:', error);
-        clearAuth();
-      }
-    }
+    // 自动处理
   };
-
-  // 初始化时恢复认证状态
-  restoreAuth();
 
   return {
     user,

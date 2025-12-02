@@ -1,4 +1,5 @@
 import { API_BASE_URL, REQUEST_TIMEOUT } from './config';
+import { STORAGE_KEYS } from '../config';
 
 /**
  * API 响应接口
@@ -37,7 +38,7 @@ class ApiClient {
    * 获取认证 Header
    */
   private getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 

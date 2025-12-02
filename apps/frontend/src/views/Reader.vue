@@ -2,7 +2,8 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { storeToRefs } from 'pinia';
-  import { useWindowSize } from '@vueuse/core';
+  import { useWindowSize, useFullscreen } from '@vueuse/core';
+  import { STORAGE_KEYS } from '../config';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import ReaderHeader from '../components/reader/ReaderHeader.vue';
   import ReaderFooter from '../components/reader/ReaderFooter.vue';
@@ -254,7 +255,7 @@
     };
 
     localStorage.setItem(
-      `reading_progress_${comicId.value}_${chapterId.value}`,
+      `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
       JSON.stringify(progressData),
     );
   };
@@ -262,7 +263,7 @@
   // 恢复阅读进度
   const restoreProgress = () => {
     const savedProgress = localStorage.getItem(
-      `reading_progress_${comicId.value}_${chapterId.value}`,
+      `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
     );
     if (savedProgress) {
       try {
@@ -411,6 +412,9 @@
     }
   };
 
+  // 全屏控制
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
+
   // 监听路由变化,重新加载章节
   watch(
     () => route.params.chapterId,
@@ -446,8 +450,10 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-900" @click="showControls = true">
-    <!-- 页面标题栏 -->
+  <div class="min-h-screen bg-gray-900 text-white relative">
+    <LoadingSpinner :show="loading" />
+
+    <!-- 顶部导航 -->
     <ReaderHeader
       :show-controls="showControls"
       :current-page="currentPage"
@@ -455,9 +461,11 @@
       :current-chapter="currentChapter"
       :reading-mode="readingMode"
       :reading-modes="readingModes"
+      :is-fullscreen="isFullscreen"
       @go-back="goBack"
       @toggle-controls="toggleControls"
       @change-mode="changeReadingMode"
+      @toggle-fullscreen="toggleFullscreen"
     />
 
     <!-- 主要内容区域 -->
