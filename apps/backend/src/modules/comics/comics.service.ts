@@ -11,6 +11,7 @@ import { UpdateProgressDto } from './dto/update-progress.dto';
 import { ComicFilter } from '@read-comics/types';
 
 import { ChaptersService } from '../chapters/chapters.service';
+import { FavoritesService } from '../favorites/favorites.service';
 
 @Injectable()
 export class ComicsService {
@@ -20,6 +21,7 @@ export class ComicsService {
     @InjectRepository(ReadingProgress)
     private readonly progressRepository: Repository<ReadingProgress>,
     private readonly chaptersService: ChaptersService,
+    private readonly favoritesService: FavoritesService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -151,12 +153,22 @@ export class ComicsService {
     await this.comicRepository.delete(id);
   }
 
-  async toggleFavorite(id: string): Promise<Comic> {
+  async toggleFavorite(id: string, userId: string): Promise<Comic> {
     const comic = await this.findOne(id);
     if (!comic) {
       throw new Error('Comic not found');
     }
-    comic.isFavorite = !comic.isFavorite;
+
+    const existingFavorite = await this.favoritesService.findOne(userId, id);
+
+    if (existingFavorite) {
+      await this.favoritesService.remove(userId, id);
+      comic.isFavorite = false;
+    } else {
+      await this.favoritesService.create(userId, { comicId: id });
+      comic.isFavorite = true;
+    }
+
     return await this.comicRepository.save(comic);
   }
 

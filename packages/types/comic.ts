@@ -27,7 +27,6 @@ export interface Chapter {
   title: string;
   pageNumber: number;
   imagePath: string;
-  pages?: string[];
   createdAt: Date;
   updatedAt: Date;
   pages: string[];

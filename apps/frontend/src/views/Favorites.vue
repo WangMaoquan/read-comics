@@ -7,7 +7,7 @@
           我的书架
         </h1>
         <p class="text-gray-600 dark:text-gray-400">
-          {{ stats.total }} 本收藏的漫画
+          {{ stats.total }} 本书架中的漫画
         </p>
       </div>
 
@@ -206,7 +206,7 @@
           />
         </svg>
         <h3 class="mt-6 text-lg font-semibold text-gray-900 dark:text-white">
-          暂无收藏
+          书架为空
         </h3>
         <p class="mt-2 text-gray-500 dark:text-gray-400">
           去发现一些你喜欢的漫画吧

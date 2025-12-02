@@ -10,6 +10,7 @@ import {
   UsePipes,
   ValidationPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -116,9 +117,11 @@ export class ComicsController {
   }
 
   @Post(':id/favorite')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '切换收藏状态' })
   @ApiResponse({ status: 200, description: '操作成功' })
-  toggleFavorite(@Param('id') id: string) {
-    return this.comicsService.toggleFavorite(id);
+  toggleFavorite(@Param('id') id: string, @Req() req) {
+    return this.comicsService.toggleFavorite(id, req.user.sub);
   }
 }

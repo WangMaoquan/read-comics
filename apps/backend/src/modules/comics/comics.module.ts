@@ -6,11 +6,13 @@ import { Comic } from '@entities/comic.entity';
 import { ReadingProgress } from '@entities/reading-progress.entity';
 import { Tag } from '@entities/tag.entity';
 import { ChaptersModule } from '../chapters/chapters.module';
+import { FavoritesModule } from '../favorites/favorites.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Comic, ReadingProgress, Tag]),
     ChaptersModule,
+    FavoritesModule,
   ],
   controllers: [ComicsController],
   providers: [ComicsService],

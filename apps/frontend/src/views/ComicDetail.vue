@@ -131,6 +131,14 @@
     });
   };
 
+  // 处理图片加载错误
+  const handleImageError = (event: Event) => {
+    const target = event.target as HTMLImageElement | null;
+    if (target) {
+      target.src = '/placeholder.png';
+    }
+  };
+
   // 初始化
   onMounted(async () => {
     await loadComicDetails();
@@ -205,13 +213,13 @@
           <div class="sticky top-24 space-y-6">
             <!-- 封面 -->
             <div
-              class="aspect-[2/3] w-full rounded-lg overflow-hidden shadow-lg relative group"
+              class="aspect-2/3 w-full rounded-lg overflow-hidden shadow-lg relative group"
             >
               <img
                 :src="`http://localhost:4399/images/thumbnail?comicPath=${encodeURIComponent(comic.filePath)}&imagePath=${encodeURIComponent(comic.cover || '')}`"
                 :alt="comic.title"
                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                @error="$event.target.src = '/placeholder.png'"
+                @error="handleImageError"
               />
               <div
                 class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-300"
@@ -327,9 +335,7 @@
                       d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                     />
                   </svg>
-                  <span>{{
-                    comic.isFavorite ? '取消收藏' : '添加到收藏'
-                  }}</span>
+                  <span>{{ comic.isFavorite ? '移出书架' : '加入书架' }}</span>
                 </button>
               </div>
             </div>

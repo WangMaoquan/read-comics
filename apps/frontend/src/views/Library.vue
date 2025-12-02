@@ -4,7 +4,7 @@
   import { refDebounced } from '@vueuse/core';
   import LoadingSpinner from '../components/LoadingSpinner.vue';
   import type { Comic } from '@read-comics/types';
-  import { ComicStatus } from '@read-comics/types';
+
   import { useComicStore } from '../stores/comic';
   import { filesService, comicsService } from '../api/services';
   import { validateFile } from '../utils/formatValidation';
@@ -20,7 +20,6 @@
   // 使用防抖，延迟 300ms
   const debouncedSearchQuery = refDebounced(searchQuery, 300);
   const sortBy = ref<'title' | 'date' | 'progress'>('date');
-  const showFavoritesOnly = ref(false);
 
   // 过滤和排序
   const filteredComics = computed(() => {
@@ -30,11 +29,7 @@
   });
 
   // 加载数据
-  const loadComics = async (
-    search?: string,
-    sort?: string,
-    favoritesOnly?: boolean,
-  ) => {
+  const loadComics = async (search?: string, sort?: string) => {
     loading.value = true;
     try {
       // 将前端排序选项映射到后端字段
@@ -45,7 +40,6 @@
       };
       const backendSortBy = sort ? sortMapping[sort] : sortMapping['date'];
       const sortOrder: 'asc' | 'desc' = sort === 'title' ? 'asc' : 'desc';
-      const isFavorite = favoritesOnly ? true : undefined;
 
       if (search && search.trim()) {
         // 如果有搜索词，调用搜索 API
@@ -53,7 +47,6 @@
           search,
           backendSortBy,
           sortOrder,
-          isFavorite,
         );
         // 直接更新 store 的 comics
         comicStore.$patch({ comics: searchResults });
@@ -62,7 +55,6 @@
         const allComics = await comicsService.getComics(
           backendSortBy,
           sortOrder,
-          isFavorite,
         );
         comicStore.$patch({ comics: allComics });
       }
@@ -73,17 +65,12 @@
 
   // 监听防抖后的搜索词变化
   watch(debouncedSearchQuery, (newQuery) => {
-    loadComics(newQuery, sortBy.value, showFavoritesOnly.value);
+    loadComics(newQuery, sortBy.value);
   });
 
   // 监听排序变化
   watch(sortBy, (newSort) => {
-    loadComics(debouncedSearchQuery.value, newSort, showFavoritesOnly.value);
-  });
-
-  // 监听收藏过滤变化
-  watch(showFavoritesOnly, (newVal) => {
-    loadComics(debouncedSearchQuery.value, sortBy.value, newVal);
+    loadComics(debouncedSearchQuery.value, newSort);
   });
 
   // 导航到漫画详情
@@ -376,26 +363,6 @@
 
           <!-- 右侧控制区 -->
           <div class="flex items-center gap-4">
-            <!-- 收藏过滤器 -->
-            <label
-              class="flex items-center gap-2 cursor-pointer select-none group"
-            >
-              <div class="relative">
-                <input
-                  type="checkbox"
-                  v-model="showFavoritesOnly"
-                  class="sr-only peer"
-                />
-                <div
-                  class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                ></div>
-              </div>
-              <span
-                class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-                >只看收藏</span
-              >
-            </label>
-
             <!-- 排序选择 -->
             <div class="relative">
               <select
@@ -637,7 +604,7 @@
           暂无漫画
         </h3>
         <p class="mt-2 text-gray-500 dark:text-gray-400">
-          点击"导入漫画"开始添加您的漫画收藏
+          点击"导入漫画"开始扩充您的漫画库
         </p>
       </div>
 
@@ -658,7 +625,7 @@
             class="aspect-w-3 aspect-h-4 bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
           >
             <img
-              :src="comic.coverPath || '/placeholder-cover.jpg'"
+              :src="comic.cover || '/placeholder-cover.jpg'"
               :alt="comic.title"
               class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               loading="lazy"
@@ -670,7 +637,7 @@
               <button
                 @click.stop="toggleFavorite(comic)"
                 class="p-2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm transition-colors text-white"
-                title="收藏"
+                :title="comic.isFavorite ? '移出书架' : '加入书架'"
               >
                 <svg
                   class="w-5 h-5 transition-colors duration-300"
@@ -755,7 +722,7 @@
             class="shrink-0 w-16 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm"
           >
             <img
-              :src="comic.coverPath || '/placeholder-cover.jpg'"
+              :src="comic.cover || '/placeholder-cover.jpg'"
               :alt="comic.title"
               class="w-full h-full object-cover"
               loading="lazy"
