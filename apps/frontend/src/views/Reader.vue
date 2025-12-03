@@ -454,7 +454,7 @@
 
 <template>
   <div class="min-h-screen bg-gray-900 text-white relative">
-    <LoadingSpinner :show="loading" />
+    <LoadingSpinner v-show="loading" />
 
     <!-- 顶部导航 -->
     <ReaderHeader
