@@ -22,4 +22,4 @@ export const api = createApi({
   },
 });
 
-export const { auth: authService } = api;
+export const { auth: authService, comics: comicsService } = api;

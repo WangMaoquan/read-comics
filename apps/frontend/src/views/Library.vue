@@ -46,21 +46,20 @@
       const backendSortBy = sort ? sortMapping[sort] : sortMapping['date'];
       const sortOrder: 'asc' | 'desc' = sort === 'title' ? 'asc' : 'desc';
 
-      if (search && search.trim()) {
+      if (search) {
         // 如果有搜索词，调用搜索 API
-        const searchResults = await comicsService.searchComics(
-          search,
-          backendSortBy,
-          sortOrder,
-        );
+        const searchResults = await comicsService.searchComics(search, {
+          sortBy: backendSortBy,
+          sortOrder: sortOrder,
+        });
         // 直接更新 store 的 comics
         comicStore.$patch({ comics: searchResults });
       } else {
         // 否则加载所有漫画，支持排序
-        const allComics = await comicsService.getComics(
-          backendSortBy,
-          sortOrder,
-        );
+        const allComics = await comicsService.getComics({
+          sortBy: backendSortBy,
+          sortOrder: sortOrder,
+        });
         comicStore.$patch({ comics: allComics });
       }
     } catch (error) {

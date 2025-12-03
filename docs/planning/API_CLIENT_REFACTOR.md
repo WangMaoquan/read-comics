@@ -43,8 +43,21 @@ packages/api-client/
 
 - [x] **包初始化**：创建了 `packages/api-client`，配置了 `tsup` 构建流程。
 - [x] **核心 Client**：实现了 `ApiClient` 类，封装了 Axios 实例，支持自定义拦截器（Token 注入、错误处理）。
-- [x] **基础配置**：定义了 `API_ENDPOINTS` 常量。
-- [x] **AuthService**：实现了基础的认证服务（登录、注册、获取用户信息）。
+- [x] **基础配置**：定义了 `API_ENDPOINTS` 常量，并添加了 `ApiResponse<T>` 标准响应接口。
+- [x] **AuthService**：实现了完整的认证服务（登录、注册、忘记密码、重置密码）。
+- [x] **ComicsService**：实现了基础的漫画服务（列表、搜索、详情、章节、进度、收藏）。
+- [x] **Frontend 集成 Auth**：在 Frontend 中集成了新的 `authService`。
+- [x] **Frontend 集成 Comics**：在 Frontend 中集成了新的 `comicsService`。
+
+### 已知限制
+
+由于采用了简化版本的实现，以下功能暂未包含：
+
+- ❌ **请求缓存**：旧版 `apiClient` 支持 `useCache`、`cacheTTL` 和 `invalidateCache`，新版暂未实现。
+- ❌ **请求去重**：防止短时间内重复请求同一接口。
+- ❌ **请求重试**：网络错误时自动重试机制。
+
+这些功能将在后续优化阶段添加（见第四阶段）。
 
 ## 4. 使用指南
 
@@ -76,16 +89,23 @@ export const api = createApi({
 });
 
 // 导出具体的 Service 以便组件使用
-export const { auth: authService, client: apiClient } = api;
+export const { auth: authService, comics: comicsService } = api;
 ```
 
 ### 在组件中使用
 
 ```typescript
-import { authService } from '@/api';
+import { authService, comicsService } from '@/api';
 
 const login = async () => {
   const user = await authService.login({ email, password });
+};
+
+const loadComics = async () => {
+  const comics = await comicsService.getComics({
+    sortBy: 'date',
+    sortOrder: 'desc',
+  });
 };
 ```
 
@@ -97,13 +117,15 @@ const login = async () => {
 
 将 Frontend 和 Admin 中现有的 Service 逻辑迁移到 `api-client`：
 
-1.  **ComicsService**: 列表、详情、章节、阅读进度、收藏。
-2.  **FilesService**: 上传、扫描、文件解析。
-3.  **ImagesService**: 图片加载、缩略图。
-4.  **TagsService**: 标签列表、热门标签。
-5.  **UsersService**: 用户管理（Admin 专用）。
-6.  **SystemLogsService**: 系统日志（Admin 专用）。
-7.  **TasksService**: 任务管理（Admin 专用）。
+1.  ~~**ComicsService**: 列表、详情、章节、阅读进度、收藏。~~ ✅ 已完成
+2.  **ChaptersService**: 章节详情、图片列表。
+3.  **FilesService**: 上传、扫描、文件解析。
+4.  **ImagesService**: 图片加载、缩略图。
+5.  **TagsService**: 标签列表、热门标签。
+6.  **FavoritesService**: 收藏管理。
+7.  **UsersService**: 用户管理（Admin 专用）。
+8.  **SystemLogsService**: 系统日志（Admin 专用）。
+9.  **TasksService**: 任务管理（Admin 专用）。
 
 ### 第二阶段：Frontend 集成 (Priority: Medium)
 
@@ -119,8 +141,23 @@ const login = async () => {
 3.  验证管理功能是否正常。
 4.  删除 `apps/admin/src/api` 下的旧代码。
 
-### 第四阶段：清理与优化 (Priority: Low)
+### 第四阶段：性能优化与高级功能 (Priority: Low)
 
-1.  检查并移除根目录下可能存在的重复类型定义。
-2.  优化 `api-client` 的构建体积（如需）。
-3.  完善 API 文档注释。
+1.  **实现请求缓存机制**
+    - 在 `ApiClient` 中添加可选的缓存层（基于 LRU 或 Map）
+    - 支持配置 `cacheTTL`（缓存有效期）
+    - 提供 `invalidateCache` 方法手动清除缓存
+    - 兼容现有 Frontend 代码中的缓存使用方式
+
+2.  **请求去重**
+    - 检测短时间内的重复请求
+    - 复用进行中的请求结果
+
+3.  **自动重试机制**
+    - 网络错误时自动重试（可配置次数和延迟）
+    - 支持指数退避策略
+
+4.  **代码清理**
+    - 检查并移除根目录下可能存在的重复类型定义
+    - 优化 `api-client` 的构建体积（Tree-shaking）
+    - 完善 API 文档注释和 JSDoc

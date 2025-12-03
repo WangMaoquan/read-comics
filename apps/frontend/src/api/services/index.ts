@@ -2,12 +2,11 @@
  * API 服务统一导出
  */
 
-export { comicsService } from './comicsService';
+// 使用新的 api-client 包
+export { authService, comicsService } from '../new-client';
 export { chaptersService } from './chaptersService';
 export { filesService } from './filesService';
 export { imagesService } from './imagesService';
-// 使用新的 api-client 包
-export { authService } from '../new-client';
 export {
   favoritesService,
   FavoriteStatus,
