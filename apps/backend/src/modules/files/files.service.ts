@@ -107,6 +107,8 @@ export class FilesService implements OnModuleInit {
       // 使用异步的 ZipUtilsService
       const allFiles = await this.zipUtilsService.listFilesInZip(filePath);
 
+      console.log(allFiles, 'allFiles');
+
       // 过滤出图片文件
       const imageExtensions = [
         '.jpg',
@@ -141,14 +143,16 @@ export class FilesService implements OnModuleInit {
       let commonPrefix = '';
       if (imageFiles.length > 0) {
         const firstEntry = imageFiles[0];
-        const parts = firstEntry.originName.split('/');
+        // 因为后面使用的 decodeName, 所以获取公共前缀也需要使用 decodeName
+        const parts = firstEntry.decodeName.split('/');
         // 移除文件名，只保留目录
         parts.pop();
 
         for (let i = 0; i < parts.length; i++) {
           const prefix = parts.slice(0, i + 1).join('/') + '/';
           const allMatch = imageFiles.every((f) =>
-            f.originName.startsWith(prefix),
+            // 同理
+            f.decodeName.startsWith(prefix),
           );
           if (allMatch) {
             commonPrefix = prefix;
