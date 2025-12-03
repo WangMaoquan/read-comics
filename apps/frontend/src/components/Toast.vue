@@ -47,19 +47,18 @@
 </script>
 
 <template>
-  <div class="fixed top-4 right-4 z-[9999] space-y-2 pointer-events-none">
+  <div class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">
     <TransitionGroup name="toast" tag="div" class="space-y-2">
       <div
         v-for="toast in messages"
         :key="toast.id"
         :class="[
-          'flex items-start gap-3 p-4 rounded-lg border shadow-lg backdrop-blur-sm pointer-events-auto max-w-md',
+          'flex items-start gap-3 p-4 rounded-lg border shadow-lg backdrop-blur-sm pointer-events-auto max-w-md animate-slide-in',
           getColorClasses(toast.type),
         ]"
-        class="animate-slide-in"
       >
         <svg
-          :class="['w-5 h-5 flex-shrink-0 mt-0.5', getIconColor(toast.type)]"
+          :class="['w-5 h-5 shrink-0 mt-1', getIconColor(toast.type)]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -74,7 +73,7 @@
         <p class="flex-1 text-sm font-medium">{{ toast.message }}</p>
         <button
           @click="remove(toast.id)"
-          class="flex-shrink-0 hover:opacity-70 transition-opacity"
+          class="shrink-0 hover:opacity-70 transition-opacity"
         >
           <svg
             class="w-4 h-4"

@@ -26,11 +26,8 @@
   const router = useRouter();
   const settingsStore = useSettingsStore();
 
-  const {
-    readingMode: storedReadingMode,
-    zoomMode,
-    readingDirection,
-  } = storeToRefs(settingsStore);
+  const { readingMode: storedReadingMode, zoomMode } =
+    storeToRefs(settingsStore);
 
   // 辅助函数：映射 store 模式到枚举
   const mapReadingMode = (mode: string): ReadingMode => {

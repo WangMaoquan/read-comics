@@ -1,4 +1,3 @@
-import { computed } from 'vue';
 import { IMAGE_BASE_URL } from '../config';
 
 /**
