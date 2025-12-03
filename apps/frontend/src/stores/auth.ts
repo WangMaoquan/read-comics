@@ -11,24 +11,13 @@ export interface User {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // 迁移逻辑：检查旧 key 是否存在
-  if (localStorage.getItem('user_data')) {
-    try {
-      const oldUserData = JSON.parse(
-        localStorage.getItem('user_data') || 'null',
-      );
-      if (oldUserData) {
-        localStorage.setItem(
-          STORAGE_KEYS.USER_INFO,
-          JSON.stringify(oldUserData),
-        );
-        localStorage.removeItem('user_data');
-      }
-    } catch {}
-  }
-
   // 使用 useStorage 自动管理持久化
-  const user = useStorage<User | null>(STORAGE_KEYS.USER_INFO, null);
+  const user = useStorage<User>(STORAGE_KEYS.USER_INFO, {} as User, undefined, {
+    serializer: {
+      read: (v) => (v ? JSON.parse(v) : null),
+      write: (v) => JSON.stringify(v),
+    },
+  });
   const token = useStorage<string | null>(STORAGE_KEYS.AUTH_TOKEN, null);
 
   // isAuthenticated 作为一个 computed 属性
