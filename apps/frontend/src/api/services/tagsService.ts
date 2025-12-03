@@ -6,6 +6,7 @@ export interface Tag {
   name: string;
   color: string;
   count: number;
+  readCount?: number; // 阅读次数（该标签下所有漫画的阅读记录总数）
   createdAt: string;
   updatedAt: string;
 }

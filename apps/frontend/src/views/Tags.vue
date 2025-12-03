@@ -183,8 +183,8 @@
 
   const popularTags = computed(() => {
     return tags.value
-      .filter((tag) => tag.count > 0)
-      .sort((a, b) => b.count - a.count)
+      .filter((tag) => (tag.readCount || 0) > 0) // 至少被阅读过一次
+      .sort((a, b) => (b.readCount || 0) - (a.readCount || 0)) // 按阅读次数降序
       .slice(0, 10);
   });
 

@@ -38,8 +38,39 @@ export class TagsService {
   }
 
   async findAll() {
-    return await this.tagsRepository.find({
-      order: { count: 'DESC', name: 'ASC' },
+    // 获取所有标签及其漫画数量
+    const tags = await this.tagsRepository
+      .createQueryBuilder('tag')
+      .loadRelationCountAndMap('tag.count', 'tag.comics')
+      .getMany();
+
+    // 为每个标签计算阅读次数（该标签下所有漫画的阅读记录总数）
+    const tagsWithReadCount = await Promise.all(
+      tags.map(async (tag) => {
+        // 统计该标签下所有漫画的阅读进度记录数
+        const readCount = await this.comicsRepository
+          .createQueryBuilder('comic')
+          .innerJoin('comic.tags', 'tag', 'tag.id = :tagId', { tagId: tag.id })
+          .innerJoin('comic.readingProgress', 'progress')
+          .select('COUNT(DISTINCT progress.id)', 'count')
+          .getRawOne();
+
+        return {
+          ...tag,
+          readCount: parseInt(readCount?.count || '0', 10),
+        };
+      }),
+    );
+
+    // 按阅读次数降序排序，阅读次数相同则按漫画数量，再相同则按名称
+    return tagsWithReadCount.sort((a, b) => {
+      if (b.readCount !== a.readCount) {
+        return b.readCount - a.readCount;
+      }
+      if (b.count !== a.count) {
+        return b.count - a.count;
+      }
+      return a.name.localeCompare(b.name);
     });
   }
 
