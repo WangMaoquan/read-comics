@@ -21,6 +21,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   comicStoragePath: 'C:/Comics',
 };
 
+import { logger } from '../utils/logger';
+
 export const useSettingsStore = defineStore('settings', () => {
   // 迁移逻辑：检查旧 key 是否存在
   if (localStorage.getItem('appSettings')) {
@@ -41,7 +43,7 @@ export const useSettingsStore = defineStore('settings', () => {
         localStorage.removeItem('appSettings');
       }
     } catch (e) {
-      console.error('Failed to migrate settings', e);
+      logger.error('Failed to migrate settings', e);
     }
   }
 

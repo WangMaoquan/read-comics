@@ -174,6 +174,8 @@
   import { tagsService, type Tag } from '@api/services';
   import TagBadge from '@components/TagBadge.vue';
 
+  import { handleError } from '@/utils/errorHandler';
+
   const loading = ref(false);
   const tags = ref<Tag[]>([]);
   const selectedTag = ref<Tag | null>(null);
@@ -191,7 +193,7 @@
     try {
       tags.value = await tagsService.getTags();
     } catch (error) {
-      console.error('加载标签失败:', error);
+      handleError(error, '加载标签失败');
     } finally {
       loading.value = false;
     }
@@ -202,7 +204,7 @@
     try {
       tagComics.value = await tagsService.getComicsByTag(tag.id);
     } catch (error) {
-      console.error('加载标签漫画失败:', error);
+      handleError(error, '加载标签漫画失败');
     }
   };
 

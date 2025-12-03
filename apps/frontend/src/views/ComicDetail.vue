@@ -7,6 +7,8 @@
   import { useComicStore } from '../stores/comic';
   import { comicsService } from '../api/services';
 
+  import { handleError } from '../utils/errorHandler';
+
   const route = useRoute();
   const router = useRouter();
   const comicStore = useComicStore();
@@ -50,7 +52,7 @@
         comicStore.$patch({ comics: newComics });
       }
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      handleError(error, 'Failed to toggle favorite');
     }
   };
 
@@ -59,7 +61,7 @@
     try {
       await comicStore.fetchComicById(comicId.value);
     } catch (error) {
-      console.error('Failed to load comic details:', error);
+      handleError(error, 'Failed to load comic details');
     }
   };
 
@@ -76,7 +78,7 @@
         currentChapter.value = chapters.value[0];
       }
     } catch (error) {
-      console.error('Failed to load chapters:', error);
+      handleError(error, 'Failed to load chapters');
     } finally {
       loadingChapters.value = false;
     }

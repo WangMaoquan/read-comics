@@ -41,6 +41,9 @@
   import { useAuthStore } from '@stores/auth';
   import { toast } from '../composables/useToast';
 
+  import { handleError } from '@/utils/errorHandler';
+  import { logger } from '@/utils/logger';
+
   const props = defineProps<{
     comicId: string;
   }>();
@@ -56,7 +59,7 @@
       const favorite = await favoritesService.checkFavorite(props.comicId);
       isFavorited.value = !!favorite;
     } catch (error) {
-      console.error('检查收藏状态失败:', error);
+      logger.error('检查收藏状态失败', error);
     }
   };
 
@@ -82,8 +85,7 @@
         isFavorited.value = true;
       }
     } catch (error: any) {
-      console.error('收藏操作失败:', error);
-      toast.error(error.response?.data?.message || '操作失败');
+      handleError(error, '收藏操作失败');
     } finally {
       loading.value = false;
     }

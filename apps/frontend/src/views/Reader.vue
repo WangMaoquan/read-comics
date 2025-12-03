@@ -19,6 +19,9 @@
   } from '../api/services';
   import { useSettingsStore } from '../stores/settings';
 
+  import { handleError } from '../utils/errorHandler';
+  import { logger } from '../utils/logger';
+
   const route = useRoute();
   const router = useRouter();
   const settingsStore = useSettingsStore();
@@ -213,7 +216,7 @@
     try {
       chapters.value = await comicsService.getComicChapters(comicId.value);
     } catch (error) {
-      console.error('Failed to load chapters:', error);
+      handleError(error, 'Failed to load chapters');
     }
   };
 
@@ -238,7 +241,7 @@
       // 恢复阅读进度
       restoreProgress();
     } catch (error) {
-      console.error('Failed to load chapter images:', error);
+      handleError(error, 'Failed to load chapter images');
     } finally {
       loading.value = false;
     }
@@ -274,7 +277,7 @@
         );
         readingMode.value = progressData.readingMode || ReadingMode.SINGLE_PAGE;
       } catch (error) {
-        console.error('Failed to restore progress:', error);
+        logger.error('Failed to restore progress', error);
       }
     }
   };

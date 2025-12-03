@@ -11,6 +11,8 @@ interface ImportProgress {
   logs: string[];
 }
 
+import { logger } from '../utils/logger';
+
 export const useFileStore = defineStore('files', {
   state: (): ImportProgress => ({
     total: 0,
@@ -105,7 +107,7 @@ export const useFileStore = defineStore('files', {
 
             this.addLog(`导入成功: ${metadata.title}`);
           } catch (err) {
-            console.error(err);
+            logger.error('处理出错', err);
             this.addLog(`处理出错: ${filePath}`);
           }
         }

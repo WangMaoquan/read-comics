@@ -12,6 +12,7 @@
   import ComicCard from '../components/library/ComicCard.vue';
   import ComicListItem from '../components/library/ComicListItem.vue';
   import { toast } from '../composables/useToast';
+  import { handleError } from '../utils/errorHandler';
 
   const router = useRouter();
   const comicStore = useComicStore();
@@ -62,6 +63,8 @@
         );
         comicStore.$patch({ comics: allComics });
       }
+    } catch (error) {
+      handleError(error, 'Failed to load comics');
     } finally {
       loading.value = false;
     }
@@ -95,7 +98,7 @@
         comicStore.$patch({ comics: newComics });
       }
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      handleError(error, 'Failed to toggle favorite');
     }
   };
 

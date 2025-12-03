@@ -18,6 +18,8 @@ interface ReaderState {
   };
 }
 
+import { logger } from '../utils/logger';
+
 export const useReaderStore = defineStore('reader', {
   state: (): ReaderState => ({
     currentComic: null,
@@ -91,7 +93,7 @@ export const useReaderStore = defineStore('reader', {
       } catch (error) {
         this.error =
           error instanceof Error ? error.message : 'Failed to load chapter';
-        console.error('Error loading chapter:', error);
+        logger.error('Error loading chapter:', error);
       } finally {
         this.loading = false;
       }

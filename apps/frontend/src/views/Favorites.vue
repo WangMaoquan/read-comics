@@ -230,6 +230,8 @@
     type Favorite,
   } from '@api/services';
 
+  import { handleError } from '@/utils/errorHandler';
+
   const loading = ref(false);
   const favorites = ref<Favorite[]>([]);
   const stats = ref({
@@ -257,7 +259,7 @@
     try {
       favorites.value = await favoritesService.getFavorites();
     } catch (error) {
-      console.error('加载收藏失败:', error);
+      handleError(error, '加载收藏失败');
     } finally {
       loading.value = false;
     }
@@ -267,7 +269,7 @@
     try {
       stats.value = await favoritesService.getStats();
     } catch (error) {
-      console.error('加载统计失败:', error);
+      handleError(error, '加载统计失败');
     }
   };
 

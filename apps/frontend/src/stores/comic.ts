@@ -10,6 +10,8 @@ interface ComicState {
   currentComic: Comic | null;
 }
 
+import { logger } from '../utils/logger';
+
 export const useComicStore = defineStore('comic', {
   state: (): ComicState => ({
     comics: [],
@@ -51,7 +53,7 @@ export const useComicStore = defineStore('comic', {
       } catch (error) {
         this.error =
           error instanceof Error ? error.message : 'Failed to fetch comics';
-        console.error('Error fetching comics:', error);
+        logger.error('Error fetching comics:', error);
       } finally {
         this.loading = false;
       }
@@ -68,7 +70,7 @@ export const useComicStore = defineStore('comic', {
       } catch (error) {
         this.error =
           error instanceof Error ? error.message : 'Failed to fetch comic';
-        console.error('Error fetching comic:', error);
+        logger.error('Error fetching comic:', error);
         return null;
       } finally {
         this.loading = false;
@@ -85,7 +87,7 @@ export const useComicStore = defineStore('comic', {
       } catch (error) {
         this.error =
           error instanceof Error ? error.message : 'Failed to fetch chapters';
-        console.error('Error fetching chapters:', error);
+        logger.error('Error fetching chapters:', error);
         return [];
       } finally {
         this.loading = false;

@@ -4,6 +4,8 @@
   import { filesService } from '../../api/services';
   import { toast } from '../../composables/useToast';
 
+  import { handleError } from '../../utils/errorHandler';
+
   const props = defineProps<{
     modelValue: boolean;
     file: File | null;
@@ -98,9 +100,7 @@
       closeUploadModal();
       toast.success('文件上传成功!');
     } catch (error) {
-      console.error('上传错误:', error);
-      const errorMessage = error instanceof Error ? error.message : '上传失败';
-      toast.error(errorMessage);
+      handleError(error, '上传错误');
     } finally {
       uploadingFile.value = false;
       uploadProgress.value = 0;
