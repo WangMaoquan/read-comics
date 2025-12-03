@@ -2,7 +2,7 @@
   import { ref, computed, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import LoadingSpinner from '@components/LoadingSpinner.vue';
-  import type { Comic, Chapter } from '@read-comics/types';
+  import type { Comic, Chapter, ReadingProgress } from '@read-comics/types';
   import { ComicStatus, ComicFormat } from '@read-comics/types';
   import { useComicStore } from '../stores/comic';
   import { comicsService } from '../api/services';
@@ -19,20 +19,10 @@
   const comic = computed(() => comicStore.currentComic);
   const chapters = computed(() => comicStore.chapters);
   const currentChapter = ref<Chapter | null>(null);
+  const readingProgress = ref<ReadingProgress | null>(null);
 
   // 获取漫画ID
   const comicId = computed(() => route.params.id as string);
-
-  // 计算属性
-  const comicProgress = computed(() => {
-    if (!comic.value || !currentChapter.value) return 0;
-
-    // 简单的进度计算：已读章节数 / 总章节数
-    const readChapters = chapters.value.filter(
-      (ch) => ch.pageNumber <= currentChapter.value!.pageNumber,
-    ).length;
-    return Math.round((readChapters / chapters.value.length) * 100);
-  });
 
   // 切换收藏状态
   const toggleFavorite = async () => {
@@ -65,16 +55,35 @@
     }
   };
 
+  // 加载阅读进度
+  const loadProgress = async () => {
+    try {
+      const progress = await comicsService.getProgress(comicId.value);
+      readingProgress.value = progress;
+
+      // 如果有进度，设置当前章节
+      if (progress && chapters.value.length > 0) {
+        const chapter = chapters.value.find(
+          (ch) => ch.id === progress.chapterId,
+        );
+        if (chapter) {
+          currentChapter.value = chapter;
+        }
+      }
+    } catch (error) {
+      // 忽略 404 错误（未开始阅读）
+      // console.log('No reading progress found', error);
+    }
+  };
+
   // 加载章节列表
   const loadChapters = async () => {
     loadingChapters.value = true;
     try {
       await comicStore.fetchChapters(comicId.value);
 
-      // 设置当前章节为第一个未读章节或最后一章
-      if (chapters.value.length > 0) {
-        // 简单的逻辑：默认第一章，或者如果有阅读记录则使用记录（目前暂无持久化阅读记录）
-        // 这里暂时默认第一章
+      // 设置默认章节（第一章）
+      if (chapters.value.length > 0 && !currentChapter.value) {
         currentChapter.value = chapters.value[0];
       }
     } catch (error) {
@@ -86,8 +95,26 @@
 
   // 判断章节是否已读
   const isChapterRead = (chapter: Chapter): boolean => {
-    if (!currentChapter.value) return false;
-    return chapter.pageNumber <= currentChapter.value.pageNumber;
+    if (!readingProgress.value) return false;
+
+    // 找到当前阅读进度的章节
+    const currentProgressChapter = chapters.value.find(
+      (ch) => ch.id === readingProgress.value!.chapterId,
+    );
+
+    if (!currentProgressChapter) return false;
+
+    // 如果章节页码小于当前进度章节页码，则为已读
+    if (chapter.pageNumber < currentProgressChapter.pageNumber) return true;
+
+    // 如果是当前章节，且进度为100%，也算已读
+    if (
+      chapter.id === readingProgress.value.chapterId &&
+      readingProgress.value.progress === 100
+    )
+      return true;
+
+    return false;
   };
 
   // 导航功能
@@ -98,9 +125,15 @@
   // 开始阅读
   const startReading = () => {
     if (chapters.value.length > 0) {
-      const firstChapter = chapters.value[0];
-      if (firstChapter) {
-        readChapter(firstChapter.id);
+      // 如果有阅读记录，从记录处开始
+      if (readingProgress.value) {
+        readChapter(readingProgress.value.chapterId);
+      } else {
+        // 否则从第一章开始
+        const firstChapter = chapters.value[0];
+        if (firstChapter) {
+          readChapter(firstChapter.id);
+        }
       }
     }
   };
@@ -145,6 +178,7 @@
   onMounted(async () => {
     await loadComicDetails();
     await loadChapters();
+    await loadProgress();
   });
 </script>
 

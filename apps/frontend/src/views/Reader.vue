@@ -248,7 +248,7 @@
   };
 
   // 保存阅读进度
-  const saveProgress = () => {
+  const saveProgress = async () => {
     const progressData = {
       comicId: comicId.value,
       chapterId: chapterId.value,
@@ -257,10 +257,23 @@
       timestamp: new Date().toISOString(),
     };
 
+    // 保存到本地存储
     localStorage.setItem(
       `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
       JSON.stringify(progressData),
     );
+
+    // 同步到后端
+    try {
+      await comicsService.updateProgress(comicId.value, {
+        chapterId: chapterId.value,
+        currentPage: currentPage.value,
+        totalPages: totalPages.value,
+      });
+    } catch (error) {
+      // 静默失败，不打断用户体验
+      console.error('Failed to sync progress to server', error);
+    }
   };
 
   // 恢复阅读进度
