@@ -27,8 +27,6 @@ export interface AuthResponse {
     username?: string;
     role: string;
   };
-  message?: string;
-  success?: boolean;
 }
 
 export class AuthService {

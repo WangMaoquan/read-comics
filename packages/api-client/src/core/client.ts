@@ -5,6 +5,14 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 
+// 定义后端标准响应结构
+export interface ApiResponse<T = any> {
+  data: T;
+  code: number;
+  message: string;
+  success: boolean;
+}
+
 export interface ApiClientConfig {
   baseURL: string;
   timeout?: number;
@@ -45,7 +53,10 @@ export class ApiClient {
 
     // 响应拦截器
     this.instance.interceptors.response.use(
-      (response: AxiosResponse) => response.data,
+      <T = any>(response: AxiosResponse<ApiResponse<T>>) => {
+        // 解包双层结构：response.data.data
+        return response.data.data as T;
+      },
       (error) => {
         if (error.response?.status === 401) {
           this.config.onUnauthorized?.();
