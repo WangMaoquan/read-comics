@@ -121,10 +121,10 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
-  import LoginForm from '../components/auth/LoginForm.vue';
-  import RegisterForm from '../components/auth/RegisterForm.vue';
-  import ForgotPasswordForm from '../components/auth/ForgotPasswordForm.vue';
-  import SocialLogin from '../components/auth/SocialLogin.vue';
+  import LoginForm from '@components/auth/LoginForm.vue';
+  import RegisterForm from '@components/auth/RegisterForm.vue';
+  import ForgotPasswordForm from '@components/auth/ForgotPasswordForm.vue';
+  import SocialLogin from '@components/auth/SocialLogin.vue';
 
   const mode = ref<'login' | 'register' | 'forgot-password'>('login');
 

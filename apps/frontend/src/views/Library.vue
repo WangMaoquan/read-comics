@@ -2,15 +2,15 @@
   import { ref, computed, onMounted, watch } from 'vue';
   import { useRouter } from 'vue-router';
   import { refDebounced } from '@vueuse/core';
-  import LoadingSpinner from '../components/LoadingSpinner.vue';
+  import LoadingSpinner from '@components/LoadingSpinner.vue';
   import type { Comic } from '@read-comics/types';
 
   import { useComicStore } from '../stores/comic';
   import { comicsService } from '../api/services';
   import { validateFile } from '../utils/formatValidation';
-  import UploadModal from '../components/library/UploadModal.vue';
-  import ComicCard from '../components/library/ComicCard.vue';
-  import ComicListItem from '../components/library/ComicListItem.vue';
+  import UploadModal from '@components/library/UploadModal.vue';
+  import ComicCard from '@components/library/ComicCard.vue';
+  import ComicListItem from '@components/library/ComicListItem.vue';
   import { toast } from '../composables/useToast';
   import { handleError } from '../utils/errorHandler';
 

@@ -4,13 +4,13 @@
   import { storeToRefs } from 'pinia';
   import { useWindowSize, useFullscreen } from '@vueuse/core';
   import { STORAGE_KEYS } from '../config';
-  import LoadingSpinner from '../components/LoadingSpinner.vue';
-  import ReaderHeader from '../components/reader/ReaderHeader.vue';
-  import ReaderFooter from '../components/reader/ReaderFooter.vue';
-  import ReaderShortcuts from '../components/reader/ReaderShortcuts.vue';
-  import SinglePageView from '../components/reader/SinglePageView.vue';
-  import DoublePageView from '../components/reader/DoublePageView.vue';
-  import ScrollView from '../components/reader/ScrollView.vue';
+  import LoadingSpinner from '@components/LoadingSpinner.vue';
+  import ReaderHeader from '@components/reader/ReaderHeader.vue';
+  import ReaderFooter from '@components/reader/ReaderFooter.vue';
+  import ReaderShortcuts from '@components/reader/ReaderShortcuts.vue';
+  import SinglePageView from '@components/reader/SinglePageView.vue';
+  import DoublePageView from '@components/reader/DoublePageView.vue';
+  import ScrollView from '@components/reader/ScrollView.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
   import {
     comicsService,

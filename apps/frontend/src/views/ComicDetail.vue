@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import LoadingSpinner from '../components/LoadingSpinner.vue';
+  import LoadingSpinner from '@components/LoadingSpinner.vue';
   import type { Comic, Chapter } from '@read-comics/types';
   import { ComicStatus, ComicFormat } from '@read-comics/types';
   import { useComicStore } from '../stores/comic';
