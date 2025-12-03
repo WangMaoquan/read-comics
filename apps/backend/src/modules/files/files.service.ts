@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { createReadStream, promises as fs } from 'fs';
 import { join, extname, basename } from 'path';
 import { watch, FSWatcher } from 'chokidar';
-import { ComicFormat, ComicStatus } from '@read-comics/types';
+import { ComicFormat } from '@read-comics/types';
 import { ZipUtilsService } from '@common/utils/zip-utils.service';
 
 @Injectable()

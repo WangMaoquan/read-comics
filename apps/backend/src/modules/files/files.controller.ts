@@ -6,7 +6,6 @@ import {
   Param,
   Res,
   StreamableFile,
-  Query,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -14,8 +13,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { createReadStream } from 'fs';
 import { createHash } from 'crypto';
 import {
