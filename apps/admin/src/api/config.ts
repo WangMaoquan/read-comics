@@ -8,6 +8,13 @@ export const API_BASE_URL =
 
 // API 端点
 export const API_ENDPOINTS = {
+  // 认证相关
+  auth: {
+    login: '/auth/login',
+    logout: '/auth/logout',
+    profile: '/auth/profile',
+  },
+
   // 漫画相关
   comics: {
     list: '/comics',
