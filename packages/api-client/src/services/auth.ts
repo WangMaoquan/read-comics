@@ -20,12 +20,15 @@ export interface ResetPasswordDto {
 }
 
 export interface AuthResponse {
-  access_token: string;
+  token: string; // 后端返回的是 token，不是 access_token
   user: {
     id: string;
     email: string;
+    username?: string;
     role: string;
   };
+  message?: string;
+  success?: boolean;
 }
 
 export class AuthService {

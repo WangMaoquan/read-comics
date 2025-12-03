@@ -29,12 +29,12 @@
         email: email.value,
         password: password.value,
       });
-      // 使用 access_token，并为 user 添加 username（如果后端没有返回）
+      // 使用 token，并为 user 添加 username（如果后端没有返回）
       const user = {
         ...response.user,
-        username: response.user.email.split('@')[0], // 使用邮箱前缀作为默认用户名
+        username: response.user.username || response.user.email.split('@')[0],
       };
-      authStore.setAuth(user, response.access_token);
+      authStore.setAuth(user, response.token);
       const redirect = route.query.redirect as string;
       router.push(redirect || '/');
     } catch (error: any) {
