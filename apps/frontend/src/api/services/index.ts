@@ -6,7 +6,8 @@ export { comicsService } from './comicsService';
 export { chaptersService } from './chaptersService';
 export { filesService } from './filesService';
 export { imagesService } from './imagesService';
-export { authService } from './authService';
+// 使用新的 api-client 包
+export { authService } from '../new-client';
 export {
   favoritesService,
   FavoriteStatus,

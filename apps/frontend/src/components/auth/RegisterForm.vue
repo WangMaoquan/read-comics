@@ -37,7 +37,12 @@
         email: email.value,
         password: password.value,
       });
-      authStore.setAuth(response.user, response.token);
+      // 使用 access_token，并为 user 添加 username
+      const user = {
+        ...response.user,
+        username: username.value || response.user.email.split('@')[0],
+      };
+      authStore.setAuth(user, response.access_token);
       const redirect = route.query.redirect as string;
       router.push(redirect || '/');
     } catch (error: any) {

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@read-comics/api-client": "workspace:^",
     "@read-comics/types": "workspace:^",
     "@read-comics/utils": "workspace:^",
     "@tailwindcss/vite": "^4.1.17",
