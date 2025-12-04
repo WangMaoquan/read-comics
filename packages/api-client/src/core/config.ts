@@ -16,9 +16,23 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/chapters/${id}`,
   },
   tags: {
+    base: '/tags',
     list: '/tags',
     detail: (id: string) => `/tags/${id}`,
+    update: (id: string) => `/tags/${id}`,
+    delete: (id: string) => `/tags/${id}`,
     comics: (id: string) => `/tags/${id}/comics`,
+    addToComic: (comicId: string, tagId: string) =>
+      `/comics/${comicId}/tags/${tagId}`,
+    removeFromComic: (comicId: string, tagId: string) =>
+      `/comics/${comicId}/tags/${tagId}`,
+  },
+  favorites: {
+    base: '/favorites',
+    check: (comicId: string) => `/favorites/check/${comicId}`,
+    update: (comicId: string) => `/favorites/${comicId}`,
+    remove: (comicId: string) => `/favorites/${comicId}`,
+    stats: '/favorites/stats',
   },
   files: {
     upload: '/files/upload',

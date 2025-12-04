@@ -3,20 +3,26 @@
  */
 
 // 使用新的 api-client 包
-export { authService, comicsService } from '../new-client';
-export { chaptersService } from './chaptersService';
-export { filesService } from './filesService';
-export { imagesService } from './imagesService';
 export {
+  authService,
+  comicsService,
+  chaptersService,
+  tagsService,
   favoritesService,
+} from '../new-client';
+
+// 重新导出类型
+export {
   FavoriteStatus,
   type Favorite,
   type FavoriteStats,
-} from './favoritesService';
+} from '@read-comics/api-client';
 export {
-  tagsService,
   type Tag,
   type CreateTagDto,
   type UpdateTagDto,
-} from './tagsService';
+} from '@read-comics/api-client';
+
+export { filesService } from './filesService';
+export { imagesService } from './imagesService';
 export { usersService, type UpdateProfileData } from './usersService';
