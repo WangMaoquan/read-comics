@@ -37,5 +37,11 @@ export const API_ENDPOINTS = {
   files: {
     upload: '/files/upload',
     scan: '/files/scan',
+    formats: '/files/formats',
+  },
+  images: {
+    view: '/images/view',
+    thumbnail: '/images/thumbnail',
+    formats: '/images/formats',
   },
 };

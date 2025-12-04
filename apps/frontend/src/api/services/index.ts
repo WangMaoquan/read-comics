@@ -9,6 +9,8 @@ export {
   chaptersService,
   tagsService,
   favoritesService,
+  filesService,
+  imagesService,
 } from '../new-client';
 
 // 重新导出类型
@@ -22,7 +24,11 @@ export {
   type CreateTagDto,
   type UpdateTagDto,
 } from '@read-comics/api-client';
+export {
+  type UploadResponse,
+  type ScanResult,
+  type UploadProgressCallback,
+  type UploadMetadata,
+} from '@read-comics/api-client';
 
-export { filesService } from './filesService';
-export { imagesService } from './imagesService';
 export { usersService, type UpdateProfileData } from './usersService';

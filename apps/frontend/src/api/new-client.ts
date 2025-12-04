@@ -28,4 +28,6 @@ export const {
   chapters: chaptersService,
   tags: tagsService,
   favorites: favoritesService,
+  files: filesService,
+  images: imagesService,
 } = api;
