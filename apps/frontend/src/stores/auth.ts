@@ -18,7 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
       write: (v) => JSON.stringify(v),
     },
   });
-  const token = useStorage<string | null>(STORAGE_KEYS.AUTH_TOKEN, null);
+  const token = useStorage<string | null>(STORAGE_KEYS.AUTH_TOKEN, '');
 
   // isAuthenticated 作为一个 computed 属性
   const isAuthenticated = computed(() => !!token.value);
