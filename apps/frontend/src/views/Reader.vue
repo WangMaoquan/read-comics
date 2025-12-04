@@ -2,7 +2,12 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { storeToRefs } from 'pinia';
-  import { useWindowSize, useFullscreen } from '@vueuse/core';
+  import {
+    useWindowSize,
+    useFullscreen,
+    useStorage,
+    useDebounceFn,
+  } from '@vueuse/core';
   import { STORAGE_KEYS } from '../config';
   import LoadingSpinner from '@components/LoadingSpinner.vue';
   import ReaderHeader from '@components/reader/ReaderHeader.vue';
@@ -12,55 +17,63 @@
   import DoublePageView from '@components/reader/DoublePageView.vue';
   import ScrollView from '@components/reader/ScrollView.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
-  import {
-    comicsService,
-    chaptersService,
-    imagesService,
-  } from '../api/services';
+  import { comicsService, imagesService } from '../api/services';
   import { useSettingsStore } from '../stores/settings';
   import { useReaderStore } from '../stores/reader';
 
   import { handleError } from '../utils/errorHandler';
   import { logger } from '../utils/logger';
+  import { isMobileDevice, mapReadingMode } from '@/utils/reader';
+  import { useComicStore } from '@/stores';
 
   const route = useRoute();
   const router = useRouter();
   const settingsStore = useSettingsStore();
   const readerStore = useReaderStore();
+  const comicStore = useComicStore();
+
+  // 获取路由参数
+  // 使用 ref 而不是 computed，以防止在路由切换（组件卸载）时 route.params 变为空/undefined
+  const comicId = ref(route.params.comicId as string);
+  const chapterId = ref(route.params.chapterId as string);
 
   const { readingMode: storedReadingMode, zoomMode } =
     storeToRefs(settingsStore);
 
   // 从 reader store 获取状态
-  const { currentChapter, images, currentPage, loading } =
-    storeToRefs(readerStore);
-
-  // 辅助函数：映射 store 模式到枚举
-  const mapReadingMode = (mode: string): ReadingMode => {
-    switch (mode) {
-      case 'double':
-        return ReadingMode.DOUBLE_PAGE;
-      case 'scroll':
-        return ReadingMode.CONTINUOUS_SCROLL;
-      default:
-        return ReadingMode.SINGLE_PAGE;
-    }
-  };
+  const {
+    currentChapter,
+    pages,
+    currentPage,
+    loading,
+    totalPages,
+    getNextChapter,
+  } = storeToRefs(readerStore);
 
   // 状态管理
-  const chapters = ref<Chapter[]>([]);
   const readingMode = ref<ReadingMode>(mapReadingMode(storedReadingMode.value));
   const showControls = ref(true);
   const isScrolling = ref(false);
+  const localProgressData = useStorage<{
+    currentPage: number;
+    readingMode: ReadingMode;
+  } | null>(
+    `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
+    null,
+    undefined,
+    {
+      serializer: {
+        read: (v) => (v ? JSON.parse(v) : null),
+        write: (v) => JSON.stringify(v),
+      },
+    },
+  );
+
+  // 全屏控制
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   // 响应式移动端检测（结合窗口大小和设备类型）
   const { width } = useWindowSize();
-
-  // 检测设备类型
-  const isMobileDevice =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    );
 
   // 组合检测：移动设备 或 窗口宽度小于 640px
   const isMobile = computed(() => isMobileDevice || width.value < 640);
@@ -153,12 +166,6 @@
     }
   });
 
-  // 获取路由参数
-  // 获取路由参数
-  // 使用 ref 而不是 computed，以防止在路由切换（组件卸载）时 route.params 变为空/undefined
-  const comicId = ref(route.params.comicId as string);
-  const chapterId = ref(route.params.chapterId as string);
-
   // 监听路由变化更新 ID
   watch(
     () => route.params,
@@ -174,29 +181,10 @@
   );
 
   // 计算属性
-  const totalPages = computed(() => images.value.length);
-  const currentImage = computed(() => images.value[currentPage.value]);
+  const currentImage = computed(() => pages.value[currentPage.value]);
   const progress = computed(() => {
     if (totalPages.value === 0) return 0;
     return Math.round(((currentPage.value + 1) / totalPages.value) * 100);
-  });
-
-  // 计算当前章节索引和是否有下一章
-  const currentChapterIndex = computed(() => {
-    if (!currentChapter.value || chapters.value.length === 0) return -1;
-    return chapters.value.findIndex((ch) => ch.id === currentChapter.value!.id);
-  });
-
-  const hasNextChapter = computed(() => {
-    return (
-      currentChapterIndex.value >= 0 &&
-      currentChapterIndex.value < chapters.value.length - 1
-    );
-  });
-
-  const nextChapter = computed(() => {
-    if (!hasNextChapter.value) return null;
-    return chapters.value[currentChapterIndex.value + 1];
   });
 
   // 是否在最后一页
@@ -226,10 +214,12 @@
     },
   ];
 
-  // 加载章节列表
-  const loadChapters = async () => {
+  // 页面刷新会丢失 store 状态, 所以需要重新请求
+  const enSureChapterExist = async () => {
     try {
-      chapters.value = await comicsService.getComicChapters(comicId.value);
+      const chapters = await comicsService.getComicChapters(comicId.value);
+      const chapter = chapters.find((ch) => ch.id === chapterId.value)!;
+      readerStore.setState(chapter);
     } catch (error) {
       handleError(error, 'Failed to load chapters');
     }
@@ -240,8 +230,11 @@
     readerStore.setLoading(true);
     try {
       // 获取章节详情
-      const chapter = await chaptersService.getChapterById(chapterId.value);
-      readerStore.setChapter(chapter);
+      let chapter = readerStore.currentChapter;
+      if (!chapter) {
+        await enSureChapterExist();
+        chapter = readerStore.currentChapter!;
+      }
 
       // 构建图片 URL 列表
       if (chapter.pages && chapter.pages.length > 0) {
@@ -263,8 +256,8 @@
     }
   };
 
-  // 保存阅读进度
-  const saveProgress = async () => {
+  // 保存阅读进度 添加防抖
+  const saveProgress = useDebounceFn(async () => {
     if (!comicId.value || !chapterId.value) return;
 
     const progressData = {
@@ -275,11 +268,7 @@
       timestamp: new Date().toISOString(),
     };
 
-    // 保存到本地存储
-    localStorage.setItem(
-      `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
-      JSON.stringify(progressData),
-    );
+    localProgressData.value = progressData;
 
     // 同步到后端
     try {
@@ -292,22 +281,22 @@
       // 静默失败，不打断用户体验
       console.error('Failed to sync progress to server', error);
     }
-  };
+  }, 500);
 
   // 恢复阅读进度
   const restoreProgress = async () => {
     // 1. 尝试从本地存储恢复
-    const savedProgress = localStorage.getItem(
-      `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
-    );
 
-    if (savedProgress) {
+    if (localProgressData.value) {
       try {
-        const progressData = JSON.parse(savedProgress);
         readerStore.setCurrentPage(
-          Math.min(progressData.currentPage || 0, totalPages.value - 1),
+          Math.min(
+            localProgressData.value.currentPage || 0,
+            totalPages.value - 1,
+          ),
         );
-        readingMode.value = progressData.readingMode || ReadingMode.SINGLE_PAGE;
+        readingMode.value =
+          localProgressData.value.readingMode || ReadingMode.SINGLE_PAGE;
         return;
       } catch (error) {
         logger.error('Failed to restore progress form localStorage', error);
@@ -362,9 +351,11 @@
 
   // 跳转到下一章
   const goToNextChapter = () => {
-    if (nextChapter.value) {
+    if (getNextChapter.value) {
       saveProgress();
-      router.push(`/reader/${comicId.value}/${nextChapter.value.id}`);
+      const id = getNextChapter.value.id;
+      readerStore.setState(getNextChapter.value);
+      router.push(`/reader/${comicId.value}/${id}`);
     }
   };
 
@@ -463,9 +454,6 @@
     }
   };
 
-  // 全屏控制
-  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
-
   // 监听路由变化,重新加载章节
   watch(
     () => route.params.chapterId,
@@ -479,7 +467,6 @@
 
   // 生命周期钩子
   onMounted(async () => {
-    await loadChapters();
     await loadChapterImages();
 
     // 添加键盘和触摸事件监听
@@ -563,7 +550,7 @@
         <!-- 双页模式 -->
         <DoublePageView
           v-else-if="readingMode === 'double_page'"
-          :images="images"
+          :images="pages"
           :current-image="currentImage"
           :current-page="currentPage"
         />
@@ -571,7 +558,7 @@
         <!-- 滚动模式 -->
         <ScrollView
           v-else
-          :images="images"
+          :images="pages"
           :total-pages="totalPages"
           :image-style="imageStyle"
         />
@@ -582,7 +569,7 @@
           :total-pages="totalPages"
           :progress="progress"
           :is-last-page="isLastPage"
-          :has-next-chapter="hasNextChapter"
+          :has-next-chapter="!!readerStore.getNextChapter"
           @previous-page="previousPage"
           @next-page="nextPage"
           @next-chapter="goToNextChapter"

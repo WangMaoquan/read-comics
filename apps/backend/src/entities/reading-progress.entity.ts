@@ -32,6 +32,10 @@ export class ReadingProgress {
   @Column()
   totalPages: number;
 
+  @ApiProperty({ description: '章节是否读完', example: false })
+  @Column({ type: Boolean, default: false })
+  isReadComplete: boolean;
+
   @ApiProperty({
     description: '阅读进度(0-100)',
     example: 45,

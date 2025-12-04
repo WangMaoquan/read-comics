@@ -110,7 +110,7 @@
               : 'text-blue-600 dark:text-blue-400',
           ]"
         >
-          {{ comic.status === 'completed' ? 100 : comic.lastReadAt ? 50 : 0 }}%
+          {{ comic.status === 'completed' ? 100 : comic.progress }}%
         </span>
       </div>
     </div>

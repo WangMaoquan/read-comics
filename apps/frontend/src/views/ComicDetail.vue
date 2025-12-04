@@ -4,14 +4,14 @@
   import LoadingSpinner from '@components/LoadingSpinner.vue';
   import type { Chapter, ReadingProgress } from '@read-comics/types';
   import { ComicStatus } from '@read-comics/types';
-  import { useComicStore } from '../stores/comic';
-  import { comicsService } from '../api/services';
-
-  import { handleError } from '../utils/errorHandler';
+  import { comicsService } from '@/api/services';
+  import { handleError } from '@/utils/errorHandler';
+  import { useReaderStore, useComicStore } from '@/stores';
 
   const route = useRoute();
   const router = useRouter();
   const comicStore = useComicStore();
+  const readerStore = useReaderStore();
 
   // 状态管理
   const loading = computed(() => comicStore.loading);
@@ -102,8 +102,10 @@
     // 检查章节自带的阅读进度
     if (!chapter.readingProgress) return false;
 
+    const readingProgress = chapter.readingProgress;
+
     // 如果进度 >= 90%，认为已读
-    return chapter.readingProgress.progress >= 90;
+    return readingProgress.isReadComplete;
   };
 
   // 导航功能
@@ -132,6 +134,7 @@
     const chapter = chapters.value.find((ch) => ch.id === chapterId);
     if (chapter) {
       currentChapter.value = chapter;
+      readerStore.setState(chapter);
       router.push(`/reader/${comicId.value}/${chapterId}`);
     }
   };

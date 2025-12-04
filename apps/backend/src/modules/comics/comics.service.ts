@@ -132,11 +132,45 @@ export class ComicsService {
       queryBuilder.orderBy(`comic.${filter.sortBy}`, sortOrder);
     }
 
-    return await queryBuilder.getMany();
+    const result = await queryBuilder
+      .leftJoinAndSelect('comic.readingProgress', 'readingProgress')
+      .leftJoinAndSelect('comic.chapters', 'chapters')
+      .getMany();
+
+    return result.map((comic) => {
+      let progress = 0;
+      let status = 'unread';
+      const progressRecords = comic.readingProgress || [];
+      const chapters = comic.chapters || [];
+      const isReadComplete =
+        progressRecords.length > 0 &&
+        progressRecords.length === chapters.length &&
+        progressRecords.every((p) => p.isReadComplete === true);
+      if (isReadComplete) {
+        progress = 100;
+        status = 'completed';
+      } else {
+        const readPages = progressRecords.reduce(
+          (sum, record) =>
+            sum +
+            (record.isReadComplete ? record.totalPages : record.currentPage),
+          0,
+        );
+        progress = Math.round((readPages / comic.totalPages) * 100);
+      }
+      return {
+        ...comic,
+        progress,
+        status,
+      } as Comic;
+    });
   }
 
-  async findOne(id: string): Promise<Comic> {
+  // 后续补充 vo , 需要将 对应 的vo 放到 packages/types 中
+  async findOne(id: string) {
     const comic = await this.comicRepository.findOne({ where: { id } });
+
+    let status = 'unread';
 
     if (comic) {
       // 加载所有阅读进度
@@ -145,12 +179,36 @@ export class ComicsService {
         order: { lastReadAt: 'DESC' },
       });
 
-      if (progressRecords.length > 0) {
-        comic.readingProgress = progressRecords;
+      const chapters = await this.chaptersService.findAll(id);
+
+      /**
+       * progressRecords.length 小于 chapters.length 同时 progressRecords.length 大于 0
+       *  这种情况下一定是正在读
+       * progressRecords.length 等于 chapters.length
+       *  需要判断 progressRecords 只要有一个 record 存在 isReadComplete 为 false 就是正在读
+       */
+      if (
+        (progressRecords.length > 0 &&
+          progressRecords.length < chapters.length) ||
+        (progressRecords.length === chapters.length &&
+          progressRecords.some((p) => p.isReadComplete === false))
+      ) {
+        status = 'reading';
+      }
+
+      // [].every((i) => i === true) 返回 true
+      if (
+        progressRecords.length === chapters.length &&
+        progressRecords.every((p) => p.isReadComplete === true)
+      ) {
+        status = 'completed';
       }
     }
 
-    return comic!;
+    return {
+      ...comic,
+      status,
+    } as Comic;
   }
 
   async findByHash(hash: string): Promise<Comic | null> {
@@ -212,6 +270,12 @@ export class ComicsService {
         (updateProgressDto.currentPage / updateProgressDto.totalPages) * 100,
       );
       progress.lastReadAt = new Date();
+      if (
+        !progress.isReadComplete &&
+        progress.totalPages === progress.currentPage + 1
+      ) {
+        progress.isReadComplete = true; // 标记为已读完成
+      }
     }
 
     // Update comic lastReadAt

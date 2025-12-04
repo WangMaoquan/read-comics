@@ -1,25 +1,26 @@
 import { defineStore } from 'pinia';
-import type { Comic, Chapter } from '@read-comics/types';
+import type { Chapter } from '@read-comics/types';
+import { useComicStore } from './comic';
 
 interface ReaderState {
-  currentComic: Comic | null;
   currentChapter: Chapter | null;
+  imagePath: string;
+  pages: string[];
   currentPage: number;
   totalPages: number;
-  images: string[];
   loading: boolean;
   error: string | null;
 }
 
 export const useReaderStore = defineStore('reader', {
   state: (): ReaderState => ({
-    currentComic: null,
     currentChapter: null,
     currentPage: 0,
     totalPages: 0,
-    images: [],
+    pages: [],
     loading: false,
     error: null,
+    imagePath: '',
   }),
 
   getters: {
@@ -43,29 +44,39 @@ export const useReaderStore = defineStore('reader', {
     getError: (state) => state.error,
 
     getCurrentImage: (state) => {
-      if (
-        state.images.length === 0 ||
-        state.currentPage >= state.images.length
-      ) {
+      if (state.pages.length === 0 || state.currentPage >= state.pages.length) {
         return null;
       }
-      return state.images[state.currentPage];
+      return state.pages[state.currentPage];
+    },
+    isReadComplete: (state) => {
+      return state.currentPage + 1 === state.totalPages;
+    },
+    getNextChapter(state) {
+      const comicStore = useComicStore();
+      const currentChapterIndex = comicStore.chapters.findIndex(
+        (ch) => ch.id === state.currentChapter?.id,
+      );
+      if (
+        currentChapterIndex >= 0 &&
+        currentChapterIndex < comicStore.chapters.length - 1
+      ) {
+        return comicStore.chapters[currentChapterIndex + 1];
+      }
     },
   },
 
   actions: {
-    setComic(comic: Comic) {
-      this.currentComic = comic;
-    },
-
-    setChapter(chapter: Chapter) {
+    setState(chapter: Chapter) {
       this.currentChapter = chapter;
-      this.totalPages = chapter.pages?.length || 0;
+      this.currentPage = chapter.readingProgress?.currentPage || 0;
+      this.totalPages = chapter.pages.length;
+      this.pages = chapter.pages;
+      this.imagePath = chapter.imagePath;
     },
 
-    setImages(images: string[]) {
-      this.images = images;
-      this.totalPages = images.length;
+    setImages(pages: string[]) {
+      this.pages = pages;
     },
 
     setCurrentPage(page: number) {
@@ -105,13 +116,13 @@ export const useReaderStore = defineStore('reader', {
     },
 
     reset() {
-      this.currentComic = null;
       this.currentChapter = null;
       this.currentPage = 0;
       this.totalPages = 0;
-      this.images = [];
+      this.pages = [];
       this.loading = false;
       this.error = null;
+      this.imagePath = '';
     },
   },
 });
