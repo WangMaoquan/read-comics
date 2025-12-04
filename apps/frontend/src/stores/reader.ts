@@ -1,34 +1,25 @@
 import { defineStore } from 'pinia';
-import type { Comic } from '@read-comics/types';
+import type { Comic, Chapter } from '@read-comics/types';
 
 interface ReaderState {
   currentComic: Comic | null;
-  currentChapterId: string | null;
+  currentChapter: Chapter | null;
   currentPage: number;
   totalPages: number;
+  images: string[];
   loading: boolean;
   error: string | null;
-  readingProgress: {
-    [comicId: string]: {
-      [chapterId: string]: {
-        currentPage: number;
-        lastReadAt: Date;
-      };
-    };
-  };
 }
-
-import { logger } from '../utils/logger';
 
 export const useReaderStore = defineStore('reader', {
   state: (): ReaderState => ({
     currentComic: null,
-    currentChapterId: null,
+    currentChapter: null,
     currentPage: 0,
     totalPages: 0,
+    images: [],
     loading: false,
     error: null,
-    readingProgress: {},
   }),
 
   getters: {
@@ -37,11 +28,8 @@ export const useReaderStore = defineStore('reader', {
     getTotalPages: (state) => state.totalPages,
 
     getProgress: (state) => {
-      if (!state.currentComic || !state.currentChapterId) return 0;
-      const chapterProgress =
-        state.readingProgress[state.currentComic.id]?.[state.currentChapterId];
-      if (!chapterProgress) return 0;
-      return Math.round((chapterProgress.currentPage / state.totalPages) * 100);
+      if (state.totalPages === 0) return 0;
+      return Math.round(((state.currentPage + 1) / state.totalPages) * 100);
     },
 
     hasNextPage: (state) => state.currentPage < state.totalPages - 1,
@@ -54,103 +42,76 @@ export const useReaderStore = defineStore('reader', {
 
     getError: (state) => state.error,
 
-    getReadingProgress: (state) => (comicId: string, chapterId: string) => {
-      return state.readingProgress[comicId]?.[chapterId] || null;
-    },
-
-    getComicProgress: (state) => (comicId: string) => {
-      return state.readingProgress[comicId] || {};
+    getCurrentImage: (state) => {
+      if (
+        state.images.length === 0 ||
+        state.currentPage >= state.images.length
+      ) {
+        return null;
+      }
+      return state.images[state.currentPage];
     },
   },
 
   actions: {
-    async loadChapter(comic: Comic, chapterId: string, page: number = 0) {
-      this.loading = true;
-      this.error = null;
+    setComic(comic: Comic) {
+      this.currentComic = comic;
+    },
 
-      try {
-        // TODO: Replace with actual API call to load chapter
-        await new Promise((resolve) => setTimeout(resolve, 500));
+    setChapter(chapter: Chapter) {
+      this.currentChapter = chapter;
+      this.totalPages = chapter.pages?.length || 0;
+    },
 
-        this.currentComic = comic;
-        this.currentChapterId = chapterId;
+    setImages(images: string[]) {
+      this.images = images;
+      this.totalPages = images.length;
+    },
+
+    setCurrentPage(page: number) {
+      if (page >= 0 && page < this.totalPages) {
         this.currentPage = page;
-        this.totalPages = comic.totalPages;
-
-        // Load or initialize reading progress
-        if (!this.readingProgress[comic.id]) {
-          this.readingProgress[comic.id] = {};
-        }
-        if (!this.readingProgress[comic.id]?.[chapterId]) {
-          this.readingProgress[comic.id]![chapterId] = {
-            currentPage: page,
-            lastReadAt: new Date(),
-          };
-        } else {
-          this.readingProgress[comic.id]![chapterId]!.currentPage = page;
-          this.readingProgress[comic.id]![chapterId]!.lastReadAt = new Date();
-        }
-      } catch (error) {
-        this.error =
-          error instanceof Error ? error.message : 'Failed to load chapter';
-        logger.error('Error loading chapter:', error);
-      } finally {
-        this.loading = false;
       }
     },
 
     nextPage() {
       if (this.hasNextPage) {
         this.currentPage++;
-        this.updateProgress();
       }
     },
 
     previousPage() {
       if (this.hasPreviousPage) {
         this.currentPage--;
-        this.updateProgress();
       }
     },
 
     goToPage(page: number) {
       if (page >= 0 && page < this.totalPages) {
         this.currentPage = page;
-        this.updateProgress();
       }
     },
 
-    updateProgress() {
-      if (this.currentComic && this.currentChapterId) {
-        if (!this.readingProgress[this.currentComic.id]) {
-          this.readingProgress[this.currentComic.id] = {};
-        }
-        this.readingProgress[this.currentComic.id]![this.currentChapterId] = {
-          currentPage: this.currentPage,
-          lastReadAt: new Date(),
-        };
-      }
+    setLoading(loading: boolean) {
+      this.loading = loading;
     },
 
-    clearProgress() {
-      this.currentPage = 0;
-      this.totalPages = 0;
-      this.currentComic = null;
-      this.currentChapterId = null;
+    setError(error: string | null) {
+      this.error = error;
     },
 
     clearError() {
       this.error = null;
     },
 
-    clear() {
+    reset() {
       this.currentComic = null;
-      this.currentChapterId = null;
+      this.currentChapter = null;
       this.currentPage = 0;
       this.totalPages = 0;
+      this.images = [];
       this.loading = false;
       this.error = null;
-      this.readingProgress = {};
     },
   },
 });

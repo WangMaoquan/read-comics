@@ -146,7 +146,7 @@ export class ComicsService {
       });
 
       if (progressRecords.length > 0) {
-        (comic as any).readingProgress = progressRecords;
+        comic.readingProgress = progressRecords;
       }
     }
 

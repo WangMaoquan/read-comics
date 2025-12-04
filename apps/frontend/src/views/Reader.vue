@@ -18,6 +18,7 @@
     imagesService,
   } from '../api/services';
   import { useSettingsStore } from '../stores/settings';
+  import { useReaderStore } from '../stores/reader';
 
   import { handleError } from '../utils/errorHandler';
   import { logger } from '../utils/logger';
@@ -25,9 +26,14 @@
   const route = useRoute();
   const router = useRouter();
   const settingsStore = useSettingsStore();
+  const readerStore = useReaderStore();
 
   const { readingMode: storedReadingMode, zoomMode } =
     storeToRefs(settingsStore);
+
+  // 从 reader store 获取状态
+  const { currentChapter, images, currentPage, loading } =
+    storeToRefs(readerStore);
 
   // 辅助函数：映射 store 模式到枚举
   const mapReadingMode = (mode: string): ReadingMode => {
@@ -42,11 +48,7 @@
   };
 
   // 状态管理
-  const loading = ref(false);
-  const currentChapter = ref<Chapter | null>(null);
   const chapters = ref<Chapter[]>([]);
-  const images = ref<string[]>([]);
-  const currentPage = ref(0);
   const readingMode = ref<ReadingMode>(mapReadingMode(storedReadingMode.value));
   const showControls = ref(true);
   const isScrolling = ref(false);
@@ -235,20 +237,21 @@
 
   // 加载章节图片
   const loadChapterImages = async () => {
-    loading.value = true;
+    readerStore.setLoading(true);
     try {
       // 获取章节详情
       const chapter = await chaptersService.getChapterById(chapterId.value);
-      currentChapter.value = chapter;
+      readerStore.setChapter(chapter);
 
       // 构建图片 URL 列表
       if (chapter.pages && chapter.pages.length > 0) {
-        images.value = chapter.pages.map((page: string) => {
+        const imageUrls = chapter.pages.map((page: string) => {
           return imagesService.getImageUrl(chapter.imagePath, page);
         });
+        readerStore.setImages(imageUrls);
       } else {
         // Fallback or empty state
-        images.value = [];
+        readerStore.setImages([]);
       }
 
       // 恢复阅读进度
@@ -256,7 +259,7 @@
     } catch (error) {
       handleError(error, 'Failed to load chapter images');
     } finally {
-      loading.value = false;
+      readerStore.setLoading(false);
     }
   };
 
@@ -301,9 +304,8 @@
     if (savedProgress) {
       try {
         const progressData = JSON.parse(savedProgress);
-        currentPage.value = Math.min(
-          progressData.currentPage || 0,
-          totalPages.value - 1,
+        readerStore.setCurrentPage(
+          Math.min(progressData.currentPage || 0, totalPages.value - 1),
         );
         readingMode.value = progressData.readingMode || ReadingMode.SINGLE_PAGE;
         return;
@@ -319,9 +321,8 @@
         chapterId.value,
       );
       if (progress) {
-        currentPage.value = Math.min(
-          progress.currentPage,
-          totalPages.value - 1,
+        readerStore.setCurrentPage(
+          Math.min(progress.currentPage, totalPages.value - 1),
         );
       }
     } catch (error) {
@@ -342,7 +343,7 @@
         behavior: 'smooth',
       });
     } else if (currentPage.value > 0) {
-      currentPage.value--;
+      readerStore.previousPage();
       saveProgress();
     }
   };
@@ -354,7 +355,7 @@
         behavior: 'smooth',
       });
     } else if (currentPage.value < totalPages.value - 1) {
-      currentPage.value++;
+      readerStore.nextPage();
       saveProgress();
     }
   };
@@ -453,11 +454,11 @@
     );
 
     if (
-      newPage !== currentPage.value &&
+      currentPage.value !== newPage &&
       newPage >= 0 &&
       newPage < totalPages.value
     ) {
-      currentPage.value = newPage;
+      readerStore.setCurrentPage(newPage);
       saveProgress();
     }
   };
@@ -470,7 +471,7 @@
     () => route.params.chapterId,
     (newChapterId) => {
       if (newChapterId) {
-        currentPage.value = 0;
+        readerStore.setCurrentPage(0);
         loadChapterImages();
       }
     },
