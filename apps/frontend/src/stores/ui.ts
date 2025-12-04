@@ -7,7 +7,9 @@ export const useUIStore = defineStore('ui', () => {
   // 主题管理 - 使用 useColorMode 自动处理 class 和 storage
   const mode = useColorMode({
     storageKey: STORAGE_KEYS.THEME,
-    // 不需要定义 modes，useColorMode 默认支持 auto
+    attribute: 'class',
+    selector: 'html',
+    initialValue: 'auto',
   });
 
   // 为了保持 API 兼容性，提供 theme 属性
