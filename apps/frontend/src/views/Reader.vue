@@ -16,21 +16,20 @@
   import SinglePageView from '@components/reader/SinglePageView.vue';
   import DoublePageView from '@components/reader/DoublePageView.vue';
   import ScrollView from '@components/reader/ScrollView.vue';
-  import { ReadingMode, type Chapter } from '@read-comics/types';
+  import { ReadingMode } from '@read-comics/types';
   import { comicsService } from '../api/services';
   import { useSettingsStore } from '../stores/settings';
   import { useReaderStore } from '../stores/reader';
 
   import { handleError } from '../utils/errorHandler';
   import { logger } from '../utils/logger';
+  import { performanceMonitor } from '../utils/performance';
   import { isMobileDevice, mapReadingMode } from '@/utils/reader';
-  import { useComicStore } from '@/stores';
 
   const route = useRoute();
   const router = useRouter();
   const settingsStore = useSettingsStore();
   const readerStore = useReaderStore();
-  const comicStore = useComicStore();
 
   // 获取路由参数
   // 使用 ref 而不是 computed，以防止在路由切换（组件卸载）时 route.params 变为空/undefined
@@ -227,26 +226,37 @@
 
   // 加载章节图片
   const loadChapterImages = async () => {
-    readerStore.setLoading(true);
-    try {
-      // 获取章节详情
-      let chapter = readerStore.currentChapter;
-      if (!chapter) {
-        await enSureChapterExist();
-        chapter = readerStore.currentChapter!;
-      }
+    return performanceMonitor.measure(
+      'Reader:loadChapter',
+      async () => {
+        readerStore.setLoading(true);
+        try {
+          // 获取章节详情
+          let chapter = readerStore.currentChapter;
+          if (!chapter) {
+            await enSureChapterExist();
+            chapter = readerStore.currentChapter!;
+          }
 
-      // 构建图片 URL 列表
-      // Store 的 setState 已经处理了 pageFiles，pageUrls 会通过 getter 自动生成
-      // 所以这里不需要手动 setImages
+          // 构建图片 URL 列表
+          // Store 的 setState 已经处理了 pageFiles，pageUrls 会通过 getter 自动生成
+          // 所以这里不需要手动 setImages
 
-      // 恢复阅读进度
-      await restoreProgress();
-    } catch (error) {
-      handleError(error, 'Failed to load chapter images');
-    } finally {
-      readerStore.setLoading(false);
-    }
+          // 恢复阅读进度
+          await restoreProgress();
+
+          logger.info('Chapter loaded successfully', {
+            chapterId: chapterId.value,
+            totalPages: totalPages.value,
+          });
+        } catch (error) {
+          handleError(error, 'Failed to load chapter images');
+        } finally {
+          readerStore.setLoading(false);
+        }
+      },
+      { chapterId: chapterId.value },
+    );
   };
 
   // 保存阅读进度 添加防抖
@@ -318,16 +328,32 @@
 
   // 图片预加载
   const preloadImages = () => {
+    performanceMonitor.start('Reader:preloadImages');
+
     const PRELOAD_COUNT = 3; // 预加载后续 3 张
     const urls = pages.value;
-    if (!urls || urls.length === 0) return;
+    if (!urls || urls.length === 0) {
+      performanceMonitor.end('Reader:preloadImages');
+      return;
+    }
 
+    let preloadedCount = 0;
     for (let i = 1; i <= PRELOAD_COUNT; i++) {
       const nextIndex = currentPage.value + i;
       if (nextIndex < urls.length) {
         const img = new Image();
         img.src = urls[nextIndex];
+        preloadedCount++;
       }
+    }
+
+    performanceMonitor.end('Reader:preloadImages');
+
+    if (preloadedCount > 0) {
+      logger.debug('Preloaded images', {
+        count: preloadedCount,
+        currentPage: currentPage.value,
+      });
     }
   };
 
