@@ -1,6 +1,5 @@
-import { onMounted, onUnmounted, type Ref } from 'vue';
+import { type Ref } from 'vue';
 import { ReadingMode } from '@read-comics/types';
-import { useRouter } from 'vue-router';
 
 /**
  * 阅读器控制 Composable
@@ -17,8 +16,6 @@ export function useReaderControls(
   goBack: () => void,
   changeReadingMode: (mode: ReadingMode) => void,
 ) {
-  const router = useRouter();
-
   /**
    * 切换控制栏显示
    */

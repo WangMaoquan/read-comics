@@ -2,13 +2,7 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { storeToRefs } from 'pinia';
-  import {
-    useWindowSize,
-    useFullscreen,
-    useStorage,
-    useDebounceFn,
-  } from '@vueuse/core';
-  import { STORAGE_KEYS } from '../config';
+  import { useWindowSize, useFullscreen } from '@vueuse/core';
   import LoadingSpinner from '@components/LoadingSpinner.vue';
   import ReaderHeader from '@components/reader/ReaderHeader.vue';
   import ReaderFooter from '@components/reader/ReaderFooter.vue';
@@ -20,11 +14,16 @@
   import { comicsService } from '../api/services';
   import { useSettingsStore } from '../stores/settings';
   import { useReaderStore } from '../stores/reader';
-
   import { handleError } from '../utils/errorHandler';
   import { logger } from '../utils/logger';
   import { performanceMonitor } from '../utils/performance';
-  import { isMobileDevice, mapReadingMode } from '@/utils/reader';
+  import { isMobileDevice } from '@/utils/reader';
+
+  // Composables
+  import { useReaderProgress } from '@/composables/useReaderProgress';
+  import { useImagePreload } from '@/composables/useImagePreload';
+  import { useReadingMode } from '@/composables/useReadingMode';
+  import { useReaderControls } from '@/composables/useReaderControls';
 
   const route = useRoute();
   const router = useRouter();
@@ -32,7 +31,6 @@
   const readerStore = useReaderStore();
 
   // 获取路由参数
-  // 使用 ref 而不是 computed，以防止在路由切换（组件卸载）时 route.params 变为空/undefined
   const comicId = ref(route.params.comicId as string);
   const chapterId = ref(route.params.chapterId as string);
 
@@ -42,7 +40,7 @@
   // 从 reader store 获取状态
   const {
     currentChapter,
-    pageUrls: pages, // 映射 pageUrls 为 pages，保持兼容性
+    pageUrls: pages,
     currentPage,
     loading,
     totalPages,
@@ -50,134 +48,53 @@
   } = storeToRefs(readerStore);
 
   // 状态管理
-  const readingMode = ref<ReadingMode>(mapReadingMode(storedReadingMode.value));
   const showControls = ref(true);
-  const isScrolling = ref(false);
-  const localProgressData = useStorage<{
-    currentPage: number;
-    readingMode: ReadingMode;
-  } | null>(
-    `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
-    null,
-    undefined,
-    {
-      serializer: {
-        read: (v) => (v ? JSON.parse(v) : null),
-        write: (v) => JSON.stringify(v),
-      },
-    },
-  );
 
   // 全屏控制
   const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
-  // 响应式移动端检测（结合窗口大小和设备类型）
+  // 响应式移动端检测
   const { width } = useWindowSize();
-
-  // 组合检测：移动设备 或 窗口宽度小于 640px
   const isMobile = computed(() => isMobileDevice || width.value < 640);
 
   // 监听窗口大小变化，自动切换缩放模式
   watch(isMobile, (newIsMobile) => {
     if (newIsMobile && zoomMode.value !== 'fit') {
-      // 进入小屏模式时，自动切换为适应屏幕
       settingsStore.updateSettings({ zoomMode: 'fit' });
     }
   });
 
-  // 监听 store 中的 readingMode 变化
-  watch(storedReadingMode, (newMode) => {
-    readingMode.value = mapReadingMode(newMode);
-  });
-
-  // 计算图片样式
-  const imageStyle = computed(() => {
-    const style: Record<string, string> = {};
-
-    // 小屏幕下强制使用适应屏幕模式
-    const effectiveZoomMode = isMobile.value ? 'fit' : zoomMode.value;
-
-    // 缩放模式
-    if (readingMode.value !== ReadingMode.CONTINUOUS_SCROLL) {
-      if (effectiveZoomMode === 'fit') {
-        style.maxHeight = '100vh';
-        style.maxWidth = '100vw';
-        style.objectFit = 'contain';
-      } else if (effectiveZoomMode === 'width') {
-        style.width = '100%';
-        style.height = 'auto';
-      } else {
-        style.width = 'auto';
-        style.height = 'auto';
-      }
-    } else {
-      // 滚动模式下通常宽度自适应
-      if (effectiveZoomMode === 'fit' || effectiveZoomMode === 'width') {
-        style.width = '100%';
-        style.height = 'auto';
-      } else {
-        style.width = 'auto';
-        style.height = 'auto';
-        style.maxWidth = 'none';
-      }
-    }
-
-    return style;
-  });
-
-  // 切换阅读模式
-  const changeReadingMode = (mode: ReadingMode) => {
-    readingMode.value = mode;
-    saveProgress();
-
-    // 更新 store
-    let storeMode: 'single' | 'double' | 'scroll' = 'single';
-    if (mode === ReadingMode.DOUBLE_PAGE) storeMode = 'double';
-    if (mode === ReadingMode.CONTINUOUS_SCROLL) storeMode = 'scroll';
-    settingsStore.updateSettings({ readingMode: storeMode });
-
-    // 如果切换到滚动模式，滚动到当前阅读位置
-    if (mode === ReadingMode.CONTINUOUS_SCROLL) {
-      setTimeout(() => {
-        const scrollPosition =
-          (currentPage.value / totalPages.value) * document.body.scrollHeight;
-        window.scrollTo({
-          top: scrollPosition,
-          behavior: 'smooth',
-        });
-      }, 100); // 延迟一下确保 DOM 已更新
-    } else {
-      // 切换到其他模式时，可能需要重置页码或其他逻辑
-      // 这里保持原有的页码不变
-    }
-  };
-
-  // 监听阅读模式变化
-  watch(readingMode, (newMode) => {
-    if (newMode === ReadingMode.CONTINUOUS_SCROLL) {
-      // 切换到滚动模式时，添加滚动监听
-      window.addEventListener('scroll', handleScroll);
-      isScrolling.value = true;
-    } else {
-      // 切换到其他模式时，移除滚动监听
-      window.removeEventListener('scroll', handleScroll);
-      isScrolling.value = false;
-    }
-  });
-
-  // 监听路由变化更新 ID
-  watch(
-    () => route.params,
-    (newParams) => {
-      if (newParams.comicId) {
-        comicId.value = newParams.comicId as string;
-      }
-      if (newParams.chapterId) {
-        chapterId.value = newParams.chapterId as string;
-      }
-    },
-    { immediate: true },
+  // 使用阅读模式 composable
+  const {
+    readingMode,
+    isScrolling,
+    imageStyle,
+    changeReadingMode: _changeReadingMode,
+    handleScroll: _handleScroll,
+  } = useReadingMode(
+    storedReadingMode,
+    zoomMode,
+    isMobile,
+    currentPage,
+    totalPages,
   );
+
+  // 使用阅读进度 composable
+  const { saveProgress, restoreProgress } = useReaderProgress(
+    comicId,
+    chapterId,
+    currentPage,
+    totalPages,
+    readingMode,
+  );
+
+  // 使用图片预加载 composable
+  const { preloadImages } = useImagePreload(pages, currentPage);
+
+  // 监听当前页变化，触发预加载
+  watch(currentPage, () => {
+    preloadImages();
+  });
 
   // 计算属性
   const currentImage = computed(() => pages.value[currentPage.value]);
@@ -186,7 +103,6 @@
     return Math.round(((currentPage.value + 1) / totalPages.value) * 100);
   });
 
-  // 是否在最后一页
   const isLastPage = computed(() => {
     return currentPage.value >= totalPages.value - 1;
   });
@@ -231,19 +147,13 @@
       async () => {
         readerStore.setLoading(true);
         try {
-          // 获取章节详情
           let chapter = readerStore.currentChapter;
           if (!chapter) {
             await enSureChapterExist();
             chapter = readerStore.currentChapter!;
           }
 
-          // 构建图片 URL 列表
-          // Store 的 setState 已经处理了 pageFiles，pageUrls 会通过 getter 自动生成
-          // 所以这里不需要手动 setImages
-
-          // 恢复阅读进度
-          await restoreProgress();
+          await restoreProgress(readerStore.setCurrentPage);
 
           logger.info('Chapter loaded successfully', {
             chapterId: chapterId.value,
@@ -258,109 +168,6 @@
       { chapterId: chapterId.value },
     );
   };
-
-  // 保存阅读进度 添加防抖
-  const saveProgress = useDebounceFn(async () => {
-    if (!comicId.value || !chapterId.value) return;
-
-    const progressData = {
-      comicId: comicId.value,
-      chapterId: chapterId.value,
-      currentPage: currentPage.value,
-      readingMode: readingMode.value,
-      timestamp: new Date().toISOString(),
-    };
-
-    localProgressData.value = progressData;
-
-    // 同步到后端
-    try {
-      await comicsService.updateProgress(comicId.value, {
-        chapterId: chapterId.value,
-        currentPage: currentPage.value,
-        totalPages: totalPages.value,
-      });
-    } catch (error) {
-      // 静默失败，不打断用户体验
-      console.error('Failed to sync progress to server', error);
-    }
-  }, 500);
-
-  // 恢复阅读进度
-  const restoreProgress = async () => {
-    // 1. 尝试从本地存储恢复
-
-    if (localProgressData.value) {
-      try {
-        readerStore.setCurrentPage(
-          Math.min(
-            localProgressData.value.currentPage || 0,
-            totalPages.value - 1,
-          ),
-        );
-        readingMode.value =
-          localProgressData.value.readingMode || ReadingMode.SINGLE_PAGE;
-        return;
-      } catch (error) {
-        logger.error('Failed to restore progress form localStorage', error);
-      }
-    }
-
-    // 2. 如果本地没有，尝试从服务器获取
-    try {
-      const progress = await comicsService.getChapterProgress(
-        comicId.value,
-        chapterId.value,
-      );
-      if (progress) {
-        readerStore.setCurrentPage(
-          Math.min(progress.currentPage, totalPages.value - 1),
-        );
-      } else {
-        // 3. 如果都没有，默认为 0
-        readerStore.setCurrentPage(0);
-      }
-    } catch (error) {
-      // 忽略错误，默认为 0
-      readerStore.setCurrentPage(0);
-    }
-  };
-
-  // 图片预加载
-  const preloadImages = () => {
-    performanceMonitor.start('Reader:preloadImages');
-
-    const PRELOAD_COUNT = 3; // 预加载后续 3 张
-    const urls = pages.value;
-    if (!urls || urls.length === 0) {
-      performanceMonitor.end('Reader:preloadImages');
-      return;
-    }
-
-    let preloadedCount = 0;
-    for (let i = 1; i <= PRELOAD_COUNT; i++) {
-      const nextIndex = currentPage.value + i;
-      if (nextIndex < urls.length) {
-        const img = new Image();
-        img.src = urls[nextIndex];
-        preloadedCount++;
-      }
-    }
-
-    performanceMonitor.end('Reader:preloadImages');
-
-    if (preloadedCount > 0) {
-      logger.debug('Preloaded images', {
-        count: preloadedCount,
-        currentPage: currentPage.value,
-      });
-    }
-  };
-
-  // 监听当前页变化，触发预加载
-  watch(currentPage, () => {
-    preloadImages();
-  });
 
   // 导航功能
   const goBack = () => {
@@ -392,7 +199,6 @@
     }
   };
 
-  // 跳转到下一章
   const goToNextChapter = () => {
     if (getNextChapter.value) {
       saveProgress();
@@ -402,107 +208,58 @@
     }
   };
 
-  // 切换控制栏显示
-  const toggleControls = () => {
-    showControls.value = !showControls.value;
+  // 包装 changeReadingMode 以传递 saveProgress
+  const changeReadingMode = (mode: ReadingMode) => {
+    _changeReadingMode(mode, saveProgress);
   };
 
-  // 键盘控制
-  const handleKeyDown = (event: KeyboardEvent) => {
-    // 隐藏控制栏
-    if (event.key === 'h' || event.key === 'H') {
-      toggleControls();
-      return;
-    }
-
-    // 防止在输入框中触发键盘控制
-    if ((event.target as HTMLElement).tagName === 'INPUT') return;
-
-    switch (event.key) {
-      case 'ArrowLeft':
-      case 'ArrowUp':
-      case ' ':
-        event.preventDefault();
-        previousPage();
-        break;
-      case 'ArrowRight':
-      case 'ArrowDown':
-      case 'Enter':
-        event.preventDefault();
-        nextPage();
-        break;
-      case 'Escape':
-        goBack();
-        break;
-      case '1':
-        changeReadingMode(ReadingMode.SINGLE_PAGE);
-        break;
-      case '2':
-        changeReadingMode(ReadingMode.DOUBLE_PAGE);
-        break;
-      case '3':
-        changeReadingMode(ReadingMode.CONTINUOUS_SCROLL);
-        break;
-    }
-  };
-
-  // 手势控制
-  let touchStartX = 0;
-  let touchStartY = 0;
-
-  const handleTouchStart = (event: TouchEvent) => {
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (event: TouchEvent) => {
-    const touchEndX = event.changedTouches[0].clientX;
-    const touchEndY = event.changedTouches[0].clientY;
-
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-
-    // 水平滑动距离大于垂直滑动距离，且滑动距离超过阈值
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-      if (deltaX > 0) {
-        // 向右滑动，上一页
-        previousPage();
-      } else {
-        // 向左滑动，下一页
-        nextPage();
-      }
-    }
-  };
-
-  // 滚动事件处理（用于连续滚动模式）
+  // 包装 handleScroll
   const handleScroll = () => {
-    if (readingMode.value !== ReadingMode.CONTINUOUS_SCROLL) return;
+    _handleScroll(readerStore.setCurrentPage, saveProgress);
+  };
 
-    const scrollPosition = window.scrollY;
-    const documentHeight = document.body.scrollHeight;
-    const windowHeight = window.innerHeight;
-
-    // 计算当前页码
-    const newPage = Math.round(
-      (scrollPosition / (documentHeight - windowHeight)) * totalPages.value,
+  // 使用阅读器控制 composable
+  const { toggleControls, registerEventListeners, unregisterEventListeners } =
+    useReaderControls(
+      readingMode,
+      currentPage,
+      totalPages,
+      comicId,
+      showControls,
+      previousPage,
+      nextPage,
+      goBack,
+      changeReadingMode,
     );
 
-    if (
-      currentPage.value !== newPage &&
-      newPage >= 0 &&
-      newPage < totalPages.value
-    ) {
-      readerStore.setCurrentPage(newPage);
-      saveProgress();
+  // 监听路由变化更新 ID
+  watch(
+    () => route.params,
+    (newParams) => {
+      if (newParams.comicId) {
+        comicId.value = newParams.comicId as string;
+      }
+      if (newParams.chapterId) {
+        chapterId.value = newParams.chapterId as string;
+      }
+    },
+    { immediate: true },
+  );
+
+  // 监听阅读模式变化，添加/移除滚动监听
+  watch(isScrolling, (scrolling) => {
+    if (scrolling) {
+      window.addEventListener('scroll', handleScroll);
+    } else {
+      window.removeEventListener('scroll', handleScroll);
     }
-  };
+  });
 
   // 监听路由变化,重新加载章节
   watch(
     () => route.params.chapterId,
     (newChapterId) => {
       if (newChapterId) {
-        // 移除这里的 setCurrentPage(0)，防止闪烁
         loadChapterImages();
       }
     },
@@ -511,21 +268,12 @@
   // 生命周期钩子
   onMounted(async () => {
     await loadChapterImages();
-
-    // 添加键盘和触摸事件监听
-    window.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('touchstart', handleTouchStart);
-    document.addEventListener('touchend', handleTouchEnd);
+    registerEventListeners();
   });
 
   onUnmounted(() => {
-    // 移除事件监听
-    window.removeEventListener('keydown', handleKeyDown);
-    document.removeEventListener('touchstart', handleTouchStart);
-    document.removeEventListener('touchend', handleTouchEnd);
+    unregisterEventListeners();
     window.removeEventListener('scroll', handleScroll);
-
-    // 保存进度
     saveProgress();
   });
 </script>
