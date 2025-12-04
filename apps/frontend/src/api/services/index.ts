@@ -11,6 +11,7 @@ export {
   favoritesService,
   filesService,
   imagesService,
+  usersService,
 } from '../new-client';
 
 // 重新导出类型
@@ -31,4 +32,4 @@ export {
   type UploadMetadata,
 } from '@read-comics/api-client';
 
-export { usersService, type UpdateProfileData } from './usersService';
+export { type UpdateProfileData } from '@read-comics/api-client';

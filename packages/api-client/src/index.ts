@@ -6,6 +6,7 @@ import { TagsService } from './services/tags';
 import { FavoritesService } from './services/favorites';
 import { FilesService } from './services/files';
 import { ImagesService } from './services/images';
+import { UsersService } from './services/users';
 
 export * from './core/client';
 export * from './core/config';
@@ -16,6 +17,7 @@ export * from './services/tags';
 export * from './services/favorites';
 export * from './services/files';
 export * from './services/images';
+export * from './services/users';
 
 export class ApiService {
   public client: ApiClient;
@@ -26,6 +28,7 @@ export class ApiService {
   public favorites: FavoritesService;
   public files: FilesService;
   public images: ImagesService;
+  public users: UsersService;
 
   constructor(config: ApiClientConfig) {
     this.client = new ApiClient(config);
@@ -36,6 +39,7 @@ export class ApiService {
     this.favorites = new FavoritesService(this.client);
     this.files = new FilesService(this.client);
     this.images = new ImagesService(config.baseURL);
+    this.users = new UsersService(this.client);
   }
 }
 
