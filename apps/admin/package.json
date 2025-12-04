@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@read-comics/api-client": "workspace:^",
     "@tailwindcss/vite": "^4.1.17",
     "@vueuse/core": "^14.1.0",
     "echarts": "^6.0.0",
