@@ -22,8 +22,8 @@ export interface ApiClientConfig {
 }
 
 export class ApiClient {
-  private instance: AxiosInstance;
-  private config: ApiClientConfig;
+  public instance: AxiosInstance;
+  public config: ApiClientConfig;
 
   constructor(config: ApiClientConfig) {
     this.config = config;

@@ -111,11 +111,11 @@ export class FilesService {
 
       // 获取 baseURL（注意：这里需要访问 client 内部的配置）
       // 我们可以通过 API_ENDPOINTS 直接拼接
-      const baseURL = (this.client as any).instance?.defaults?.baseURL || '';
+      const baseURL = this.client.instance.defaults?.baseURL || '';
       xhr.open('POST', `${baseURL}${API_ENDPOINTS.files.upload}`);
 
       // 添加认证 token（使用 client 的 getToken 方法）
-      const token = localStorage.getItem('token');
+      const token = this.client.config.getToken?.();
       if (token) {
         xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       }
