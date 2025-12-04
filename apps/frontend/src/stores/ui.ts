@@ -13,10 +13,16 @@ export const useUIStore = defineStore('ui', () => {
   });
 
   // 为了保持 API 兼容性，提供 theme 属性
+  // theme 返回用户设置的偏好（可能是 auto），而不是实际应用的模式
   const theme = computed({
-    get: () => mode.value,
+    get: () => {
+      // 从 localStorage 读取用户设置的偏好
+      const stored = localStorage.getItem(STORAGE_KEYS.THEME);
+      return (stored as 'light' | 'dark' | 'auto') || 'auto';
+    },
     set: (val) => {
       mode.value = val;
+      localStorage.setItem(STORAGE_KEYS.THEME, val);
     },
   });
 
