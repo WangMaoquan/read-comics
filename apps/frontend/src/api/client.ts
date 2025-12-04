@@ -43,6 +43,9 @@ export const api = createApi({
   },
 });
 
+// 使用 WeakMap 存储请求的 metric name，避免污染 config 对象
+const requestMetrics = new WeakMap<any, string>();
+
 // 添加性能监控拦截器
 api.client.instance.interceptors.request.use(
   (config) => {
@@ -51,8 +54,8 @@ api.client.instance.interceptors.request.use(
       method: config.method,
       url: config.url,
     });
-    // 将 metric name 存储在 config 中，以便在响应拦截器中使用
-    (config as any)._metricName = metricName;
+    // 使用 WeakMap 存储 metric name
+    requestMetrics.set(config, metricName);
     return config;
   },
   (error) => Promise.reject(error),
@@ -60,16 +63,20 @@ api.client.instance.interceptors.request.use(
 
 api.client.instance.interceptors.response.use(
   (response) => {
-    const metricName = (response.config as any)._metricName;
+    const metricName = requestMetrics.get(response.config);
     if (metricName) {
       performanceMonitor.end(metricName);
+      requestMetrics.delete(response.config);
     }
     return response;
   },
   (error) => {
-    const metricName = (error.config as any)?._metricName;
+    const metricName = error.config ? requestMetrics.get(error.config) : null;
     if (metricName) {
       performanceMonitor.end(metricName);
+      if (error.config) {
+        requestMetrics.delete(error.config);
+      }
     }
     return Promise.reject(error);
   },
