@@ -39,15 +39,23 @@ packages/api-client/
 
 ## 3. 当前进度
 
-截至目前（2025-12-03），已完成以下工作：
+截至目前（2025-12-04），已完成以下工作：
 
 - [x] **包初始化**：创建了 `packages/api-client`，配置了 `tsup` 构建流程。
 - [x] **核心 Client**：实现了 `ApiClient` 类，封装了 Axios 实例，支持自定义拦截器（Token 注入、错误处理）。
 - [x] **基础配置**：定义了 `API_ENDPOINTS` 常量，并添加了 `ApiResponse<T>` 标准响应接口。
 - [x] **AuthService**：实现了完整的认证服务（登录、注册、忘记密码、重置密码）。
 - [x] **ComicsService**：实现了基础的漫画服务（列表、搜索、详情、章节、进度、收藏）。
-- [x] **Frontend 集成 Auth**：在 Frontend 中集成了新的 `authService`。
-- [x] **Frontend 集成 Comics**：在 Frontend 中集成了新的 `comicsService`。
+- [x] **ChaptersService**：实现了章节服务（获取章节详情）。
+- [x] **TagsService**：实现了标签服务（标签管理、漫画标签关联）。
+- [x] **FavoritesService**：实现了收藏服务（收藏管理、状态更新）。
+- [x] **FilesService**：实现了文件服务（文件上传支持进度、目录扫描）。
+- [x] **ImagesService**：实现了图片服务（URL 生成、预加载）。
+- [x] **Frontend 集成**：在 Frontend 中集成了所有新服务。
+
+### 🎉 第一阶段已完成！
+
+所有核心业务服务已成功从 Frontend 迁移到 `@read-comics/api-client` 包！
 
 ### 已知限制
 
@@ -89,22 +97,39 @@ export const api = createApi({
 });
 
 // 导出具体的 Service 以便组件使用
-export const { auth: authService, comics: comicsService } = api;
+export const {
+  auth: authService,
+  comics: comicsService,
+  chapters: chaptersService,
+  tags: tagsService,
+  favorites: favoritesService,
+  files: filesService,
+  images: imagesService,
+} = api;
 ```
 
 ### 在组件中使用
 
 ```typescript
-import { authService, comicsService } from '@/api';
+import { authService, comicsService, filesService } from '@/api';
 
+// 登录
 const login = async () => {
   const user = await authService.login({ email, password });
 };
 
+// 加载漫画列表
 const loadComics = async () => {
   const comics = await comicsService.getComics({
     sortBy: 'date',
     sortOrder: 'desc',
+  });
+};
+
+// 上传文件（带进度）
+const uploadFile = async (file: File) => {
+  await filesService.uploadFile(file, { title: '漫画标题' }, (progress) => {
+    console.log(`上传进度：${progress}%`);
   });
 };
 ```
@@ -113,19 +138,17 @@ const loadComics = async () => {
 
 为了完成重构，我们需要按以下步骤继续进行：
 
-### 第一阶段：迁移剩余 Service (Priority: High)
+### 第一阶段：迁移剩余 Service ✅ 已完成
 
 将 Frontend 和 Admin 中现有的 Service 逻辑迁移到 `api-client`：
 
-1.  ~~**ComicsService**: 列表、详情、章节、阅读进度、收藏。~~ ✅ 已完成
-2.  **ChaptersService**: 章节详情、图片列表。
-3.  **FilesService**: 上传、扫描、文件解析。
-4.  **ImagesService**: 图片加载、缩略图。
-5.  **TagsService**: 标签列表、热门标签。
-6.  **FavoritesService**: 收藏管理。
-7.  **UsersService**: 用户管理（Admin 专用）。
-8.  **SystemLogsService**: 系统日志（Admin 专用）。
-9.  **TasksService**: 任务管理（Admin 专用）。
+1.  ~~**ComicsService**: 列表、详情、章节、阅读进度、收藏。~~ ✅
+2.  ~~**ChaptersService**: 章节详情、图片列表。~~ ✅
+3.  ~~**FilesService**: 上传、扫描、文件解析。~~ ✅
+4.  ~~**ImagesService**: 图片加载、缩略图。~~ ✅
+5.  ~~**TagsService**: 标签列表、热门标签。~~ ✅
+6.  ~~**FavoritesService**: 收藏管理。~~ ✅
+7.  **UsersService**: 用户管理（Admin 专用，可选）。
 
 ### 第二阶段：Frontend 集成 (Priority: Medium)
 
