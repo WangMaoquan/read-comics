@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
 import type { Chapter } from '@read-comics/types';
 import { useComicStore } from './comic';
+import { imagesService } from '../api/services';
 
 interface ReaderState {
   currentChapter: Chapter | null;
   imagePath: string;
-  pages: string[];
+  pageFiles: string[]; // 存储文件名
   currentPage: number;
   totalPages: number;
   loading: boolean;
@@ -17,7 +18,7 @@ export const useReaderStore = defineStore('reader', {
     currentChapter: null,
     currentPage: 0,
     totalPages: 0,
-    pages: [],
+    pageFiles: [],
     loading: false,
     error: null,
     imagePath: '',
@@ -43,15 +44,27 @@ export const useReaderStore = defineStore('reader', {
 
     getError: (state) => state.error,
 
-    getCurrentImage: (state) => {
-      if (state.pages.length === 0 || state.currentPage >= state.pages.length) {
+    // 动态生成 URL 列表
+    pageUrls: (state) => {
+      if (!state.imagePath || state.pageFiles.length === 0) return [];
+      return state.pageFiles.map((page) =>
+        imagesService.getImageUrl(state.imagePath, page),
+      );
+    },
+
+    getCurrentImage: (state): string | null => {
+      // @ts-ignore - accessing getter inside getter
+      const urls = state.pageUrls;
+      if (urls.length === 0 || state.currentPage >= urls.length) {
         return null;
       }
-      return state.pages[state.currentPage];
+      return urls[state.currentPage];
     },
+
     isReadComplete: (state) => {
       return state.currentPage + 1 === state.totalPages;
     },
+
     getNextChapter(state) {
       const comicStore = useComicStore();
       const currentChapterIndex = comicStore.chapters.findIndex(
@@ -69,14 +82,11 @@ export const useReaderStore = defineStore('reader', {
   actions: {
     setState(chapter: Chapter) {
       this.currentChapter = chapter;
-      this.currentPage = chapter.readingProgress?.currentPage || 0;
+      // 注意：这里不再重置 currentPage，由组件层决定是否重置或恢复进度
+      // 这样可以避免初始化时的闪烁
       this.totalPages = chapter.pages.length;
-      this.pages = chapter.pages;
+      this.pageFiles = chapter.pages;
       this.imagePath = chapter.imagePath;
-    },
-
-    setImages(pages: string[]) {
-      this.pages = pages;
     },
 
     setCurrentPage(page: number) {
@@ -119,7 +129,7 @@ export const useReaderStore = defineStore('reader', {
       this.currentChapter = null;
       this.currentPage = 0;
       this.totalPages = 0;
-      this.pages = [];
+      this.pageFiles = [];
       this.loading = false;
       this.error = null;
       this.imagePath = '';

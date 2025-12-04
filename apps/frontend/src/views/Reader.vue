@@ -17,7 +17,7 @@
   import DoublePageView from '@components/reader/DoublePageView.vue';
   import ScrollView from '@components/reader/ScrollView.vue';
   import { ReadingMode, type Chapter } from '@read-comics/types';
-  import { comicsService, imagesService } from '../api/services';
+  import { comicsService } from '../api/services';
   import { useSettingsStore } from '../stores/settings';
   import { useReaderStore } from '../stores/reader';
 
@@ -43,7 +43,7 @@
   // 从 reader store 获取状态
   const {
     currentChapter,
-    pages,
+    pageUrls: pages, // 映射 pageUrls 为 pages，保持兼容性
     currentPage,
     loading,
     totalPages,
@@ -237,15 +237,8 @@
       }
 
       // 构建图片 URL 列表
-      if (chapter.pages && chapter.pages.length > 0) {
-        const imageUrls = chapter.pages.map((page: string) => {
-          return imagesService.getImageUrl(chapter.imagePath, page);
-        });
-        readerStore.setImages(imageUrls);
-      } else {
-        // Fallback or empty state
-        readerStore.setImages([]);
-      }
+      // Store 的 setState 已经处理了 pageFiles，pageUrls 会通过 getter 自动生成
+      // 所以这里不需要手动 setImages
 
       // 恢复阅读进度
       await restoreProgress();
@@ -313,11 +306,35 @@
         readerStore.setCurrentPage(
           Math.min(progress.currentPage, totalPages.value - 1),
         );
+      } else {
+        // 3. 如果都没有，默认为 0
+        readerStore.setCurrentPage(0);
       }
     } catch (error) {
-      // 忽略错误
+      // 忽略错误，默认为 0
+      readerStore.setCurrentPage(0);
     }
   };
+
+  // 图片预加载
+  const preloadImages = () => {
+    const PRELOAD_COUNT = 3; // 预加载后续 3 张
+    const urls = pages.value;
+    if (!urls || urls.length === 0) return;
+
+    for (let i = 1; i <= PRELOAD_COUNT; i++) {
+      const nextIndex = currentPage.value + i;
+      if (nextIndex < urls.length) {
+        const img = new Image();
+        img.src = urls[nextIndex];
+      }
+    }
+  };
+
+  // 监听当前页变化，触发预加载
+  watch(currentPage, () => {
+    preloadImages();
+  });
 
   // 导航功能
   const goBack = () => {
@@ -459,7 +476,7 @@
     () => route.params.chapterId,
     (newChapterId) => {
       if (newChapterId) {
-        readerStore.setCurrentPage(0);
+        // 移除这里的 setCurrentPage(0)，防止闪烁
         loadChapterImages();
       }
     },
