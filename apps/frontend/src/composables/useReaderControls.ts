@@ -6,10 +6,6 @@ import { ReadingMode } from '@read-comics/types';
  * 负责键盘和触摸控制
  */
 export function useReaderControls(
-  readingMode: Ref<ReadingMode>,
-  currentPage: Ref<number>,
-  totalPages: Ref<number>,
-  comicId: Ref<string>,
   showControls: Ref<boolean>,
   previousPage: () => void,
   nextPage: () => void,

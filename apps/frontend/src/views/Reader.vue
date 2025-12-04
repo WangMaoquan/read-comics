@@ -221,10 +221,6 @@
   // 使用阅读器控制 composable
   const { toggleControls, registerEventListeners, unregisterEventListeners } =
     useReaderControls(
-      readingMode,
-      currentPage,
-      totalPages,
-      comicId,
       showControls,
       previousPage,
       nextPage,
