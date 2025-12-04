@@ -1,10 +1,7 @@
 <script setup lang="ts">
   import { ref, onMounted, computed } from 'vue';
-  import {
-    backupsService,
-    type Backup,
-    type BackupStats,
-  } from '../api/services/backupsService';
+  import { backupsService } from '../api/client';
+  import type { Backup, BackupStats } from '@read-comics/api-client';
 
   // 状态
   const backups = ref<Backup[]>([]);

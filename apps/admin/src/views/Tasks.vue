@@ -1,10 +1,7 @@
 <script setup lang="ts">
   import { ref, onMounted, onUnmounted } from 'vue';
-  import {
-    tasksService,
-    type Task,
-    type TaskStats,
-  } from '../api/services/tasksService';
+  import { tasksService } from '../api/client';
+  import type { Task, TaskStats } from '@read-comics/api-client';
   import { useApi } from '../composables/useApi';
   import { useConfirm } from '../composables/useConfirm';
   import { useToast } from '../composables/useToast';

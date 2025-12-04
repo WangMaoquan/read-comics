@@ -5,6 +5,9 @@
 // 漫画相关类型
 export * from './comic';
 
+// VO 类型（用于前后端数据传输）
+export * from './vo';
+
 // API 相关类型
 export * from './api';
 export * from './user';

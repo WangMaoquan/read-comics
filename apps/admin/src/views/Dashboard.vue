@@ -10,7 +10,7 @@
     TitleComponent,
   } from 'echarts/components';
   import VChart from 'vue-echarts';
-  import { statsService } from '../api/services/statsService';
+  import { statsService } from '../api/client';
 
   use([
     CanvasRenderer,
@@ -51,16 +51,16 @@
 
       // 更新状态
       stats.value = {
-        totalComics: overview.data.totalComics,
-        newComicsThisWeek: overview.data.newComicsThisWeek,
-        totalUsers: overview.data.totalUsers,
-        activeUsers: overview.data.activeUsers,
-        storageUsed: overview.data.storageUsed,
+        totalComics: overview.totalComics,
+        newComicsThisWeek: overview.newComicsThisWeek,
+        totalUsers: overview.totalUsers,
+        activeUsers: overview.activeUsers,
+        storageUsed: overview.storageUsed,
       };
 
-      trendData.value = trend.data;
-      storageData.value = storage.data.distribution;
-      topComicsData.value = topComics.data;
+      trendData.value = trend;
+      storageData.value = storage.distribution;
+      topComicsData.value = topComics;
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {

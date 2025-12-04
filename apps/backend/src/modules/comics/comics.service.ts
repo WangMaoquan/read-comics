@@ -8,7 +8,7 @@ import { Tag } from '@entities/tag.entity';
 import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
-import { ComicFilter } from '@read-comics/types';
+import { ComicFilter, ComicStatus } from '@read-comics/types';
 
 import { ChaptersService } from '../chapters/chapters.service';
 import { FavoritesService } from '../favorites/favorites.service';
@@ -132,6 +132,8 @@ export class ComicsService {
       queryBuilder.orderBy(`comic.${filter.sortBy}`, sortOrder);
     }
 
+    // 注意：这里使用 leftJoinAndSelect 会加载所有关联数据
+    // 如果漫画数量很大，建议添加分页或限制返回数量
     const result = await queryBuilder
       .leftJoinAndSelect('comic.readingProgress', 'readingProgress')
       .leftJoinAndSelect('comic.chapters', 'chapters')
@@ -139,17 +141,23 @@ export class ComicsService {
 
     return result.map((comic) => {
       let progress = 0;
-      let status = 'unread';
+      let status: string = ComicStatus.UNREAD;
       const progressRecords = comic.readingProgress || [];
       const chapters = comic.chapters || [];
-      const isReadComplete =
-        progressRecords.length > 0 &&
+
+      if (progressRecords.length === 0) {
+        // 没有阅读记录
+        progress = 0;
+        status = ComicStatus.UNREAD;
+      } else if (
         progressRecords.length === chapters.length &&
-        progressRecords.every((p) => p.isReadComplete === true);
-      if (isReadComplete) {
+        progressRecords.every((p) => p.isReadComplete === true)
+      ) {
+        // 所有章节都已读完
         progress = 100;
-        status = 'completed';
+        status = ComicStatus.COMPLETED;
       } else {
+        // 正在阅读中
         const readPages = progressRecords.reduce(
           (sum, record) =>
             sum +
@@ -157,7 +165,9 @@ export class ComicsService {
           0,
         );
         progress = Math.round((readPages / comic.totalPages) * 100);
+        status = ComicStatus.READING;
       }
+
       return {
         ...comic,
         progress,
@@ -167,42 +177,33 @@ export class ComicsService {
   }
 
   // 后续补充 vo , 需要将 对应 的vo 放到 packages/types 中
-  async findOne(id: string) {
+  async findOne(id: string): Promise<Comic | null> {
     const comic = await this.comicRepository.findOne({ where: { id } });
 
-    let status = 'unread';
+    if (!comic) {
+      return null;
+    }
 
-    if (comic) {
-      // 加载所有阅读进度
-      const progressRecords = await this.progressRepository.find({
-        where: { comicId: id },
-        order: { lastReadAt: 'DESC' },
-      });
+    // 加载所有阅读进度
+    const progressRecords = await this.progressRepository.find({
+      where: { comicId: id },
+      order: { lastReadAt: 'DESC' },
+    });
 
-      const chapters = await this.chaptersService.findAll(id);
+    const chapters = await this.chaptersService.findAll(id);
 
-      /**
-       * progressRecords.length 小于 chapters.length 同时 progressRecords.length 大于 0
-       *  这种情况下一定是正在读
-       * progressRecords.length 等于 chapters.length
-       *  需要判断 progressRecords 只要有一个 record 存在 isReadComplete 为 false 就是正在读
-       */
-      if (
-        (progressRecords.length > 0 &&
-          progressRecords.length < chapters.length) ||
-        (progressRecords.length === chapters.length &&
-          progressRecords.some((p) => p.isReadComplete === false))
-      ) {
-        status = 'reading';
-      }
+    // 计算状态（与 findAll 保持一致）
+    let status: string = ComicStatus.UNREAD;
 
-      // [].every((i) => i === true) 返回 true
-      if (
-        progressRecords.length === chapters.length &&
-        progressRecords.every((p) => p.isReadComplete === true)
-      ) {
-        status = 'completed';
-      }
+    if (progressRecords.length === 0) {
+      status = ComicStatus.UNREAD;
+    } else if (
+      progressRecords.length === chapters.length &&
+      progressRecords.every((p) => p.isReadComplete === true)
+    ) {
+      status = ComicStatus.COMPLETED;
+    } else {
+      status = ComicStatus.READING;
     }
 
     return {
@@ -217,7 +218,11 @@ export class ComicsService {
 
   async update(id: string, updateComicDto: UpdateComicDto): Promise<Comic> {
     await this.comicRepository.update(id, updateComicDto);
-    return await this.findOne(id);
+    const comic = await this.findOne(id);
+    if (!comic) {
+      throw new Error(`Comic with id ${id} not found`);
+    }
+    return comic;
   }
 
   async remove(id: string): Promise<void> {

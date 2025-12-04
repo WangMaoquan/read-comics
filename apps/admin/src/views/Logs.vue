@@ -1,10 +1,7 @@
 <script setup lang="ts">
   import { ref, onMounted, watch } from 'vue';
-  import {
-    logsService,
-    type SystemLog,
-    type LogStats,
-  } from '../api/services/logsService';
+  import { logsService } from '../api/client';
+  import type { SystemLog, LogStats } from '@read-comics/api-client';
 
   // 状态
   const logs = ref<SystemLog[]>([]);

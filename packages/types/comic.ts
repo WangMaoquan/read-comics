@@ -20,7 +20,7 @@ export interface Comic {
   status: ComicStatus;
   isFavorite?: boolean;
   readingProgress?: ReadingProgress[];
-  progress: number;
+  progress?: number;
 }
 
 export interface Chapter {
@@ -43,7 +43,7 @@ export interface ReadingProgress {
   totalPages: number;
   progress: number; // 0-100
   lastReadAt: Date;
-  isReadComplete: false;
+  isReadComplete: boolean;
 }
 
 export interface UserPreferences {
