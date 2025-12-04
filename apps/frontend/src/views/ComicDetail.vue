@@ -20,7 +20,6 @@
   const chapters = computed(() => comicStore.chapters);
   const currentChapter = ref<Chapter | null>(null);
   const readingProgress = ref<ReadingProgress | null>(null);
-  const allReadingProgress = ref<ReadingProgress[]>([]);
 
   // 获取漫画ID
   const comicId = computed(() => route.params.id as string);
@@ -51,34 +50,33 @@
   const loadComicDetails = async () => {
     try {
       await comicStore.fetchComicById(comicId.value);
+      // 从漫画详情中获取阅读进度（取最近的一条）
+      if (
+        comic.value?.readingProgress &&
+        comic.value.readingProgress.length > 0
+      ) {
+        readingProgress.value = comic.value.readingProgress[0];
+      }
     } catch (error) {
       handleError(error, 'Failed to load comic details');
     }
   };
 
-  // 加载阅读进度
+  // 加载阅读进度（现在从 comic 和 chapters 中获取）
   const loadProgress = async () => {
     try {
-      // 获取最近阅读进度（用于继续阅读）
-      const progress = await comicsService.getProgress(comicId.value);
-      readingProgress.value = progress;
-
-      // 获取所有章节进度（用于列表状态）
-      const allProgress = await comicsService.getAllProgress(comicId.value);
-      allReadingProgress.value = allProgress;
-
+      // 阅读进度已经在 loadComicDetails 和 loadChapters 中加载了
       // 如果有进度，设置当前章节
-      if (progress && chapters.value.length > 0) {
+      if (readingProgress.value && chapters.value.length > 0) {
         const chapter = chapters.value.find(
-          (ch) => ch.id === progress.chapterId,
+          (ch) => ch.id === readingProgress.value!.chapterId,
         );
         if (chapter) {
           currentChapter.value = chapter;
         }
       }
     } catch (error) {
-      // 忽略 404 错误（未开始阅读）
-      // console.log('No reading progress found', error);
+      // 忽略错误
     }
   };
 
@@ -101,19 +99,11 @@
 
   // 判断章节是否已读
   const isChapterRead = (chapter: Chapter): boolean => {
-    if (!allReadingProgress.value.length) return false;
+    // 检查章节自带的阅读进度
+    if (!chapter.readingProgress) return false;
 
-    // 找到该章节的进度
-    const chapterProgress = allReadingProgress.value.find(
-      (p) => p.chapterId === chapter.id,
-    );
-
-    if (!chapterProgress) return false;
-
-    // 如果进度为100%，或者页码已经到了最后一页（简单判断）
-    // 这里我们可以认为只要有进度记录且进度 > 90% 就算已读，或者完全精确匹配
-    // 为了用户体验，通常 > 90% 或者最后一页就算已读
-    return chapterProgress.progress >= 90;
+    // 如果进度 >= 90%，认为已读
+    return chapter.readingProgress.progress >= 90;
   };
 
   // 导航功能

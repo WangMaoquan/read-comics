@@ -137,6 +137,19 @@ export class ComicsService {
 
   async findOne(id: string): Promise<Comic> {
     const comic = await this.comicRepository.findOne({ where: { id } });
+
+    if (comic) {
+      // 加载所有阅读进度
+      const progressRecords = await this.progressRepository.find({
+        where: { comicId: id },
+        order: { lastReadAt: 'DESC' },
+      });
+
+      if (progressRecords.length > 0) {
+        (comic as any).readingProgress = progressRecords;
+      }
+    }
+
     return comic!;
   }
 
@@ -224,13 +237,6 @@ export class ComicsService {
   ): Promise<ReadingProgress | null> {
     return await this.progressRepository.findOne({
       where: { comicId, chapterId },
-    });
-  }
-
-  async getAllProgress(comicId: string): Promise<ReadingProgress[]> {
-    return await this.progressRepository.find({
-      where: { comicId },
-      order: { lastReadAt: 'DESC' },
     });
   }
 }

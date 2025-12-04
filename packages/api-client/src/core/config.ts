@@ -10,7 +10,6 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/comics/${id}`,
     chapters: (id: string) => `/chapters?comicId=${id}`,
     progress: (id: string) => `/comics/${id}/progress`,
-    progressAll: (id: string) => `/comics/${id}/progress/all`,
     progressChapter: (id: string, chapterId: string) =>
       `/comics/${id}/progress/chapter/${chapterId}`,
     toggleFavorite: (id: string) => `/comics/${id}/favorite`,

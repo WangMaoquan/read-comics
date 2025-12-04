@@ -19,6 +19,7 @@ export interface Comic {
   rating?: number;
   status: ComicStatus;
   isFavorite?: boolean;
+  readingProgress?: ReadingProgress[];
 }
 
 export interface Chapter {
@@ -30,6 +31,7 @@ export interface Chapter {
   createdAt: Date;
   updatedAt: Date;
   pages: string[];
+  readingProgress?: ReadingProgress;
 }
 
 export interface ReadingProgress {

@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChaptersService } from './chapters.service';
 import { ChaptersController } from './chapters.controller';
 import { Chapter } from '@entities/chapter.entity';
+import { ReadingProgress } from '@entities/reading-progress.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Chapter])],
+  imports: [TypeOrmModule.forFeature([Chapter, ReadingProgress])],
   controllers: [ChaptersController],
   providers: [ChaptersService],
   exports: [ChaptersService],
