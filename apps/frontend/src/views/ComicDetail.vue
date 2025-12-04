@@ -166,14 +166,6 @@
     });
   };
 
-  // 处理图片加载错误
-  const handleImageError = (event: Event) => {
-    const target = event.target as HTMLImageElement | null;
-    if (target) {
-      target.src = '/placeholder.png';
-    }
-  };
-
   // 初始化
   onMounted(async () => {
     await loadComicDetails();
@@ -249,14 +241,32 @@
           <div class="sticky top-24 space-y-6">
             <!-- 封面 -->
             <div
-              class="aspect-2/3 w-full rounded-lg overflow-hidden shadow-lg relative group"
+              class="aspect-2/3 w-full rounded-lg overflow-hidden shadow-lg relative group bg-gray-200 dark:bg-gray-700"
             >
               <img
-                :src="`http://localhost:4399/images/thumbnail?comicPath=${encodeURIComponent(comic.filePath)}&imagePath=${encodeURIComponent(comic.cover || '')}`"
+                v-if="comic.cover"
+                :src="`/api${comic.cover}`"
                 :alt="comic.title"
                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                @error="handleImageError"
               />
+              <div
+                v-else
+                class="w-full h-full flex items-center justify-center"
+              >
+                <svg
+                  class="w-16 h-16 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
               <div
                 class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-300"
               ></div>
