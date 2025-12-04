@@ -4,11 +4,13 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
+  Unique,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Comic } from './comic.entity';
 
 @Entity('reading_progress')
+@Unique(['comicId', 'chapterId'])
 export class ReadingProgress {
   @ApiProperty({ description: '进度记录唯一标识符' })
   @PrimaryGeneratedColumn('uuid')

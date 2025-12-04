@@ -94,6 +94,27 @@ export class ComicsController {
     return this.comicsService.getProgress(id);
   }
 
+  @Get(':id/progress/all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取所有章节阅读进度（需要登录）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getAllProgress(@Param('id') id: string) {
+    return this.comicsService.getAllProgress(id);
+  }
+
+  @Get(':id/progress/chapter/:chapterId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取指定章节阅读进度（需要登录）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getChapterProgress(
+    @Param('id') id: string,
+    @Param('chapterId') chapterId: string,
+  ) {
+    return this.comicsService.getChapterProgress(id, chapterId);
+  }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'super_admin')

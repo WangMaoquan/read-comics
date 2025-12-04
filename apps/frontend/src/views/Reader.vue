@@ -152,8 +152,24 @@
   });
 
   // 获取路由参数
-  const comicId = computed(() => route.params.comicId as string);
-  const chapterId = computed(() => route.params.chapterId as string);
+  // 获取路由参数
+  // 使用 ref 而不是 computed，以防止在路由切换（组件卸载）时 route.params 变为空/undefined
+  const comicId = ref(route.params.comicId as string);
+  const chapterId = ref(route.params.chapterId as string);
+
+  // 监听路由变化更新 ID
+  watch(
+    () => route.params,
+    (newParams) => {
+      if (newParams.comicId) {
+        comicId.value = newParams.comicId as string;
+      }
+      if (newParams.chapterId) {
+        chapterId.value = newParams.chapterId as string;
+      }
+    },
+    { immediate: true },
+  );
 
   // 计算属性
   const totalPages = computed(() => images.value.length);
@@ -236,7 +252,7 @@
       }
 
       // 恢复阅读进度
-      restoreProgress();
+      await restoreProgress();
     } catch (error) {
       handleError(error, 'Failed to load chapter images');
     } finally {
@@ -246,6 +262,8 @@
 
   // 保存阅读进度
   const saveProgress = async () => {
+    if (!comicId.value || !chapterId.value) return;
+
     const progressData = {
       comicId: comicId.value,
       chapterId: chapterId.value,
@@ -274,10 +292,12 @@
   };
 
   // 恢复阅读进度
-  const restoreProgress = () => {
+  const restoreProgress = async () => {
+    // 1. 尝试从本地存储恢复
     const savedProgress = localStorage.getItem(
       `${STORAGE_KEYS.READING_PROGRESS_PREFIX}${comicId.value}_${chapterId.value}`,
     );
+
     if (savedProgress) {
       try {
         const progressData = JSON.parse(savedProgress);
@@ -286,9 +306,26 @@
           totalPages.value - 1,
         );
         readingMode.value = progressData.readingMode || ReadingMode.SINGLE_PAGE;
+        return;
       } catch (error) {
-        logger.error('Failed to restore progress', error);
+        logger.error('Failed to restore progress form localStorage', error);
       }
+    }
+
+    // 2. 如果本地没有，尝试从服务器获取
+    try {
+      const progress = await comicsService.getChapterProgress(
+        comicId.value,
+        chapterId.value,
+      );
+      if (progress) {
+        currentPage.value = Math.min(
+          progress.currentPage,
+          totalPages.value - 1,
+        );
+      }
+    } catch (error) {
+      // 忽略错误
     }
   };
 

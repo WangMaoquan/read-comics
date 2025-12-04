@@ -79,4 +79,25 @@ export class ComicsService {
       API_ENDPOINTS.comics.progress(comicId),
     );
   }
+
+  /**
+   * 获取所有章节阅读进度
+   */
+  async getAllProgress(comicId: string): Promise<ReadingProgress[]> {
+    return this.client.get<ReadingProgress[]>(
+      API_ENDPOINTS.comics.progressAll(comicId),
+    );
+  }
+
+  /**
+   * 获取指定章节阅读进度
+   */
+  async getChapterProgress(
+    comicId: string,
+    chapterId: string,
+  ): Promise<ReadingProgress> {
+    return this.client.get<ReadingProgress>(
+      API_ENDPOINTS.comics.progressChapter(comicId, chapterId),
+    );
+  }
 }

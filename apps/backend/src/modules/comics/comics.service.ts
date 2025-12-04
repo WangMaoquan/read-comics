@@ -181,7 +181,7 @@ export class ComicsService {
     updateProgressDto: UpdateProgressDto,
   ): Promise<ReadingProgress> {
     let progress = await this.progressRepository.findOne({
-      where: { comicId },
+      where: { comicId, chapterId: updateProgressDto.chapterId },
     });
 
     if (!progress) {
@@ -193,7 +193,6 @@ export class ComicsService {
         ),
       });
     } else {
-      progress.chapterId = updateProgressDto.chapterId;
       progress.currentPage = updateProgressDto.currentPage;
       progress.totalPages = updateProgressDto.totalPages;
       progress.progress = Math.round(
@@ -212,8 +211,26 @@ export class ComicsService {
   }
 
   async getProgress(comicId: string): Promise<ReadingProgress | null> {
+    // Return the most recently read chapter progress
     return await this.progressRepository.findOne({
       where: { comicId },
+      order: { lastReadAt: 'DESC' },
+    });
+  }
+
+  async getChapterProgress(
+    comicId: string,
+    chapterId: string,
+  ): Promise<ReadingProgress | null> {
+    return await this.progressRepository.findOne({
+      where: { comicId, chapterId },
+    });
+  }
+
+  async getAllProgress(comicId: string): Promise<ReadingProgress[]> {
+    return await this.progressRepository.find({
+      where: { comicId },
+      order: { lastReadAt: 'DESC' },
     });
   }
 }
