@@ -34,10 +34,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import {
-    favoritesService,
-    FavoriteStatus,
-  } from '@api/services/favoritesService';
+  import { favoritesService, FavoriteStatus } from '@api/services';
   import { useAuthStore } from '@stores/auth';
   import { toast } from '../composables/useToast';
 

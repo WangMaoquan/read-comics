@@ -12,7 +12,7 @@ export {
   filesService,
   imagesService,
   usersService,
-} from '../new-client';
+} from '../client';
 
 // 重新导出类型
 export {

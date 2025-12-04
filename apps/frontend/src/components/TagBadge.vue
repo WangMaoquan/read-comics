@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-  import type { Tag } from '@api/services/tagsService';
+  import type { Tag } from '@api/services';
 
   const props = withDefaults(
     defineProps<{
