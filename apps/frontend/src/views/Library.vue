@@ -4,7 +4,7 @@
   import { refDebounced } from '@vueuse/core';
   import LoadingSpinner from '@components/LoadingSpinner.vue';
   import Pagination from '@components/Pagination.vue';
-  import type { Comic } from '@read-comics/types';
+  import type { Comic, PaginatedResult } from '@read-comics/types';
 
   import { useComicStore } from '../stores/comic';
   import { comicsService } from '../api/services';
@@ -57,7 +57,7 @@
       const backendSortBy = sort ? sortMapping[sort] : sortMapping['date'];
       const sortOrder: 'asc' | 'desc' = sort === 'title' ? 'asc' : 'desc';
 
-      const result = await comicsService.getComics({
+      const result: PaginatedResult<Comic> = await comicsService.getComics({
         page: currentPage.value,
         pageSize: pageSize.value,
         sortBy: backendSortBy,
