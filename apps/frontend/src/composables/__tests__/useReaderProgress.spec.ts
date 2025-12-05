@@ -46,7 +46,7 @@ describe('useReaderProgress', () => {
     const chapterId = ref('chapter-1');
     const currentPage = ref(5);
     const totalPages = ref(10);
-    const readingMode = ref(ReadingMode.SINGLE);
+    const readingMode = ref(ReadingMode.SINGLE_PAGE);
 
     vi.mocked(comicsService.updateProgress).mockResolvedValueOnce({
       id: '1',
