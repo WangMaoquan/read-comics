@@ -310,15 +310,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 分页 -->
-        <Pagination
-          v-if="totalPages > 0"
-          :current-page="currentPage"
-          :total-pages="totalPages"
-          :total="totalComics"
-          @page-change="handlePageChange"
-        />
       </div>
     </div>
 
@@ -389,6 +380,16 @@
           :comic="comic"
           :index="index"
           @click="goToComicDetail"
+        />
+      </div>
+
+      <!-- 分页 - 底部 -->
+      <div v-if="totalPages > 1" class="mt-8 flex justify-center">
+        <Pagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total="totalComics"
+          @page-change="handlePageChange"
         />
       </div>
     </main>

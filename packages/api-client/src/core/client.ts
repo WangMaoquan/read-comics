@@ -80,8 +80,19 @@ export class ApiClient {
     // 响应拦截器
     this.instance.interceptors.response.use(
       <T = any>(response: AxiosResponse<ApiResponse<T>>) => {
-        // 解包双层结构：response.data.data
-        return response.data.data as T;
+        // 后端的 TransformInterceptor 会将分页数据展开到根级别
+        // 例如: { code, message, success, data: [], total, page, pageSize, totalPages }
+        // 我们需要检查是否是分页响应
+        const responseData = response.data as any;
+
+        if (responseData && 'total' in responseData && 'page' in responseData) {
+          // 分页响应：重新组装 PaginatedResult 结构
+          const { data, total, page, pageSize, totalPages } = responseData;
+          return { data, total, page, pageSize, totalPages } as T;
+        }
+
+        // 普通响应：返回 data 字段
+        return responseData.data as T;
       },
       (error) => {
         if (error.response?.status === 401) {
