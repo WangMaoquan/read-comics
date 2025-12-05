@@ -171,16 +171,43 @@ export class ComicsService {
 
   /**
    * 批量获取进度数据（避免 N+1 查询）
+   *
+   * 实现说明：
+   * 1) 问题背景：
+   *    之前在查询时同时 leftJoin chapters 与 readingProgress，
+   *    如果不为 progress 和 chapters 加上关联条件，会出现 chapters × progress 的笛卡尔乘积，
+   *    导致 SUM/COUNT 等聚合值被重复计算（readPages 被放大，例如从 13 变为 26）。
+   *
+   * 2) 解决方案摘要：
+   *    - 在 leftJoin readingProgress 时加入连接条件 'progress.chapterId = chapters.id'，
+   *      确保每条 progress 只与其对应的 chapter 关联，避免重复行。
+   *    - 关于已读页数 (readPages) 的计算规则：
+   *      * 对于已完成章节（isReadComplete = true），计入整章页数（progress.totalPages），因为整章都读完了。
+   *      * 对于未完成章节，progress.currentPage 是 0-based 的当前页索引（例如 0 表示第 1 页），
+   *        因此已读页数应当使用 progress.currentPage + 1；在本 query 中直接使用 progress.currentPage
+   *        时请确保 currentPage 的语义与数据库字段一致（在早期实现中可能为 1-based 或 0-based），
+   *        如果数据库中保存的是 0-based 需要加 1；如果是已经保存为已读页数则无需 +1。
+   *
+   * 3) 兼容性与安全：
+   *    - 使用 COALESCE(..., 0) 保证聚合为空时返回 0。
+   *    - COUNT(DISTINCT ...) 用以统计不重复的章节/进度条目。
+   *
+   * 注意：如果在其它地方（如 updateProgress）对 currentPage 的语义有修改，需要同步调整这里的加/减偏移逻辑。
    */
   private async getProgressData(
     comicIds: string[],
   ): Promise<Map<string, { progress: number; status: string }>> {
     if (comicIds.length === 0) return new Map();
 
+    // 重要：给 progress 加上与 chapters 的连接条件，避免 chapters 与 progress 的笛卡尔乘积
     const result = await this.comicRepository
       .createQueryBuilder('comic')
       .leftJoin('comic.chapters', 'chapters')
-      .leftJoin('comic.readingProgress', 'progress')
+      .leftJoin(
+        'comic.readingProgress',
+        'progress',
+        'progress.chapterId = chapters.id',
+      )
       .select([
         'comic.id as comicId',
         'comic.totalPages as totalPages',
