@@ -316,6 +316,9 @@
   import { useUIStore } from '../stores/ui';
   import { useSettingsStore } from '../stores/settings';
   import { toast } from '../composables/useToast';
+  import { api } from '../api/client';
+  import { performanceMonitor } from '../utils/performance';
+  import { logger } from '../utils/logger';
 
   const uiStore = useUIStore();
   const settingsStore = useSettingsStore();
@@ -370,8 +373,29 @@
   };
 
   const clearCache = () => {
-    // TODO: 实现缓存清理
-    toast.info('缓存清理功能待实现');
+    try {
+      // 清除 API 缓存
+      if (api.client.cache) {
+        api.client.cache.clear();
+        logger.info('API cache cleared');
+      }
+
+      // 清除性能监控数据
+      performanceMonitor.clear();
+      logger.info('Performance monitoring data cleared');
+
+      // 清除日志（保留最近的错误日志）
+      const errorLogs = logger.getLogs().filter((log) => log.level === 'ERROR');
+      logger.clear();
+      logger.info('Cache and logs cleared', {
+        preservedErrorLogs: errorLogs.length,
+      });
+
+      toast.success('缓存已清除');
+    } catch (error) {
+      logger.error('Failed to clear cache', error);
+      toast.error('清除缓存失败');
+    }
   };
 
   const backupData = () => {
