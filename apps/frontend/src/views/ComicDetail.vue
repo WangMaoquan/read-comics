@@ -1,111 +1,42 @@
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
+  import { computed, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import LoadingSpinner from '@components/LoadingSpinner.vue';
-  import type { Chapter, ReadingProgress } from '@read-comics/types';
   import { ComicStatus } from '@read-comics/types';
-  import { comicsService } from '@/api/services';
-  import { handleError } from '@/utils/errorHandler';
   import { useReaderStore, useComicStore } from '@/stores';
+  import { useComicDetail } from '@/composables/useComicDetail';
+  import { useFavorite } from '@/composables/useFavorite';
 
   const route = useRoute();
   const router = useRouter();
   const comicStore = useComicStore();
   const readerStore = useReaderStore();
 
-  // 状态管理
-  const loading = computed(() => comicStore.loading);
-  const loadingChapters = ref(false);
-  const comic = computed(() => comicStore.currentComic);
-  const chapters = computed(() => comicStore.chapters);
-  const currentChapter = ref<Chapter | null>(null);
-  const readingProgress = ref<ReadingProgress | null>(null);
-
   // 获取漫画ID
   const comicId = computed(() => route.params.id as string);
+
+  // 使用 composables
+  const {
+    loadingChapters,
+    currentChapter,
+    readingProgress,
+    loadComicDetails,
+    loadChapters,
+    loadProgress,
+    isChapterRead,
+  } = useComicDetail(comicId);
+
+  const { toggleFavorite: toggleFavoriteAction } = useFavorite();
+
+  // 状态管理
+  const loading = computed(() => comicStore.loading);
+  const comic = computed(() => comicStore.currentComic);
+  const chapters = computed(() => comicStore.chapters);
 
   // 切换收藏状态
   const toggleFavorite = async () => {
     if (!comic.value) return;
-    try {
-      const updatedComic = await comicsService.toggleFavorite(comic.value.id);
-      // 更新 store 中的当前漫画
-      comicStore.$patch({ currentComic: updatedComic });
-
-      // 如果在列表中也存在，更新列表
-      const index = comicStore.comics.findIndex(
-        (c) => c.id === updatedComic.id,
-      );
-      if (index !== -1) {
-        const newComics = [...comicStore.comics];
-        newComics[index] = updatedComic;
-        comicStore.$patch({ comics: newComics });
-      }
-    } catch (error) {
-      handleError(error, 'Failed to toggle favorite');
-    }
-  };
-
-  // 加载漫画详情
-  const loadComicDetails = async () => {
-    try {
-      await comicStore.fetchComicById(comicId.value);
-      // 从漫画详情中获取阅读进度（取最近的一条）
-      if (
-        comic.value?.readingProgress &&
-        comic.value.readingProgress.length > 0
-      ) {
-        readingProgress.value = comic.value.readingProgress[0];
-      }
-    } catch (error) {
-      handleError(error, 'Failed to load comic details');
-    }
-  };
-
-  // 加载阅读进度（现在从 comic 和 chapters 中获取）
-  const loadProgress = async () => {
-    try {
-      // 阅读进度已经在 loadComicDetails 和 loadChapters 中加载了
-      // 如果有进度，设置当前章节
-      if (readingProgress.value && chapters.value.length > 0) {
-        const chapter = chapters.value.find(
-          (ch) => ch.id === readingProgress.value!.chapterId,
-        );
-        if (chapter) {
-          currentChapter.value = chapter;
-        }
-      }
-    } catch (error) {
-      // 忽略错误
-    }
-  };
-
-  // 加载章节列表
-  const loadChapters = async () => {
-    loadingChapters.value = true;
-    try {
-      await comicStore.fetchChapters(comicId.value);
-
-      // 设置默认章节（第一章）
-      if (chapters.value.length > 0 && !currentChapter.value) {
-        currentChapter.value = chapters.value[0];
-      }
-    } catch (error) {
-      handleError(error, 'Failed to load chapters');
-    } finally {
-      loadingChapters.value = false;
-    }
-  };
-
-  // 判断章节是否已读
-  const isChapterRead = (chapter: Chapter): boolean => {
-    // 检查章节自带的阅读进度
-    if (!chapter.readingProgress) return false;
-
-    const readingProgress = chapter.readingProgress;
-
-    // 如果进度 >= 90%，认为已读
-    return readingProgress.isReadComplete;
+    await toggleFavoriteAction(comic.value);
   };
 
   // 导航功能
