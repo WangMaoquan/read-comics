@@ -40,9 +40,21 @@ export class FavoritesController {
   @Get()
   @ApiOperation({ summary: '获取我的收藏列表' })
   @ApiQuery({ name: 'status', required: false, enum: FavoriteStatus })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiResponse({ status: 200, description: '获取成功' })
-  findAll(@Request() req, @Query('status') status?: FavoriteStatus) {
-    return this.favoritesService.findAllByUser(req.user.sub, status);
+  findAll(
+    @Request() req,
+    @Query('status') status?: FavoriteStatus,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    return this.favoritesService.findAllByUser(
+      req.user.sub,
+      status,
+      page ? Number(page) : 1,
+      pageSize ? Number(pageSize) : 20,
+    );
   }
 
   @Get('stats')

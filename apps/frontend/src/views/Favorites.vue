@@ -182,12 +182,22 @@
           浏览漫画库
         </router-link>
       </div>
+
+      <!-- 分页 - 底部 -->
+      <div v-if="totalPages > 1" class="mt-8 flex justify-center">
+        <Pagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total="totalFavorites"
+          @page-change="handlePageChange"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
+  import { ref, computed, onMounted, watch } from 'vue';
   import {
     comicsService,
     favoritesService,
@@ -195,6 +205,7 @@
     type Favorite,
   } from '@api/services';
   import ComicCard from '@/components/library/ComicCard.vue';
+  import Pagination from '@components/Pagination.vue';
 
   import { handleError } from '@/utils/errorHandler';
   import { useComicStore } from '@/stores';
@@ -211,6 +222,12 @@
   });
   const currentTab = ref<string | null>(null);
 
+  // 分页状态
+  const currentPage = ref(1);
+  const pageSize = ref(20);
+  const totalPages = ref(0);
+  const totalFavorites = ref(0);
+
   const tabs = [
     { label: '全部', value: null },
     { label: '正在阅读', value: FavoriteStatus.READING },
@@ -219,14 +236,21 @@
   ];
 
   const filteredFavorites = computed(() => {
-    if (!currentTab.value) return favorites.value;
-    return favorites.value.filter((f) => f.status === currentTab.value);
+    // 现在过滤由后端处理，直接返回当前页的数据
+    return favorites.value;
   });
 
   const loadFavorites = async () => {
     loading.value = true;
     try {
-      favorites.value = await favoritesService.getFavorites();
+      const result = await favoritesService.getFavorites({
+        status: currentTab.value as FavoriteStatus | undefined,
+        page: currentPage.value,
+        pageSize: pageSize.value,
+      });
+      favorites.value = result.data;
+      totalPages.value = result.totalPages;
+      totalFavorites.value = result.total;
     } catch (error) {
       handleError(error, '加载收藏失败');
     } finally {
@@ -258,6 +282,20 @@
       handleError(error, 'Failed to toggle favorite');
     }
   };
+
+  // 页码变化处理
+  const handlePageChange = (page: number) => {
+    currentPage.value = page;
+    loadFavorites();
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 监听标签切换
+  watch(currentTab, () => {
+    currentPage.value = 1; // 重置页码
+    loadFavorites();
+  });
 
   onMounted(() => {
     loadFavorites();

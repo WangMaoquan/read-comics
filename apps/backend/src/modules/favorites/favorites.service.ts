@@ -50,7 +50,15 @@ export class FavoritesService {
     return await this.favoritesRepository.save(favorite);
   }
 
-  async findAllByUser(userId: string, status?: FavoriteStatus) {
+  async findAllByUser(
+    userId: string,
+    status?: FavoriteStatus,
+    page: number = 1,
+    pageSize: number = 20,
+  ) {
+    const skip = (page - 1) * pageSize;
+    const take = Math.min(pageSize, 100); // 最大 100
+
     const queryBuilder = this.favoritesRepository
       .createQueryBuilder('favorite')
       .leftJoinAndSelect('favorite.comic', 'comic')
@@ -62,9 +70,13 @@ export class FavoritesService {
 
     queryBuilder.orderBy('favorite.updatedAt', 'DESC');
 
-    const favorites = await queryBuilder.getMany();
+    // 获取总数和分页数据
+    const [favorites, total] = await queryBuilder
+      .skip(skip)
+      .take(take)
+      .getManyAndCount();
 
-    return favorites.map((favorite) => ({
+    const data = favorites.map((favorite) => ({
       id: favorite.id,
       comicId: favorite.comicId,
       status: favorite.status,
@@ -72,6 +84,14 @@ export class FavoritesService {
       updatedAt: favorite.updatedAt,
       comic: favorite.comic,
     }));
+
+    return {
+      data,
+      total,
+      page,
+      pageSize: take,
+      totalPages: Math.ceil(total / take),
+    };
   }
 
   async findOne(userId: string, comicId: string) {

@@ -40,16 +40,16 @@ export class FavoritesService {
   }
 
   /**
-   * 获取收藏列表
+   * 获取收藏列表（分页）
    */
-  async getFavorites(status?: FavoriteStatus): Promise<Favorite[]> {
-    const params: Record<string, string> = {};
-    if (status) {
-      params.status = status;
-    }
-    return this.client.get<Favorite[]>(API_ENDPOINTS.favorites.base, {
-      params,
-    });
+  async getFavorites(params?: {
+    status?: FavoriteStatus;
+    page?: number;
+    pageSize?: number;
+  }): Promise<import('@read-comics/types').PaginatedResult<Favorite>> {
+    return this.client.get<
+      import('@read-comics/types').PaginatedResult<Favorite>
+    >(API_ENDPOINTS.favorites.base, { params });
   }
 
   /**
