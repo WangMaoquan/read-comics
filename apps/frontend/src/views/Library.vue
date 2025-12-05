@@ -52,19 +52,20 @@
 
       if (search) {
         // 如果有搜索词，调用搜索 API
-        const searchResults = await comicsService.searchComics(search, {
+        const result = await comicsService.searchComics(search, {
           sortBy: backendSortBy,
           sortOrder: sortOrder,
         });
-        // 直接更新 store 的 comics
-        comicStore.$patch({ comics: searchResults });
+        // 提取分页结果中的 data
+        comicStore.$patch({ comics: result.data });
       } else {
         // 否则加载所有漫画，支持排序
-        const allComics = await comicsService.getComics({
+        const result = await comicsService.getComics({
           sortBy: backendSortBy,
           sortOrder: sortOrder,
         });
-        comicStore.$patch({ comics: allComics });
+        // 提取分页结果中的 data
+        comicStore.$patch({ comics: result.data });
       }
     } catch (error) {
       handleError(error, 'Failed to load comics');

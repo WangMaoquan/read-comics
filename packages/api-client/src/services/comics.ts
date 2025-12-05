@@ -1,8 +1,15 @@
 import { ApiClient } from '../core/client';
 import { API_ENDPOINTS } from '../core/config';
-import type { Comic, Chapter, ReadingProgress } from '@read-comics/types';
+import type {
+  Comic,
+  Chapter,
+  ReadingProgress,
+  PaginatedResult,
+} from '@read-comics/types';
 
 export interface GetComicsParams {
+  page?: number;
+  pageSize?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   isFavorite?: boolean;
@@ -19,20 +26,22 @@ export class ComicsService {
   constructor(private client: ApiClient) {}
 
   /**
-   * 获取漫画列表
+   * 获取漫画列表（分页）
    */
-  async getComics(params?: GetComicsParams): Promise<Comic[]> {
-    return this.client.get<Comic[]>(API_ENDPOINTS.comics.list, { params });
+  async getComics(params?: GetComicsParams): Promise<PaginatedResult<Comic>> {
+    return this.client.get<PaginatedResult<Comic>>(API_ENDPOINTS.comics.list, {
+      params,
+    });
   }
 
   /**
-   * 搜索漫画
+   * 搜索漫画（分页）
    */
   async searchComics(
     query: string,
     params?: Omit<GetComicsParams, 'search'>,
-  ): Promise<Comic[]> {
-    return this.client.get<Comic[]>(API_ENDPOINTS.comics.list, {
+  ): Promise<PaginatedResult<Comic>> {
+    return this.client.get<PaginatedResult<Comic>>(API_ENDPOINTS.comics.list, {
       params: { ...params, search: query },
     });
   }
