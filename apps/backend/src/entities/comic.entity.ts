@@ -8,6 +8,7 @@ import {
   OneToOne,
   ManyToMany,
   JoinTable,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Chapter } from './chapter.entity';
@@ -17,6 +18,12 @@ import { Tag } from './tag.entity';
 import { ComicFormat, ComicStatus } from '@read-comics/types';
 
 @Entity('comics')
+@Index(['title'])
+@Index(['fileFormat'])
+@Index(['status'])
+@Index(['isFavorite'])
+@Index(['createdAt'])
+@Index(['lastReadAt'])
 export class Comic {
   @ApiProperty({
     description: '漫画唯一标识符',

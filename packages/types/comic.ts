@@ -91,14 +91,24 @@ export enum Theme {
 
 export interface ComicFilter {
   search?: string;
-  format?: ComicFormat[];
-  status?: ComicStatus[];
-  tags?: string[];
-  author?: string;
-  rating?: number;
-  sortBy?: ComicSortBy;
-  sortOrder?: 'asc' | 'desc';
+  format?: string[];
+  status?: string[];
   isFavorite?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  page?: number; // 页码，从 1 开始
+  pageSize?: number; // 每页数量，默认 20
+}
+
+/**
+ * 分页结果
+ */
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export enum ComicSortBy {

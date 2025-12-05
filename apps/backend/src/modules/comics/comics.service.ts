@@ -8,7 +8,7 @@ import { Tag } from '@entities/tag.entity';
 import { CreateComicDto } from './dto/create-comic.dto';
 import { UpdateComicDto } from './dto/update-comic.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
-import { ComicFilter, ComicStatus } from '@read-comics/types';
+import { ComicFilter, ComicStatus, PaginatedResult } from '@read-comics/types';
 
 import { ChaptersService } from '../chapters/chapters.service';
 import { FavoritesService } from '../favorites/favorites.service';
@@ -100,9 +100,14 @@ export class ComicsService {
     }
   }
 
-  async findAll(filter?: ComicFilter): Promise<Comic[]> {
+  async findAll(filter?: ComicFilter): Promise<PaginatedResult<Comic>> {
+    const page = filter?.page || 1;
+    const pageSize = Math.min(filter?.pageSize || 20, 100); // 最大 100
+    const skip = (page - 1) * pageSize;
+
     const queryBuilder = this.comicRepository.createQueryBuilder('comic');
 
+    // 应用过滤条件
     if (filter?.search) {
       queryBuilder.where('comic.title LIKE :search', {
         search: `%${filter.search}%`,
@@ -127,53 +132,92 @@ export class ComicsService {
       });
     }
 
+    // 排序
     if (filter?.sortBy) {
       const sortOrder = filter.sortOrder === 'desc' ? 'DESC' : 'ASC';
       queryBuilder.orderBy(`comic.${filter.sortBy}`, sortOrder);
+    } else {
+      queryBuilder.orderBy('comic.createdAt', 'DESC');
     }
 
-    // 注意：这里使用 leftJoinAndSelect 会加载所有关联数据
-    // 如果漫画数量很大，建议添加分页或限制返回数量
-    const result = await queryBuilder
-      .leftJoinAndSelect('comic.readingProgress', 'readingProgress')
-      .leftJoinAndSelect('comic.chapters', 'chapters')
-      .getMany();
+    // 分页
+    queryBuilder.skip(skip).take(pageSize);
 
-    return result.map((comic) => {
+    // 执行查询 - 不加载关联数据
+    const [comics, total] = await queryBuilder.getManyAndCount();
+
+    // 批量加载进度数据（优化 N+1 问题）
+    const comicIds = comics.map((c) => c.id);
+    const progressData = await this.getProgressData(comicIds);
+
+    // 计算 status 和 progress
+    const enrichedComics = comics.map((comic) => {
+      const data = progressData.get(comic.id);
+      return {
+        ...comic,
+        progress: data?.progress || 0,
+        status: data?.status || ComicStatus.UNREAD,
+      } as Comic;
+    });
+
+    return {
+      data: enrichedComics,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 批量获取进度数据（避免 N+1 查询）
+   */
+  private async getProgressData(
+    comicIds: string[],
+  ): Promise<Map<string, { progress: number; status: string }>> {
+    if (comicIds.length === 0) return new Map();
+
+    const result = await this.comicRepository
+      .createQueryBuilder('comic')
+      .leftJoin('comic.chapters', 'chapters')
+      .leftJoin('comic.readingProgress', 'progress')
+      .select([
+        'comic.id as comicId',
+        'comic.totalPages as totalPages',
+        'COUNT(DISTINCT chapters.id) as totalChapters',
+        'COUNT(DISTINCT CASE WHEN progress.isReadComplete = 1 THEN progress.id END) as completedChapters',
+        'COALESCE(SUM(CASE WHEN progress.isReadComplete = 1 THEN progress.totalPages ELSE progress.currentPage END), 0) as readPages',
+      ])
+      .where('comic.id IN (:...comicIds)', { comicIds })
+      .groupBy('comic.id')
+      .getRawMany();
+
+    const dataMap = new Map();
+
+    for (const row of result) {
+      const readPages = parseInt(row.readPages) || 0;
+      const totalPages = parseInt(row.totalPages) || 1;
+      const totalChapters = parseInt(row.totalChapters) || 0;
+      const completedChapters = parseInt(row.completedChapters) || 0;
+
       let progress = 0;
-      let status: string = ComicStatus.UNREAD;
-      const progressRecords = comic.readingProgress || [];
-      const chapters = comic.chapters || [];
+      let status = ComicStatus.UNREAD;
 
-      if (progressRecords.length === 0) {
-        // 没有阅读记录
+      if (completedChapters === 0) {
         progress = 0;
         status = ComicStatus.UNREAD;
-      } else if (
-        progressRecords.length === chapters.length &&
-        progressRecords.every((p) => p.isReadComplete === true)
-      ) {
-        // 所有章节都已读完
+      } else if (totalChapters > 0 && completedChapters === totalChapters) {
         progress = 100;
         status = ComicStatus.COMPLETED;
       } else {
-        // 正在阅读中
-        const readPages = progressRecords.reduce(
-          (sum, record) =>
-            sum +
-            (record.isReadComplete ? record.totalPages : record.currentPage),
-          0,
-        );
-        progress = Math.round((readPages / comic.totalPages) * 100);
+        progress = Math.round((readPages / totalPages) * 100);
         status = ComicStatus.READING;
       }
 
-      return {
-        ...comic,
-        progress,
-        status,
-      } as Comic;
-    });
+      dataMap.set(row.comicId, { progress, status });
+    }
+
+    return dataMap;
   }
 
   // 后续补充 vo , 需要将 对应 的vo 放到 packages/types 中
