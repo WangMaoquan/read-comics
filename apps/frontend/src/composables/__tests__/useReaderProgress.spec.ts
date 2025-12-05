@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ref } from 'vue';
 import { useReaderProgress } from '../useReaderProgress';
+import type { ReadingProgress } from '@read-comics/types';
+import { ReadingMode } from '@read-comics/types';
 
 // Mock API
 vi.mock('@/api/services', () => ({
@@ -44,7 +46,7 @@ describe('useReaderProgress', () => {
     const chapterId = ref('chapter-1');
     const currentPage = ref(5);
     const totalPages = ref(10);
-    const readingMode = ref('single' as any);
+    const readingMode = ref(ReadingMode.SINGLE);
 
     vi.mocked(comicsService.updateProgress).mockResolvedValueOnce({
       id: '1',
@@ -119,7 +121,7 @@ describe('useReaderProgress', () => {
     const readingMode = ref('single' as any);
 
     vi.mocked(comicsService.getChapterProgress).mockResolvedValueOnce(
-      undefined as any,
+      null as unknown as ReadingProgress,
     );
 
     const { restoreProgress } = useReaderProgress(

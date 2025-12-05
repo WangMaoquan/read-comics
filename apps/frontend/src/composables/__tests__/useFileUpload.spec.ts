@@ -40,7 +40,7 @@ describe('useFileUpload', () => {
       target: {
         files: [mockFile],
       },
-    } as any;
+    } as unknown as Event;
 
     const result = handleFileSelect(mockEvent);
 

@@ -43,7 +43,7 @@ describe('useImagePreload', () => {
       const img = { src: '' };
       images.push(img);
       return img;
-    }) as any;
+    }) as unknown as typeof Image;
 
     preloadImages();
 
@@ -65,7 +65,7 @@ describe('useImagePreload', () => {
 
     const { preloadImages } = useImagePreload(pages, currentPage);
 
-    global.Image = vi.fn() as any;
+    global.Image = vi.fn() as unknown as typeof Image;
 
     preloadImages();
 
@@ -87,7 +87,7 @@ describe('useImagePreload', () => {
       const img = { src: '' };
       images.push(img);
       return img;
-    }) as any;
+    }) as unknown as typeof Image;
 
     preloadImages();
 
@@ -121,7 +121,7 @@ describe('useImagePreload', () => {
 
     const { preloadImages } = useImagePreload(pages, currentPage);
 
-    global.Image = vi.fn(() => ({ src: '' })) as any;
+    global.Image = vi.fn(() => ({ src: '' })) as unknown as typeof Image;
 
     preloadImages();
 
