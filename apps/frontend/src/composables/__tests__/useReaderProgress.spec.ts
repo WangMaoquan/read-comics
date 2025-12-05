@@ -13,7 +13,7 @@ vi.mock('@/api/services', () => ({
 // Mock performance monitor
 vi.mock('@/utils/performance', () => ({
   performanceMonitor: {
-    measure: vi.fn((name, fn) => fn()),
+    measure: vi.fn((_name, fn) => fn()),
   },
 }));
 
@@ -118,7 +118,9 @@ describe('useReaderProgress', () => {
     const totalPages = ref(10);
     const readingMode = ref('single' as any);
 
-    vi.mocked(comicsService.getChapterProgress).mockResolvedValueOnce(null);
+    vi.mocked(comicsService.getChapterProgress).mockResolvedValueOnce(
+      undefined as any,
+    );
 
     const { restoreProgress } = useReaderProgress(
       comicId,
