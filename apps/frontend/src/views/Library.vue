@@ -3,6 +3,7 @@
   import { useRouter } from 'vue-router';
   import { refDebounced } from '@vueuse/core';
   import LoadingSpinner from '@components/LoadingSpinner.vue';
+  import Pagination from '@components/Pagination.vue';
   import type { Comic } from '@read-comics/types';
 
   import { useComicStore } from '../stores/comic';
@@ -30,6 +31,12 @@
   const debouncedSearchQuery = refDebounced(searchQuery, 300);
   const sortBy = ref<'title' | 'date' | 'progress'>('date');
 
+  // 分页状态
+  const currentPage = ref(1);
+  const pageSize = ref(20);
+  const totalPages = ref(0);
+  const totalComics = ref(0);
+
   // 过滤和排序
   const filteredComics = computed(() => {
     // 现在搜索和排序都由后端处理
@@ -50,23 +57,18 @@
       const backendSortBy = sort ? sortMapping[sort] : sortMapping['date'];
       const sortOrder: 'asc' | 'desc' = sort === 'title' ? 'asc' : 'desc';
 
-      if (search) {
-        // 如果有搜索词，调用搜索 API
-        const result = await comicsService.searchComics(search, {
-          sortBy: backendSortBy,
-          sortOrder: sortOrder,
-        });
-        // 提取分页结果中的 data
-        comicStore.$patch({ comics: result.data });
-      } else {
-        // 否则加载所有漫画，支持排序
-        const result = await comicsService.getComics({
-          sortBy: backendSortBy,
-          sortOrder: sortOrder,
-        });
-        // 提取分页结果中的 data
-        comicStore.$patch({ comics: result.data });
-      }
+      const result = await comicsService.getComics({
+        page: currentPage.value,
+        pageSize: pageSize.value,
+        sortBy: backendSortBy,
+        sortOrder: sortOrder,
+        search: search,
+      });
+
+      // 更新数据和分页信息
+      comicStore.$patch({ comics: result.data });
+      totalPages.value = result.totalPages;
+      totalComics.value = result.total;
     } catch (error) {
       handleError(error, 'Failed to load comics');
     } finally {
@@ -74,13 +76,23 @@
     }
   };
 
+  // 页码变化处理
+  const handlePageChange = (page: number) => {
+    currentPage.value = page;
+    loadComics(debouncedSearchQuery.value, sortBy.value);
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // 监听防抖后的搜索词变化
   watch(debouncedSearchQuery, (newQuery) => {
+    currentPage.value = 1; // 重置页码
     loadComics(newQuery, sortBy.value);
   });
 
   // 监听排序变化
   watch(sortBy, (newSort) => {
+    currentPage.value = 1; // 重置页码
     loadComics(debouncedSearchQuery.value, newSort);
   });
 
@@ -298,6 +310,15 @@
             </div>
           </div>
         </div>
+
+        <!-- 分页 -->
+        <Pagination
+          v-if="totalPages > 0"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total="totalComics"
+          @page-change="handlePageChange"
+        />
       </div>
     </div>
 
