@@ -7,15 +7,19 @@
 
   import { useComicStore } from '../stores/comic';
   import { comicsService } from '../api/services';
-  import { validateFile } from '../utils/formatValidation';
   import UploadModal from '@components/library/UploadModal.vue';
   import ComicCard from '@components/library/ComicCard.vue';
   import ComicListItem from '@components/library/ComicListItem.vue';
-  import { toast } from '../composables/useToast';
   import { handleError } from '../utils/errorHandler';
+  import { useFileUpload } from '@/composables/useFileUpload';
+  import { useFavorite } from '@/composables/useFavorite';
 
   const router = useRouter();
   const comicStore = useComicStore();
+
+  // 使用 composables
+  const { fileInputRef, handleFileSelect } = useFileUpload();
+  const { toggleFavorite: toggleFavoriteAction } = useFavorite();
 
   // 状态管理
   const loading = ref(false);
@@ -86,23 +90,10 @@
 
   // 切换收藏状态
   const toggleFavorite = async (comic: Comic) => {
-    try {
-      const updatedComic = await comicsService.toggleFavorite(comic.id);
-      // 更新本地状态
-      const index = comicStore.comics.findIndex((c) => c.id === comic.id);
-      if (index !== -1) {
-        // 使用 patch 更新单个漫画
-        const newComics = [...comicStore.comics];
-        newComics[index] = updatedComic;
-        comicStore.$patch({ comics: newComics });
-      }
-    } catch (error) {
-      handleError(error, 'Failed to toggle favorite');
-    }
+    await toggleFavoriteAction(comic);
   };
 
   // 文件上传相关
-  const fileInputRef = ref<HTMLInputElement | null>(null);
   const showUploadModal = ref(false);
   const currentUploadFile = ref<File | null>(null);
 
@@ -112,27 +103,12 @@
   };
 
   // 处理文件选择
-  const handleFileSelect = async (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    const file = target.files?.[0];
-
-    if (!file) {
-      return;
+  const handleFileSelectEvent = async (event: Event) => {
+    const file = handleFileSelect(event);
+    if (file) {
+      currentUploadFile.value = file;
+      showUploadModal.value = true;
     }
-
-    // 使用统一的文件验证工具
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      toast.error(validation.error || '文件验证失败');
-      target.value = '';
-      return;
-    }
-
-    currentUploadFile.value = file;
-    showUploadModal.value = true;
-
-    // 重置 input，以便下次可以选择相同文件
-    target.value = '';
   };
 
   const onUploadSuccess = async () => {
@@ -173,7 +149,7 @@
               ref="fileInputRef"
               type="file"
               accept=".cbz,.zip"
-              @change="handleFileSelect"
+              @change="handleFileSelectEvent"
               class="hidden"
             />
 
