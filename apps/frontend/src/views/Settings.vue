@@ -375,21 +375,16 @@
   const clearCache = () => {
     try {
       // 清除 API 缓存
-      if (api.client.cache) {
-        api.client.cache.clear();
-        logger.info('API cache cleared');
-      }
+      api.client.invalidateCache();
+      logger.info('API cache cleared');
 
       // 清除性能监控数据
       performanceMonitor.clear();
       logger.info('Performance monitoring data cleared');
 
-      // 清除日志（保留最近的错误日志）
-      const errorLogs = logger.getLogs().filter((log) => log.level === 'ERROR');
+      // 清除日志
       logger.clear();
-      logger.info('Cache and logs cleared', {
-        preservedErrorLogs: errorLogs.length,
-      });
+      logger.info('Cache and logs cleared');
 
       toast.success('缓存已清除');
     } catch (error) {
