@@ -16,16 +16,17 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
-    /* Linting */
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
   "include": [
-    "vite.config.ts"
+    "vite.config.ts",
+    "vitest.config.ts"
   ]
 }
