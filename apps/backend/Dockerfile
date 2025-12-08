@@ -7,13 +7,21 @@ FROM base AS builder
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY packages ./packages
+
+# 1. Install dependencies for all workspace packages
+RUN pnpm install --frozen-lockfile --filter "./packages/**"
+
+# 2. Build all packages
+RUN pnpm --filter "./packages/**" build
+
+# 3. Copy app source
 COPY apps/backend ./apps/backend
 
-# Install dependencies for backend and its workspace dependencies
+# 4. Install app dependencies
 RUN pnpm install --frozen-lockfile --filter backend...
 
-# Build the backend and its dependencies
-RUN pnpm --filter backend... build
+# 5. Build the backend
+RUN pnpm --filter backend build
 
 FROM base AS runner
 WORKDIR /app

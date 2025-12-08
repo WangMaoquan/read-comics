@@ -7,14 +7,22 @@ FROM base AS builder
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY packages ./packages
+
+# 1. Install dependencies for all workspace packages
+RUN pnpm install --frozen-lockfile --filter "./packages/**"
+
+# 2. Build all packages
+RUN pnpm --filter "./packages/**" build
+
+# 3. Copy app source
 COPY apps/frontend ./apps/frontend
 
-# Install dependencies
+# 4. Install app dependencies
 RUN pnpm install --frozen-lockfile --filter frontend...
 
-# Build the frontend and its dependencies
+# 5. Build the frontend
 # Output will be in /app/dist/frontend based on vite.config.ts
-RUN pnpm --filter frontend... build
+RUN pnpm --filter frontend build
 
 FROM nginx:alpine AS runner
 # Copy custom nginx config
