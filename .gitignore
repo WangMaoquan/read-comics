@@ -82,7 +82,7 @@ yarn.lock
 .vitest/
 
 # Deployment
-deploy/
+# deploy/
 
 # Local development
 .local

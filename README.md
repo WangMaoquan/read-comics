@@ -81,9 +81,38 @@ pnpm install
 
 ### 构建生产版本
 
-```bash
 pnpm build
-```
+
+````
+
+### 🐳 Docker 部署
+
+1. **环境准备**
+   - Docker Engine 20.10+
+   - Docker Compose v2.0+
+
+2. **配置环境**
+   在 `apps/backend/` 目录下创建 `.env` 文件（参考 `.env.example`）：
+   ```bash
+   cp apps/backend/.env.example apps/backend/.env
+````
+
+并配置数据库连接信息。
+
+3. **启动服务**
+
+   ```bash
+   # 构建镜像
+   docker-compose build
+
+   # 启动所有服务
+   docker-compose up -d
+   ```
+
+4. **访问服务**
+   - **Frontend**: http://localhost:5173
+   - **Admin**: http://localhost:5174
+   - **Backend API**: http://localhost:4399
 
 ## 📁 项目结构
 

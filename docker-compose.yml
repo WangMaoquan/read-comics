@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    restart: always
+    ports:
+      - '4399:4399'
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      - PORT=4399
+      - JWT_SECRET=${JWT_SECRET:-super_secret_key}
+      - COMICS_PATH=/app/user-upload
+      - BACKUP_DIR=/app/backups
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - ./user-upload:/app/user-upload
+      - ./backups:/app/backups
+      - ./uploads:/app/uploads
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    restart: always
+    ports:
+      - '5173:5173'
+    depends_on:
+      - backend
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    restart: always
+    ports:
+      - '5174:5174'
+    depends_on:
+      - backend
+
+volumes:
