@@ -132,41 +132,71 @@ export class ComicsService {
       });
     }
 
-    // 排序
-    if (filter?.sortBy) {
-      const sortOrder = filter.sortOrder === 'desc' ? 'DESC' : 'ASC';
-      queryBuilder.orderBy(`comic.${filter.sortBy}`, sortOrder);
-    } else {
-      queryBuilder.orderBy('comic.createdAt', 'DESC');
-    }
+    const requestedSort = filter?.sortBy;
+    const sortOrder = filter?.sortOrder === 'desc' ? 'desc' : 'asc';
 
-    // 分页
-    queryBuilder.skip(skip).take(pageSize);
+    // 将“为 comics 加上 progress/status”封装为复用函数
+    const enrich = async (comics: Comic[]) => {
+      if (comics.length === 0) return [] as (Comic & { progress: number })[];
+      const comicIds = comics.map((c) => c.id);
+      const progressData = await this.getProgressData(comicIds);
 
-    // 执行查询 - 不加载关联数据
-    const [comics, total] = await queryBuilder.getManyAndCount();
-
-    // 批量加载进度数据（优化 N+1 问题）
-    const comicIds = comics.map((c) => c.id);
-    const progressData = await this.getProgressData(comicIds);
-
-    // 计算 status 和 progress
-    const enrichedComics = comics.map((comic) => {
-      const data = progressData.get(comic.id);
-      return {
-        ...comic,
-        progress: data?.progress || 0,
-        status: data?.status || ComicStatus.UNREAD,
-      } as Comic;
-    });
-
-    return {
-      data: enrichedComics,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      return comics.map((comic) => {
+        const data = progressData.get(comic.id);
+        return {
+          ...comic,
+          progress: data?.progress ?? 0,
+          status: data?.status ?? ComicStatus.UNREAD,
+        } as Comic & { progress: number };
+      });
     };
+
+    const isSortByProgress = requestedSort === 'lastReadAt';
+
+    if (isSortByProgress) {
+      // 按阅读进度排序：先取出所有匹配项 -> enrich -> 内存排序 -> 分页
+      queryBuilder.orderBy('comic.createdAt', 'DESC'); // 保持稳定顺序
+      const allComics = await queryBuilder.getMany();
+      const total = allComics.length;
+
+      const enriched = await enrich(allComics);
+      enriched.sort((a, b) =>
+        sortOrder === 'desc'
+          ? b.progress - a.progress
+          : a.progress - b.progress,
+      );
+
+      const paged = enriched.slice(skip, skip + pageSize);
+
+      return {
+        data: paged,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      };
+    } else {
+      // 非按进度排序：在 DB 做排序与分页，查询后再 enrich
+      if (requestedSort) {
+        const order = sortOrder === 'desc' ? 'DESC' : 'ASC';
+        queryBuilder.orderBy(`comic.${requestedSort}`, order);
+      } else {
+        queryBuilder.orderBy('comic.createdAt', 'DESC');
+      }
+
+      queryBuilder.skip(skip).take(pageSize);
+
+      const [comics, total] = await queryBuilder.getManyAndCount();
+      const enrichedComics = await enrich(comics);
+
+      return {
+        data: enrichedComics,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      };
+    }
   }
 
   /**

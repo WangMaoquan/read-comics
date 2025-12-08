@@ -29,7 +29,9 @@
   const searchQuery = ref('');
   // 使用防抖，延迟 300ms
   const debouncedSearchQuery = refDebounced(searchQuery, 300);
+
   const sortBy = ref<'title' | 'date' | 'progress'>('date');
+  const debouncedsortBy = refDebounced(sortBy, 300);
 
   // 分页状态
   const currentPage = ref(1);
@@ -91,7 +93,7 @@
   });
 
   // 监听排序变化
-  watch(sortBy, (newSort) => {
+  watch(debouncedsortBy, (newSort) => {
     currentPage.value = 1; // 重置页码
     loadComics(debouncedSearchQuery.value, newSort);
   });
