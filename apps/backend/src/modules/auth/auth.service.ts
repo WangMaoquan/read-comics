@@ -70,7 +70,7 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('该用户未注册, 请先注册');
     }
 
     // 验证密码
