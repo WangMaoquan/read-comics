@@ -17,6 +17,9 @@
     "dev": "pnpm exec tsc -p tsconfig.esm.json --watch & pnpm exec tsc -p tsconfig.cjs.json --watch",
     "clean": "rmdir /s /q dist 2>nul || echo \"No dist directory found\""
   },
+  "dependencies": {
+    "tsup": "^8.0.0"
+  },
   "keywords": [
     "typescript",
     "types",

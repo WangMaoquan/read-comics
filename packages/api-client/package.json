@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@read-comics/types": "workspace:*",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "tsup": "^8.0.0"
   }
 }
