@@ -2,11 +2,19 @@
   "name": "@read-comics/utils",
   "version": "1.0.0",
   "description": "Shared utility functions for read-comics project",
-  "main": "dist/index.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/cjs/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "clean": "rm -rf dist"
   },
   "dependencies": {

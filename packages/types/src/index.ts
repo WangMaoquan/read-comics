@@ -3,14 +3,14 @@
  */
 
 // 漫画相关类型
-export * from './src/comic';
+export * from './comic';
 
 // VO 类型（用于前后端数据传输）
-export * from './src/vo';
+export * from './vo';
 
 // API 相关类型
-export * from './src/api';
-export * from './src/user';
+export * from './api';
+export * from './user';
 
 // 通用工具类型
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

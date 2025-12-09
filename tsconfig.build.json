@@ -10,7 +10,7 @@
     "composite": false
   },
   "include": [
-    "packages/types/",
+    "packages/types/src",
     "packages/utils/src",
   ]
 }

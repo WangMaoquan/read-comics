@@ -2,9 +2,9 @@
   "name": "@read-comics/types",
   "version": "1.0.0",
   "description": "Type definitions for read-comics project",
-  "types": "index.ts",
-  "main": "index.ts",
-  "module": "index.ts",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -13,9 +13,9 @@
     }
   },
   "scripts": {
-    "build": "pnpm exec tsc -p tsconfig.esm.json && pnpm exec tsc -p tsconfig.cjs.json",
-    "dev": "pnpm exec tsc -p tsconfig.esm.json --watch & pnpm exec tsc -p tsconfig.cjs.json --watch",
-    "clean": "rmdir /s /q dist 2>nul || echo \"No dist directory found\""
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "tsup": "^8.0.0"
