@@ -13,9 +13,5 @@
   "dependencies": {
     "@read-comics/types": "workspace:*",
     "axios": "^1.6.0"
-  },
-  "devDependencies": {
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
   }
 }
