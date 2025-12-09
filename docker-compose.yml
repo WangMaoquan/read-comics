@@ -17,9 +17,10 @@ services:
       - BACKUP_DIR=/app/backups
       - UPLOAD_DIR=/app/uploads
     volumes:
-      - ./user-upload:/app/user-upload
-      - ./backups:/app/backups
-      - ./uploads:/app/uploads
+      - ./apps/backend/user-upload:/app/user-upload
+      - ./apps/backend/backups:/app/backups
+      - ./apps/backend/uploads:/app/uploads
+      - ./apps/backend/.env:/app/.env
 
   frontend:
     build:
