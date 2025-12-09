@@ -14,10 +14,7 @@ export default defineConfig({
       '@stores': path.resolve(__dirname, './src/stores'),
       '@api': path.resolve(__dirname, './src/api'),
       '@utils': path.resolve(__dirname, './src/utils'),
-      '@read-comics/types': path.resolve(
-        __dirname,
-        '../../packages/types/index.ts',
-      ),
+      '@read-comics/types': path.resolve(__dirname, '../../packages/types/src'),
       '@utils-shared': path.resolve(__dirname, '../../packages/utils/src'),
     },
   },
