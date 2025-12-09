@@ -270,7 +270,7 @@ export class FilesService implements OnModuleInit {
         console.log(`File removed: ${filePath}`);
         // 可以在这里触发事件或通知其他服务
       })
-      .on('error', (error) => {
+      .on('error', (error: Error) => {
         console.error(`Watcher error: ${error}`);
       });
 

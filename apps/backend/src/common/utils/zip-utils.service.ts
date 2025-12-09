@@ -12,7 +12,7 @@ function openZip(
   return new Promise((resolve, reject) => {
     yauzl.open(path, options || {}, (err, zipfile) => {
       if (err) reject(err);
-      else resolve(zipfile!);
+      else resolve(zipfile);
     });
   });
 }
@@ -115,7 +115,7 @@ export class ZipUtilsService {
           const files: { originName: string; decodeName: string }[] = [];
 
           zipfile.on('entry', (entry: yauzl.Entry) => {
-            // @ts-ignore 只有 fileNameRaw 属性能 获取到原本的 文件 buffer
+            // @ts-expect-error 只有 fileNameRaw 属性能 获取到原本的 文件 buffer
             const fileNameRaw = entry.fileNameRaw as Buffer;
             const originName = entry.fileName;
             const decodeName = this.decodeFileName(fileNameRaw);

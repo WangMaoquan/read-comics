@@ -34,7 +34,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         : message;
 
     // 记录错误日志
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+    if ((status as HttpStatus) === HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
         `[${request.method}] ${request.url}`,
         exception instanceof Error ? exception.stack : String(exception),

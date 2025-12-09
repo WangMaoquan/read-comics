@@ -25,7 +25,7 @@ export class UsersService {
     return this.usersRepository.findOneBy({ id });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto | any) {
+  async update(id: string, updateUserDto: UpdateUserDto) {
     if (updateUserDto.password) {
       const bcrypt = await import('bcrypt');
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
