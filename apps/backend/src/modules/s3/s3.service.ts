@@ -1,4 +1,9 @@
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
 import { Injectable, Inject } from '@nestjs/common';
@@ -87,5 +92,42 @@ export class S3Service {
     await this.cacheManager.set(cacheKey, url, 6 * 24 * 60 * 60 * 1000);
 
     return url;
+  }
+  /**
+   * 上传文件
+   */
+  async uploadFile(
+    key: string,
+    body: Buffer | Uint8Array | Blob | string,
+    contentType?: string,
+  ): Promise<void> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    });
+
+    await this.s3Client.send(command);
+  }
+
+  /**
+   * 检查文件是否存在
+   */
+  async hasFile(key: string): Promise<boolean> {
+    try {
+      const command = new HeadObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+
+      await this.s3Client.send(command);
+      return true;
+    } catch (error) {
+      if (error.name === 'NotFound') {
+        return false;
+      }
+      throw error;
+    }
   }
 }

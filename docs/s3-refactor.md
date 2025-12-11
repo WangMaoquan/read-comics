@@ -1,0 +1,90 @@
+# S3 图片服务重构文档 (S3 Image Service Refactor)
+
+## 1. 概述 (Overview)
+
+本此重构将 `read-comics` 的图片服务（缩略图生成与漫画内页提取）从本地文件系统存储迁移至 **S3 兼容对象存储**。此次变更主要目的是利用 S3 作为持久化缓存和内容分发层（CDN），减轻应用服务器的存储和带宽压力。
+
+## 2. 架构设计 (Architecture)
+
+### 核心变更
+
+- **存储层**：不再将生成的缩略图和解压后的页面保存在本地 `cache` 目录，而是上传至 S3 Bucket。
+- **访问层**：API 接口不再直接返回图片文件流（Stream），而是返回 S3 的预签名 URL（Presigned URL），客户端通过 **302 Redirect** 直接从 S3 获取数据。
+- **缓存策略**：
+  1.  用户请求图片。
+  2.  后端计算 S3 Key（路径）。
+  3.  检查 S3 中是否存在该文件 (HEAD request)。
+  4.  **命中**：直接生成预签名 URL 并返回重定向。
+  5.  **未命中**：
+      - 从本地漫画文件（ZIP/CBZ）中提取图片。
+      - (可选) 进行图片处理/缩略图生成。
+      - 上传至 S3。
+      - 生成预签名 URL 并返回重定向。
+
+## 3. 目录结构与隔离 (Directory Structure & Isolation)
+
+为了保持 Bucket 的整洁并实现资源隔离（按漫画隔离），采用了以下层级结构：
+
+**所有缓存资源均存放于 `cache/` 前缀下。**
+
+### 3.1 缩略图 (Thumbnails)
+
+```
+cache/comics/{comicHash}/thumbnails/{optionsHash}.jpg
+```
+
+- `comicHash`: `MD5(comicPath)` - 漫画文件的唯一标识。
+- `optionsHash`: `MD5(imagePath + width + height + ...)` - 包含图片路径及处理参数的唯一标识。
+
+### 3.2 漫画内页 (Comic Pages)
+
+```
+cache/comics/{comicHash}/pages/{imageHash}.{ext}
+```
+
+- `imageHash`: `MD5(imagePath)` - 图片在压缩包内路径的唯一标识。
+- `ext`: 原始图片扩展名 (jpg, png, webp 等)。
+
+> **优势**：
+>
+> - **资源分组**：同一本漫画的所有缓存文件都在同一个目录下，便于管理和清理。
+> - **命名空间隔离**：使用 `cache/` 前缀，避免与 Bucket 根目录下的其他数据（如用户上传、备份）冲突。
+
+## 4. 配置说明 (Configuration)
+
+需要在 `apps/backend/.env` 中配置 RUSTFS (S3兼容) 相关的环境变量：
+
+```env
+# RESTFS配置 (S3 Compatible Storage)
+RUSTFS_ACCESS_KEY_ID=your_access_key
+RUSTFS_SECRET_ACCESS_KEY=your_secret_key
+RUSTFS_ENDPOINT_URL=https://s3.region.amazonaws.com # 或 minio/oss 地址
+RUSTFS_BUCKET_PREFIX=read-comics # Bucket 名称
+RUSTFS_REGION=us-east-1 # 区域
+```
+
+## 5. API 变更 (API Changes)
+
+前端调用方式保持不变，但响应行为发生了变化。
+
+### 5.1 查看图片
+
+`GET /images/view?comicPath=...&imagePath=...`
+
+- **旧行为**：返回 `200 OK` 及图片二进制流。
+- **新行为**：返回 `302 Found`，`Location` 头指向 S3 预签名 URL。
+
+### 5.2 生成缩略图
+
+`POST /images/thumbnail?comicPath=...`
+
+- **旧行为**：返回 `200 OK` 及图片二进制流。
+- **新行为**：返回 `302 Found`，`Location` 头指向 S3 预签名 URL。
+
+> **注意**：标准浏览器 `<img src="...">` 标签会自动处理 302 重定向，因此前端代码不需要通过 JS 手动处理 Redirect，但需确保网络环境能正常访问 S3 Endpoint。
+
+## 6. 代码模块 (Modules)
+
+- **S3Service** (`modules/s3`): 负责 S3 的底层交互（Upload, Head, Presign）。
+- **ImagesService** (`modules/images`): 负责业务逻辑，协调本地文件提取、处理与 S3 上传。
+- **ImagesController** (`modules/images`): 处理 HTTP 请求，返回重定向响应。

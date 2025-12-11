@@ -9,44 +9,25 @@ import { join, extname } from 'path';
 import { createHash } from 'crypto';
 import * as sharp from 'sharp';
 import { LRUCache } from 'lru-cache';
+import { S3Service } from '../s3/s3.service';
 import { ZipUtilsService } from '@common/utils/zip-utils.service';
 
 @Injectable()
-export class ImagesService implements OnModuleInit {
-  private cachePath: string;
-  private thumbnailPath: string;
+@Injectable()
+export class ImagesService {
   private cache: LRUCache<string, Buffer>;
 
   constructor(
     private configService: ConfigService,
     private zipUtilsService: ZipUtilsService,
+    private s3Service: S3Service,
   ) {
-    this.cachePath = this.configService.get<string>('CACHE_PATH', './cache');
-    this.thumbnailPath = join(this.cachePath, 'thumbnails');
-
     // 初始化 LRU 缓存: 最多 100 个图片，最大 100MB
     this.cache = new LRUCache<string, Buffer>({
       max: 100,
       maxSize: 100 * 1024 * 1024, // 100MB
       sizeCalculation: (value) => value.length,
     });
-  }
-
-  async onModuleInit() {
-    // 确保缓存目录存在
-    await this.ensureDirectoryExists(this.cachePath);
-    await this.ensureDirectoryExists(this.thumbnailPath);
-  }
-
-  /**
-   * 确保目录存在
-   */
-  private async ensureDirectoryExists(path: string): Promise<void> {
-    try {
-      await fs.access(path);
-    } catch {
-      await fs.mkdir(path, { recursive: true });
-    }
   }
 
   /**
@@ -60,6 +41,15 @@ export class ImagesService implements OnModuleInit {
       hash.update(JSON.stringify(options));
     }
 
+    return hash.digest('hex');
+  }
+
+  /**
+   * 生成漫画唯一的 Hash (基于路径)
+   */
+  private getComicHash(comicPath: string): string {
+    const hash = createHash('md5');
+    hash.update(comicPath);
     return hash.digest('hex');
   }
 
@@ -198,7 +188,7 @@ export class ImagesService implements OnModuleInit {
   }
 
   /**
-   * 生成并缓存缩略图
+   * 生成并缓存缩略图 (返回 S3 Key)
    */
   async generateAndCacheThumbnail(
     comicPath: string,
@@ -206,16 +196,20 @@ export class ImagesService implements OnModuleInit {
     width: number = 200,
     height: number = 300,
   ): Promise<string> {
-    const cacheKey = this.generateCacheKey(`${comicPath}/${imagePath}`, {
+    const comicHash = this.getComicHash(comicPath);
+    const optionsHash = this.generateCacheKey(imagePath, {
       width,
       height,
       format: 'jpeg',
     });
 
-    // 检查缓存
-    const cached = await this.getCachedImage(cacheKey);
-    if (cached) {
-      return this.saveThumbnailToDisk(cacheKey, cached);
+    // 使用层级结构: cache/comics/{comicHash}/thumbnails/{optionsHash}.jpg
+    const s3Key = `cache/comics/${comicHash}/thumbnails/${optionsHash}.jpg`;
+
+    // 检查 S3 是否存在
+    const exists = await this.s3Service.hasFile(s3Key);
+    if (exists) {
+      return s3Key;
     }
 
     // 从漫画文件中提取图片
@@ -224,11 +218,45 @@ export class ImagesService implements OnModuleInit {
     // 生成缩略图
     const thumbnail = await this.generateThumbnail(imageBuffer, width, height);
 
-    // 缓存图片
-    await this.cacheImage(cacheKey, thumbnail);
+    // 上传到 S3
+    await this.s3Service.uploadFile(s3Key, thumbnail, 'image/jpeg');
 
-    // 保存到磁盘
-    return this.saveThumbnailToDisk(cacheKey, thumbnail);
+    return s3Key;
+  }
+
+  /**
+   * 准备图片到 S3 (返回 S3 Key)
+   */
+  async prepareImageOnS3(
+    comicPath: string,
+    imagePath: string,
+  ): Promise<string> {
+    const comicHash = this.getComicHash(comicPath);
+    const imageHash = this.generateCacheKey(imagePath); // 只 hash imagePath，不包含 comicPath，因为已经在目录里了
+    const ext = extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
+
+    // 使用层级结构: cache/comics/{comicHash}/pages/{imageHash}.{ext}
+    const s3Key = `cache/comics/${comicHash}/pages/${imageHash}.${ext}`;
+
+    // 检查 S3 是否存在
+    const exists = await this.s3Service.hasFile(s3Key);
+    if (exists) {
+      return s3Key;
+    }
+
+    // Extract
+    const imageBuffer = await this.extractImageFromComic(comicPath, imagePath);
+
+    // Determine content type
+    let contentType = 'image/jpeg';
+    if (ext === 'png') contentType = 'image/png';
+    else if (ext === 'gif') contentType = 'image/gif';
+    else if (ext === 'webp') contentType = 'image/webp';
+
+    // Upload
+    await this.s3Service.uploadFile(s3Key, imageBuffer, contentType);
+
+    return s3Key;
   }
 
   /**
@@ -267,36 +295,6 @@ export class ImagesService implements OnModuleInit {
    */
   async readFileStream(filePath: string) {
     return createReadStream(filePath);
-  }
-
-  /**
-   * 保存缩略图到磁盘
-   */
-  private async saveThumbnailToDisk(
-    cacheKey: string,
-    thumbnail: Buffer,
-  ): Promise<string> {
-    const thumbnailPath = join(this.thumbnailPath, `${cacheKey}.jpg`);
-    await fs.writeFile(thumbnailPath, thumbnail);
-    return thumbnailPath;
-  }
-
-  /**
-   * 清理过期缓存
-   */
-  async cleanExpiredCache(maxAge: number = 24 * 60 * 60 * 1000): Promise<void> {
-    // LRU 缓存会自动管理内存，这里只清理磁盘缓存
-    const now = Date.now();
-    const files = await fs.readdir(this.thumbnailPath);
-
-    for (const file of files) {
-      const filePath = join(this.thumbnailPath, file);
-      const stats = await fs.stat(filePath);
-
-      if (now - stats.mtime.getTime() > maxAge) {
-        await fs.unlink(filePath);
-      }
-    }
   }
 
   /**
