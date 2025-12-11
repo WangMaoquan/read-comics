@@ -260,69 +260,6 @@ export class FilesController {
   }
 
   /**
-   * 读取文件流
-   */
-  @Get('stream/:filePath')
-  @ApiOperation({ summary: '读取文件流' })
-  @ApiParam({ name: 'filePath', description: '文件路径' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 404, description: '文件不存在' })
-  async readFileStream(
-    @Param('filePath') filePath: string,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const fileStream = await this.filesService.readFileStream(filePath);
-    const fileInfo = await this.filesService.getFileInfo(filePath);
-
-    if (!fileInfo.exists) {
-      res.status(404).send('File not found');
-      return;
-    }
-
-    // 设置正确的 Content-Type
-    const ext = filePath.toLowerCase().split('.').pop();
-    let contentType = 'application/octet-stream';
-
-    switch (ext) {
-      case 'jpg':
-      case 'jpeg':
-        contentType = 'image/jpeg';
-        break;
-      case 'png':
-        contentType = 'image/png';
-        break;
-      case 'gif':
-        contentType = 'image/gif';
-        break;
-      case 'webp':
-        contentType = 'image/webp';
-        break;
-      case 'bmp':
-        contentType = 'image/bmp';
-        break;
-      case 'cbz':
-      case 'zip':
-        contentType = 'application/zip';
-        break;
-      case 'cbr':
-      case 'rar':
-        contentType = 'application/x-rar-compressed';
-        break;
-      case 'pdf':
-        contentType = 'application/pdf';
-        break;
-    }
-
-    res.set({
-      'Content-Type': contentType,
-      'Content-Length': fileInfo.size,
-      'Last-Modified': fileInfo.lastModified.toUTCString(),
-    });
-
-    return new StreamableFile(fileStream);
-  }
-
-  /**
    * 删除文件
    */
   @Delete(':filePath')

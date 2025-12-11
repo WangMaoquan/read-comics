@@ -15,7 +15,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import { ImagesService, ImageOptions } from './images.service';
+import { ImagesService } from './images.service';
 import { BypassTransform } from '@common/decorators/bypass-transform.decorator';
 import { S3Service } from '../s3/s3.service';
 
@@ -99,86 +99,6 @@ export class ImagesController {
         success: false,
         error: error.message,
       });
-    }
-  }
-
-  /**
-   * 优化图片
-   */
-  @Post('optimize')
-  @BypassTransform()
-  @ApiOperation({ summary: '优化图片' })
-  @ApiQuery({ name: 'comicPath', description: '漫画文件路径' })
-  @ApiQuery({ name: 'imagePath', description: '图片在压缩包中的路径' })
-  @ApiQuery({ name: 'options', description: '优化选项 JSON 字符串' })
-  @ApiResponse({ status: 200, description: '优化成功' })
-  async optimizeImage(
-    @Query('comicPath') comicPath: string,
-    @Query('imagePath') imagePath: string,
-    @Query('options') options: string,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    try {
-      const parsedOptions: ImageOptions = JSON.parse(options);
-
-      // 从漫画文件中提取图片
-      const imageBuffer = await this.imagesService.extractImageFromComic(
-        comicPath,
-        imagePath,
-      );
-
-      // 优化图片
-      const optimizedBuffer = await this.imagesService.optimizeImage(
-        imageBuffer,
-        parsedOptions,
-      );
-
-      // 设置响应头
-      const contentType = `image/${parsedOptions.format || 'jpeg'}`;
-      res.set({
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000',
-      });
-
-      return new StreamableFile(optimizedBuffer);
-    } catch (error) {
-      res.status(500).send({
-        success: false,
-        error: error.message,
-      });
-    }
-  }
-
-  /**
-   * 获取图片信息
-   */
-  @Get('info/:comicPath/:imagePath')
-  @ApiOperation({ summary: '获取图片信息' })
-  @ApiParam({ name: 'comicPath', description: '漫画文件路径' })
-  @ApiParam({ name: 'imagePath', description: '图片在压缩包中的路径' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  async getImageInfo(
-    @Param('comicPath') comicPath: string,
-    @Param('imagePath') imagePath: string,
-  ) {
-    try {
-      // 从漫画文件中提取图片
-      const imageBuffer = await this.imagesService.extractImageFromComic(
-        comicPath,
-        imagePath,
-      );
-
-      const info = await this.imagesService.getImageInfo(imageBuffer);
-
-      return {
-        success: true,
-        data: info,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
     }
   }
 

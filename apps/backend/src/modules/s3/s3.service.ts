@@ -87,22 +87,6 @@ export class S3Service implements OnModuleInit {
   }
 
   /**
-   * 批量生成预签名URL
-   */
-  async getPresignedUrls(keys: string[]): Promise<Record<string, string>> {
-    const urlPromises = keys.map(async (key) => {
-      const url = await this.getPresignedUrl(key);
-      return { key, url };
-    });
-
-    const results = await Promise.all(urlPromises);
-    return results.reduce((acc, { key, url }) => {
-      acc[key] = url;
-      return acc;
-    }, {});
-  }
-
-  /**
    * 带缓存的预签名URL生成
    */
   async getPresignedUrlWithCache(key: string): Promise<string> {

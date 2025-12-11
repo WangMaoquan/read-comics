@@ -22,7 +22,7 @@ export class ImagesService {
   /**
    * 生成缓存键
    */
-  private generateCacheKey(filePath: string, options?: ImageOptions): string {
+  private generateCacheKey(filePath: string, options?: any): string {
     const hash = createHash('md5');
     hash.update(filePath);
 
@@ -77,87 +77,6 @@ export class ImagesService {
       console.error('Error generating thumbnail:', error);
       throw new InternalServerErrorException(
         `Failed to generate thumbnail: ${error.message}`,
-      );
-    }
-  }
-
-  /**
-   * 优化图片
-   */
-  async optimizeImage(
-    imageBuffer: Buffer,
-    options: ImageOptions = {},
-  ): Promise<Buffer> {
-    const {
-      width,
-      height,
-      quality = 85,
-      format = 'jpeg',
-      fit = 'inside',
-    } = options;
-
-    try {
-      const sharpInstance = sharp(imageBuffer);
-
-      let processed = sharpInstance;
-
-      // 调整大小
-      if (width || height) {
-        processed = processed.resize(width, height, {
-          fit,
-          withoutEnlargement: true,
-        });
-      }
-
-      // 转换格式和质量
-      switch (format) {
-        case 'jpeg':
-          processed = processed.jpeg({ quality });
-          break;
-        case 'png':
-          processed = processed.png({ quality });
-          break;
-        case 'webp':
-          processed = processed.webp({ quality });
-          break;
-        case 'avif':
-          processed = processed.avif({ quality });
-          break;
-      }
-
-      return await processed.toBuffer();
-    } catch (error) {
-      console.error('Error optimizing image:', error);
-      throw new InternalServerErrorException(
-        `Failed to optimize image: ${error.message}`,
-      );
-    }
-  }
-
-  /**
-   * 获取图片信息
-   */
-  async getImageInfo(imageBuffer: Buffer): Promise<{
-    width: number;
-    height: number;
-    format: string;
-    size: number;
-    aspectRatio: number;
-  }> {
-    try {
-      const metadata = await sharp(imageBuffer).metadata();
-
-      return {
-        width: metadata.width || 0,
-        height: metadata.height || 0,
-        format: metadata.format || 'unknown',
-        size: imageBuffer.length,
-        aspectRatio: (metadata.width || 1) / (metadata.height || 1),
-      };
-    } catch (error) {
-      console.error('Error getting image info:', error);
-      throw new InternalServerErrorException(
-        `Failed to get image info: ${error.message}`,
       );
     }
   }
@@ -321,12 +240,4 @@ export class ImagesService {
       );
     }
   }
-}
-
-export interface ImageOptions {
-  width?: number;
-  height?: number;
-  quality?: number;
-  format?: 'jpeg' | 'png' | 'webp' | 'avif';
-  fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
 }

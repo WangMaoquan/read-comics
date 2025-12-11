@@ -299,14 +299,6 @@ export class FilesService implements OnModuleInit {
   }
 
   /**
-   * 读取文件流
-   */
-  async readFileStream(filePath: string) {
-    const fullPath = join(this.comicsPath, filePath);
-    return createReadStream(fullPath);
-  }
-
-  /**
    * 获取文件信息
    */
   async getFileInfo(filePath: string): Promise<{
