@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { diskStorage } from 'multer';
@@ -11,7 +11,7 @@ import { ZipUtilsService } from '@common/utils/zip-utils.service';
 
 @Module({
   imports: [
-    ComicsModule,
+    forwardRef(() => ComicsModule),
     ChaptersModule,
     MulterModule.registerAsync({
       imports: [ConfigModule],
