@@ -235,6 +235,43 @@ export class ImagesService {
   }
 
   /**
+   * 归档漫画到 S3 (批量上传所有图片)
+   */
+  async archiveComicToS3(comicPath: string, images: string[]): Promise<void> {
+    console.log(
+      `Archiving comic: ${comicPath}, total images: ${images.length}`,
+    );
+    let processed = 0;
+
+    // 使用 Promise.all 并发处理，但建议分批处理以避免内存爆炸或过多的并发请求
+    // 这里简单起见，假设一次处理一本漫画的几百张图片是可以的。
+    // 如果图片非常多，可以考虑 p-limit 或手动分批。
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < images.length; i += BATCH_SIZE) {
+      const batch = images.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (imagePath) => {
+          try {
+            await this.prepareImageOnS3(comicPath, imagePath);
+            processed++;
+          } catch (e) {
+            console.error(
+              `Failed to archive image ${imagePath} in ${comicPath}:`,
+              e,
+            );
+            throw e; // Fail fast or continue? Fail fast is safer for data integrity
+          }
+        }),
+      );
+      if (processed % 50 === 0) {
+        console.log(`Archived ${processed}/${images.length} images...`);
+      }
+    }
+    console.log(`Archive complete: ${processed} images processed.`);
+  }
+
+  /**
    * 从漫画文件中提取图片
    */
   async extractImageFromComic(

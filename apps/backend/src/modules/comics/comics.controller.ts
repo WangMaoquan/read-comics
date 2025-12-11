@@ -136,4 +136,15 @@ export class ComicsController {
   toggleFavorite(@Param('id') id: string, @Req() req) {
     return this.comicsService.toggleFavorite(id, req.user.sub);
   }
+
+  @Post(':id/archive')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '归档漫画到云端（上传所有图片并删除本地文件）' })
+  @ApiResponse({ status: 200, description: '归档任务开始/完成' })
+  async archive(@Param('id') id: string) {
+    await this.comicsService.archive(id);
+    return { success: true, message: 'Comic archived successfully' };
+  }
 }

@@ -12,6 +12,8 @@ import { ComicFilter, ComicStatus, PaginatedResult } from '@read-comics/types';
 
 import { ChaptersService } from '../chapters/chapters.service';
 import { FavoritesService } from '../favorites/favorites.service';
+import { ImagesService } from '../images/images.service';
+import { FilesService } from '../files/files.service';
 
 @Injectable()
 export class ComicsService {
@@ -23,6 +25,8 @@ export class ComicsService {
     private readonly chaptersService: ChaptersService,
     private readonly favoritesService: FavoritesService,
     private readonly dataSource: DataSource,
+    private readonly imagesService: ImagesService,
+    private readonly filesService: FilesService,
   ) {}
 
   async create(createComicDto: CreateComicDto): Promise<Comic> {
@@ -408,5 +412,50 @@ export class ComicsService {
     return await this.progressRepository.findOne({
       where: { comicId, chapterId },
     });
+  }
+
+  async archive(id: string): Promise<void> {
+    const comic = await this.comicRepository.findOne({
+      where: { id },
+      relations: ['chapters'],
+    });
+
+    if (!comic) {
+      throw new Error(`Comic with id ${id} not found`);
+    }
+
+    if (!comic.filePath) {
+      console.warn(`Comic ${id} has no file path, skipping archive.`);
+      return;
+    }
+
+    // 1. Collect all images from all chapters
+    const allImages: string[] = [];
+    if (comic.chapters) {
+      for (const chapter of comic.chapters) {
+        if (chapter.pages) {
+          allImages.push(...chapter.pages);
+        }
+      }
+    }
+
+    // Deduplicate images (just in case)
+    const uniqueImages = [...new Set(allImages)];
+
+    if (uniqueImages.length === 0) {
+      console.warn(`Comic ${id} has no images to archive.`);
+    } else {
+      // 2. Archive to S3
+      await this.imagesService.archiveComicToS3(comic.filePath, uniqueImages);
+    }
+
+    // 3. Delete local file
+    try {
+      await this.filesService.deleteFile(comic.filePath);
+      console.log(`Comic ${id} archived and local file deleted.`);
+    } catch (error) {
+      console.error(`Failed to delete local file for comic ${id}:`, error);
+      // We don't throw here because the main goal (archive to S3) succeeded.
+    }
   }
 }
