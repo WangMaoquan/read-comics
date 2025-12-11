@@ -114,14 +114,19 @@ export class S3Service implements OnModuleInit {
     body: Buffer | Uint8Array | Blob | string,
     contentType?: string,
   ): Promise<void> {
-    const command = new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-    });
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      });
 
-    await this.s3Client.send(command);
+      await this.s3Client.send(command);
+    } catch (error) {
+      console.error(`S3 Upload Error for key ${key}:`, error);
+      throw error;
+    }
   }
 
   /**

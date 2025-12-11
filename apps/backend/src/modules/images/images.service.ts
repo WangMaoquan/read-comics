@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { extname } from 'path';
 import { createHash } from 'crypto';
 import * as sharp from 'sharp';
+import pLimit from 'p-limit';
 import { S3Service } from '../s3/s3.service';
 import { ZipUtilsService } from '@common/utils/zip-utils.service';
 
@@ -14,6 +15,19 @@ export class ImagesService {
     private zipUtilsService: ZipUtilsService,
     private s3Service: S3Service,
   ) {}
+
+  /**
+   * 获取图片配置
+   */
+  private getImageConfig() {
+    return {
+      maxWidth: parseInt(
+        this.configService.get<string>('IMAGE_MAX_WIDTH', '1600'),
+      ),
+      quality: parseInt(this.configService.get<string>('IMAGE_QUALITY', '80')),
+      format: this.configService.get<string>('IMAGE_FORMAT', 'webp'),
+    };
+  }
 
   /**
    * 生成缓存键
@@ -117,14 +131,11 @@ export class ImagesService {
   /**
    * 优化图片 (调整大小 + 转换为 WebP)
    */
+  /**
+   * 优化图片 (调整大小 + 转换为 WebP)
+   */
   async optimizeImage(imageBuffer: Buffer): Promise<Buffer> {
-    const maxWidth = parseInt(
-      this.configService.get<string>('IMAGE_MAX_WIDTH', '1600'),
-    );
-    const quality = parseInt(
-      this.configService.get<string>('IMAGE_QUALITY', '80'),
-    );
-    const format = this.configService.get<string>('IMAGE_FORMAT', 'webp');
+    const { maxWidth, quality, format } = this.getImageConfig();
 
     let pipeline = sharp(imageBuffer);
 
@@ -162,8 +173,8 @@ export class ImagesService {
   private getOptimizedS3Key(comicPath: string, imagePath: string): string {
     const comicHash = this.getComicHash(comicPath);
     const imageHash = this.generateCacheKey(imagePath);
-    const targetFormat = this.configService.get<string>('IMAGE_FORMAT', 'webp');
-    return `cache/comics/${comicHash}/pages/${imageHash}.${targetFormat}`;
+    const { format } = this.getImageConfig();
+    return `cache/comics/${comicHash}/pages/${imageHash}.${format}`;
   }
 
   /**
@@ -181,6 +192,8 @@ export class ImagesService {
       return optimizedKey;
     }
 
+    const { format } = this.getImageConfig();
+
     // 2. 尝试从 S3 原图生成优化图 (如果已经归档)
     const originalKey = this.getOriginalS3Key(comicPath, imagePath);
     if (await this.s3Service.hasFile(originalKey)) {
@@ -192,15 +205,11 @@ export class ImagesService {
       const originalBuffer = Buffer.concat(chunks);
 
       const optimizedBuffer = await this.optimizeImage(originalBuffer);
-      const targetFormat = this.configService.get<string>(
-        'IMAGE_FORMAT',
-        'webp',
-      );
 
       await this.s3Service.uploadFile(
         optimizedKey,
         optimizedBuffer,
-        `image/${targetFormat}`,
+        `image/${format}`,
       );
       return optimizedKey;
     }
@@ -212,15 +221,11 @@ export class ImagesService {
         imagePath,
       );
       const optimizedBuffer = await this.optimizeImage(imageBuffer);
-      const targetFormat = this.configService.get<string>(
-        'IMAGE_FORMAT',
-        'webp',
-      );
 
       await this.s3Service.uploadFile(
         optimizedKey,
         optimizedBuffer,
-        `image/${targetFormat}`,
+        `image/${format}`,
       );
       return optimizedKey;
     } catch (e) {
@@ -262,59 +267,64 @@ export class ImagesService {
   /**
    * 归档漫画到 S3 (上传原图)
    */
+  /**
+   * 归档漫画到 S3 (上传原图)
+   */
   async archiveComicToS3(comicPath: string, images: string[]): Promise<void> {
     console.log(
       `Archiving comic (originals): ${comicPath}, total images: ${images.length}`,
     );
+
+    // Limit concurrency to 10
+    const limit = pLimit(10);
     let processed = 0;
-    const BATCH_SIZE = 10;
 
-    for (let i = 0; i < images.length; i += BATCH_SIZE) {
-      const batch = images.slice(i, i + BATCH_SIZE);
-      await Promise.all(
-        batch.map(async (imagePath) => {
-          const originalKey = this.getOriginalS3Key(comicPath, imagePath);
+    const promises = images.map((imagePath) =>
+      limit(async () => {
+        const originalKey = this.getOriginalS3Key(comicPath, imagePath);
 
-          // 如果原图已存在，跳过
-          if (await this.s3Service.hasFile(originalKey)) {
-            processed++;
-            return;
+        // 如果原图已存在，跳过
+        if (await this.s3Service.hasFile(originalKey)) {
+          processed++;
+          return;
+        }
+
+        try {
+          // 提取原图 (不优化)
+          const imageBuffer = await this.extractImageFromComic(
+            comicPath,
+            imagePath,
+          );
+          const ext =
+            extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
+
+          let contentType = 'image/jpeg';
+          if (ext === 'png') contentType = 'image/png';
+          else if (ext === 'gif') contentType = 'image/gif';
+          else if (ext === 'webp') contentType = 'image/webp';
+
+          // 上传原图
+          await this.s3Service.uploadFile(
+            originalKey,
+            imageBuffer,
+            contentType,
+          );
+          processed++;
+
+          if (processed % 50 === 0) {
+            console.log(`Archived ${processed}/${images.length} images...`);
           }
+        } catch (e) {
+          console.error(
+            `Failed to archive image ${imagePath} in ${comicPath}:`,
+            e,
+          );
+          throw e;
+        }
+      }),
+    );
 
-          try {
-            // 提取原图 (不优化)
-            const imageBuffer = await this.extractImageFromComic(
-              comicPath,
-              imagePath,
-            );
-            const ext =
-              extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
-
-            let contentType = 'image/jpeg';
-            if (ext === 'png') contentType = 'image/png';
-            else if (ext === 'gif') contentType = 'image/gif';
-            else if (ext === 'webp') contentType = 'image/webp';
-
-            // 上传原图
-            await this.s3Service.uploadFile(
-              originalKey,
-              imageBuffer,
-              contentType,
-            );
-            processed++;
-          } catch (e) {
-            console.error(
-              `Failed to archive image ${imagePath} in ${comicPath}:`,
-              e,
-            );
-            throw e;
-          }
-        }),
-      );
-      if (processed % 50 === 0) {
-        console.log(`Archived ${processed}/${images.length} images...`);
-      }
-    }
+    await Promise.all(promises);
     console.log(`Archive complete: ${processed} images processed.`);
   }
 
