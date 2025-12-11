@@ -1,39 +1,37 @@
 # Read Comics
 
-一个现代化的本地漫画阅读应用，支持 ZIP/CBZ 格式。基于 Vue 3 + NestJS 构建，提供流畅的阅读体验。
+一个现代化的私有漫画阅读平台，支持 ZIP/CBZ 格式并集成了云存储。基于 Vue 3 和 NestJS 构建。
 
-## ✨ 特性
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Vue](https://img.shields.io/badge/frontend-Vue_3-42b883.svg)
+![NestJS](https://img.shields.io/badge/backend-NestJS-e0234e.svg)
 
-- 📚 **漫画库管理**：自动扫描并导入本地漫画文件
-- 📖 **流畅阅读**：支持单页/双页模式，自动预加载，流畅翻页
-- 🔍 **智能解析**：支持 ZIP/CBZ 格式，自动识别章节结构
-- 🖼️ **高性能**：图片懒加载、预加载、虚拟滚动
-- 📱 **响应式设计**：适配桌面端和移动端
-- ⚡ **现代技术栈**：Vue 3, Vite, NestJS, TypeScript, TailwindCSS
+## ✨ 核心特性
 
-## 🛠️ 技术栈
+- **📚 智能漫画库**：自动扫描并导入本地压缩包漫画 (CBZ/ZIP)。
+- **☁️ 云原生存储**：
+  - **S3 集成**：支持将图片和归档存储在任何 S3 兼容的对象存储中 (MinIO, AWS S3, R2)。
+  - **云端归档**：将漫画完整归档至 S3，释放本地磁盘空间。
+  - **按需下载**：需要时从云端实时重建并下载 ZIP 文件。
+- **📖 极致阅读体验**：
+  - Web 端阅读器，支持单页/双页模式。
+  - 平滑翻页过渡与自动预加载。
+  - 阅读进度云同步。
+- **⚡ 高性能架构**：
+  - 多级缓存系统 (内存 + Redis)。
+  - 图片智能优化与懒加载。
 
-### Frontend (`apps/frontend`)
+## 🏗️ 项目架构
 
-- **Framework**: Vue 3
-- **Build Tool**: Vite (Rolldown)
-- **State Management**: Pinia
-- **Styling**: TailwindCSS v4
-- **Router**: Vue Router
-- **HTTP Client**: Fetch API with custom wrapper
+本项目采用 `pnpm workspaces` 管理的 Monorepo 结构：
 
-### Backend (`apps/backend`)
-
-- **Framework**: NestJS
-- **Language**: TypeScript
-- **Database**: MySQL (TypeORM)
-- **File Processing**: Sharp (Image processing), Adm-zip/Yauzl (Archive handling)
-- **API Documentation**: Swagger/OpenAPI
-
-### Shared (`packages/*`)
-
-- **@read-comics/types**: Shared TypeScript interfaces and types
-- **@read-comics/utils**: Shared utility functions
+| 包名         | 路径             | 描述                               |
+| ------------ | ---------------- | ---------------------------------- |
+| **Frontend** | `apps/frontend`  | 面向用户的阅读应用 (Vue 3 + Vite)  |
+| **Backend**  | `apps/backend`   | API 服务端 (NestJS + TypeORM + S3) |
+| **Admin**    | `apps/admin`     | 管理后台 (Vue 3 + Vite)            |
+| **Types**    | `packages/types` | 共享 TypeScript 类型定义           |
+| **Utils**    | `packages/utils` | 共享工具函数库                     |
 
 ## 🚀 快速开始
 
@@ -41,100 +39,52 @@
 
 - Node.js >= 18
 - pnpm >= 8
-- MySQL Database
+- MySQL 8.0+
+- Redis (可选，生产环境推荐)
+- S3 存储 (MinIO 或 AWS S3)
 
-### 安装依赖
+### 安装
 
 ```bash
+# 克隆仓库
+git clone https://github.com/your-username/read-comics.git
+cd read-comics
+
+# 安装依赖
 pnpm install
 ```
 
-### 开发环境运行
+### 配置
 
-1. **配置环境变量**
+需要配置后端环境变量。
 
-   前端 (`apps/frontend`):
+1.  复制示例配置：
+    ```bash
+    cp apps/backend/.env.example apps/backend/.env
+    ```
+2.  编辑 `apps/backend/.env`，填入你的数据库和 S3 认证信息。
 
-   ```bash
-   cp apps/frontend/.env.development.example apps/frontend/.env.development
-   ```
+### 开发运行
 
-   后端 (`apps/backend`):
-   确保数据库配置正确（通常在 `.env` 或 `app.module.ts` 中配置）。
+同时启动所有服务进入开发模式：
 
-2. **启动服务**
+```bash
+pnpm dev
+# 前端: http://localhost:5173
+# 后端: http://localhost:4399
+# 后台: http://localhost:5174
+```
 
-   在根目录下运行：
+### 生产构建
 
-   ```bash
-   pnpm dev
-   ```
-
-   这将同时启动前端和后端服务。
-
-   或者分别启动：
-
-   ```bash
-   pnpm dev:frontend  # 启动前端 (http://localhost:5173)
-   pnpm dev:backend   # 启动后端 (http://localhost:4399)
-   ```
-
-### 构建生产版本
-
+```bash
 pnpm build
-
-````
-
-### 🐳 Docker 部署
-
-1. **环境准备**
-   - Docker Engine 20.10+
-   - Docker Compose v2.0+
-
-2. **配置环境**
-   在 `apps/backend/` 目录下创建 `.env` 文件（参考 `.env.example`）：
-   ```bash
-   cp apps/backend/.env.example apps/backend/.env
-````
-
-并配置数据库连接信息。
-
-3. **启动服务**
-
-   ```bash
-   # 构建镜像
-   docker-compose build
-
-   # 启动所有服务
-   docker-compose up -d
-   ```
-
-4. **访问服务**
-   - **Frontend**: http://localhost:5173
-   - **Admin**: http://localhost:5174
-   - **Backend API**: http://localhost:4399
-
-## 📁 项目结构
-
-```
-read-comics/
-├── apps/
-│   ├── frontend/    # Vue 3 前端应用
-│   └── backend/     # NestJS 后端应用
-├── packages/
-│   ├── types/       # 共享类型定义
-│   └── utils/       # 共享工具函数
-├── scripts/         # 构建和工具脚本
-├── package.json     # 根项目配置 (pnpm workspaces)
-└── pnpm-workspace.yaml
 ```
 
-## 📝 开发规范
+## 🐳 Docker 部署
 
-- **包管理**: 使用 `pnpm` 进行依赖管理
-- **代码风格**: Prettier + ESLint
-- **提交规范**: 遵循 Conventional Commits
+(即将推出)
 
-## 📄 License
+## 📄 许可证
 
-MIT
+MIT License.

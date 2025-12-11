@@ -1,5 +1,36 @@
-# Vue 3 + TypeScript + Vite
+# Read Comics 管理后台
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Read Comics 平台的管理界面。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## ✨ 功能特性
+
+- **仪表盘**：系统概览、统计数据（存储使用量、阅读活跃度）。
+- **漫画管理**：
+  - 上传漫画（支持拖拽上传）。
+  - 编辑元数据（标题、作者、标签）。
+  - 删除漫画（自动清理 S3 资源）。
+  - **归档**：触发云端归档至 S3。
+- **系统管理**：
+  - 查看应用日志。
+  - 用户管理（角色、状态）。
+  - 后台任务监控。
+
+## 🛠️ 技术栈
+
+- **框架**: Vue 3 + Vite
+- **组件库**: Headless UI / 自定义组件
+- **样式**: TailwindCSS
+- **状态管理**: Pinia
+
+## 🚀 开发
+
+```bash
+# 安装依赖
+pnpm install
+
+# 启动开发服务器
+pnpm dev:admin
+# 访问地址: http://localhost:5174
+```
+
+> 注意: 需确保后端服务 (Backend) 已启动以获得完整功能。

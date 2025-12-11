@@ -1,5 +1,41 @@
-# Vue 3 + TypeScript + Vite
+# Read Comics 前端应用
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+面向用户的 Web 应用，用于浏览和阅读漫画。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## ✨ 功能特性
+
+- **沉浸式阅读器**：支持单页/双页模式、阅读方向切换（从左向右/从右向左）、平滑过渡。
+- **漫画库**：网格视图、搜索、筛选（阅读状态、作者、标签）。
+- **响应式设计**：基于 TailwindCSS 的移动优先设计。
+- **高性能**：
+  - 列表虚拟滚动。
+  - 图片懒加载与 Intersection Observer。
+  - 基于 Vite 的资源优化加载。
+
+## 🛠️ 技术栈
+
+- **框架**: [Vue 3](https://vuejs.org/) (Composition API)
+- **构建工具**: [Vite](https://vitejs.dev/)
+- **状态管理**: [Pinia](https://pinia.vuejs.org/)
+- **路由**: [Vue Router](https://router.vuejs.org/)
+- **UI & 样式**:
+  - [TailwindCSS v4](https://tailwindcss.com/)
+  - [Phosphor Icons](https://phosphoricons.com/) (图标库)
+- **工具库**: `vueuse`, `lodash-es`
+
+## 🚀 开发
+
+```bash
+# 安装依赖
+pnpm install
+
+# 启动开发服务器
+pnpm dev
+# 访问地址: http://localhost:5173
+```
+
+## 🏗️ 构建
+
+```bash
+pnpm build
+```
