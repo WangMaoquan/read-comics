@@ -147,48 +147,19 @@ export class ImagesService {
   }
 
   /**
-   * 准备图片到 S3 (返回 S3 Key)
+   * 获取原图 S3 Key
    */
-  async prepareImageOnS3(
-    comicPath: string,
-    imagePath: string,
-  ): Promise<string> {
+  private getOriginalS3Key(comicPath: string, imagePath: string): string {
     const comicHash = this.getComicHash(comicPath);
-    // 原始文件名作为 Hash 依据，但后缀改为 webp (默认)
     const imageHash = this.generateCacheKey(imagePath);
-    const targetFormat = this.configService.get<string>('IMAGE_FORMAT', 'webp');
-
-    // 使用层级结构: cache/comics/{comicHash}/pages/{imageHash}.{ext}
-    const s3Key = `cache/comics/${comicHash}/pages/${imageHash}.${targetFormat}`;
-
-    // 检查 S3 是否存在
-    const exists = await this.s3Service.hasFile(s3Key);
-    if (exists) {
-      return s3Key;
-    }
-
-    // Extract
-    const imageBuffer = await this.extractImageFromComic(comicPath, imagePath);
-
-    // Optimize
-    const optimizedBuffer = await this.optimizeImage(imageBuffer);
-
-    // Determine content type
-    const contentType = `image/${targetFormat}`;
-
-    // Upload
-    await this.s3Service.uploadFile(s3Key, optimizedBuffer, contentType);
-
-    return s3Key;
+    const ext = extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
+    return `originals/comics/${comicHash}/pages/${imageHash}.${ext}`;
   }
 
   /**
-   * 获取图片的 S3 Key (用于下载等场景)
+   * 获取优化后的 S3 Key
    */
-  async getS3KeyForImage(
-    comicPath: string,
-    imagePath: string,
-  ): Promise<string> {
+  private getOptimizedS3Key(comicPath: string, imagePath: string): string {
     const comicHash = this.getComicHash(comicPath);
     const imageHash = this.generateCacheKey(imagePath);
     const targetFormat = this.configService.get<string>('IMAGE_FORMAT', 'webp');
@@ -196,39 +167,147 @@ export class ImagesService {
   }
 
   /**
-   * 获取图片流 (用于下载)
+   * 确保 S3 上存在优化后的图片 (View/Cache)
+   * 返回优化后的 S3 Key
+   */
+  async prepareImageOnS3(
+    comicPath: string,
+    imagePath: string,
+  ): Promise<string> {
+    const optimizedKey = this.getOptimizedS3Key(comicPath, imagePath);
+
+    // 1. 检查优化后的缓存是否存在
+    if (await this.s3Service.hasFile(optimizedKey)) {
+      return optimizedKey;
+    }
+
+    // 2. 尝试从 S3 原图生成优化图 (如果已经归档)
+    const originalKey = this.getOriginalS3Key(comicPath, imagePath);
+    if (await this.s3Service.hasFile(originalKey)) {
+      const originalStream = await this.s3Service.getFileStream(originalKey);
+      const chunks: Buffer[] = [];
+      for await (const chunk of originalStream) {
+        chunks.push(chunk as Buffer);
+      }
+      const originalBuffer = Buffer.concat(chunks);
+
+      const optimizedBuffer = await this.optimizeImage(originalBuffer);
+      const targetFormat = this.configService.get<string>(
+        'IMAGE_FORMAT',
+        'webp',
+      );
+
+      await this.s3Service.uploadFile(
+        optimizedKey,
+        optimizedBuffer,
+        `image/${targetFormat}`,
+      );
+      return optimizedKey;
+    }
+
+    // 3. 从本地文件生成
+    try {
+      const imageBuffer = await this.extractImageFromComic(
+        comicPath,
+        imagePath,
+      );
+      const optimizedBuffer = await this.optimizeImage(imageBuffer);
+      const targetFormat = this.configService.get<string>(
+        'IMAGE_FORMAT',
+        'webp',
+      );
+
+      await this.s3Service.uploadFile(
+        optimizedKey,
+        optimizedBuffer,
+        `image/${targetFormat}`,
+      );
+      return optimizedKey;
+    } catch (e) {
+      console.error(
+        `Failed to prepare image ${imagePath} from local: ${e.message}`,
+      );
+      throw e;
+    }
+  }
+
+  /**
+   * 获取图片下载用的 S3 Key (返回原图 Key)
+   */
+  async getS3KeyForImage(
+    comicPath: string,
+    imagePath: string,
+  ): Promise<string> {
+    // 下载时优先使用原图
+    const originalKey = this.getOriginalS3Key(comicPath, imagePath);
+
+    // 如果原图存在，返回原图 Key
+    if (await this.s3Service.hasFile(originalKey)) {
+      return originalKey;
+    }
+
+    // 如果原图不存在 (未归档)，且本地文件也不存在 (意外情况)，尝试返回优化图?
+    // 或者我们假设下载总是基于“如果有归档，一定是原图”。
+    // 这里简单返回原图 Key, 上层调用者会处理 404
+    return originalKey;
+  }
+
+  /**
+   * 获取图片流
    */
   async getImageStream(key: string): Promise<any> {
     return this.s3Service.getFileStream(key);
   }
 
   /**
-   * 归档漫画到 S3 (批量上传所有图片)
+   * 归档漫画到 S3 (上传原图)
    */
   async archiveComicToS3(comicPath: string, images: string[]): Promise<void> {
     console.log(
-      `Archiving comic: ${comicPath}, total images: ${images.length}`,
+      `Archiving comic (originals): ${comicPath}, total images: ${images.length}`,
     );
     let processed = 0;
-
-    // 使用 Promise.all 并发处理，但建议分批处理以避免内存爆炸或过多的并发请求
-    // 这里简单起见，假设一次处理一本漫画的几百张图片是可以的。
-    // 如果图片非常多，可以考虑 p-limit 或手动分批。
     const BATCH_SIZE = 10;
 
     for (let i = 0; i < images.length; i += BATCH_SIZE) {
       const batch = images.slice(i, i + BATCH_SIZE);
       await Promise.all(
         batch.map(async (imagePath) => {
+          const originalKey = this.getOriginalS3Key(comicPath, imagePath);
+
+          // 如果原图已存在，跳过
+          if (await this.s3Service.hasFile(originalKey)) {
+            processed++;
+            return;
+          }
+
           try {
-            await this.prepareImageOnS3(comicPath, imagePath);
+            // 提取原图 (不优化)
+            const imageBuffer = await this.extractImageFromComic(
+              comicPath,
+              imagePath,
+            );
+            const ext =
+              extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
+
+            let contentType = 'image/jpeg';
+            if (ext === 'png') contentType = 'image/png';
+            else if (ext === 'gif') contentType = 'image/gif';
+            else if (ext === 'webp') contentType = 'image/webp';
+
+            // 上传原图
+            await this.s3Service.uploadFile(
+              originalKey,
+              imageBuffer,
+              contentType,
+            );
             processed++;
           } catch (e) {
             console.error(
               `Failed to archive image ${imagePath} in ${comicPath}:`,
               e,
             );
-            throw e; // Fail fast or continue? Fail fast is safer for data integrity
+            throw e;
           }
         }),
       );
