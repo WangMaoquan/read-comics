@@ -111,3 +111,23 @@ RUSTFS_REGION=us-east-1 # 区域
 - **S3Service** (`modules/s3`): 负责 S3 的底层交互（Upload, Head, Presign）。
 - **ImagesService** (`modules/images`): 负责业务逻辑，协调本地文件提取、处理与 S3 上传。
 - **ImagesController** (`modules/images`): 处理 HTTP 请求，返回重定向响应。
+
+## 7. 代码改进与最佳实践 (Code Improvements & Best Practices)
+
+### 7.1 配置管理 (Configuration Management)
+
+全面引入 `ConfigService` 替代 `process.env`，确保配置的可测试性与安全性。
+
+- **S3Module**: 使用 `ConfigService` 获取 Redis 和 S3 配置。
+- **AuthModule**: 使用 `ConfigService` 获取 JWT Secret。
+
+### 7.2 多级缓存架构 (Multi-Layer Caching)
+
+在 `S3Module` 中引入了基于 `Keyv` 的多级缓存机制，优化预签名 URL 的生成性能：
+
+- **L1 (Memory)**: 本地内存缓存 (`cacheable-memory`)。
+  - 配置: TTL 60s, LRU Size 5000。
+  - 作用: 处理极高频的重复访问，减少 Redis IO。
+- **L2 (Redis)**: 分布式 Redis 缓存 (`@keyv/redis`)。
+  - 作用: 跨实例共享缓存，持久化。
+  - **Namespace**: 使用 `read-comics-s3` 命名空间防止 Key 冲突。
