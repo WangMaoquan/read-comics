@@ -3,6 +3,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   HeadObjectCommand,
+  CreateBucketCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
@@ -16,13 +17,14 @@ import { Cache } from 'cache-manager';
 export class S3Service {
   private s3Client: S3Client;
   private bucket: string;
+  private isCreateBucket: boolean = false;
 
   constructor(
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     // 区域
-    const region = this.configService.get('AWS_REGION');
+    const region = this.configService.get('RUSTFS_REGION');
     const accessKeyId = this.configService.get('RUSTFS_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.get('RUSTFS_SECRET_ACCESS_KEY');
     // 部署的 host
@@ -37,6 +39,25 @@ export class S3Service {
       endpoint,
     });
     this.bucket = this.configService.get('RUSTFS_BUCKET_PREFIX')!;
+  }
+
+  async ininBucket() {
+    if (this.isCreateBucket) {
+      console.log(`${this.bucket} has already exist`);
+      return;
+    }
+
+    try {
+      await this.s3Client.send(
+        new CreateBucketCommand({
+          Bucket: this.bucket,
+        }),
+      );
+      this.isCreateBucket = true;
+      console.log(`${this.bucket} init complete`);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   /**
