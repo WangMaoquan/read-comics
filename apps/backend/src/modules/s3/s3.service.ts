@@ -159,4 +159,17 @@ export class S3Service implements OnModuleInit {
       throw error;
     }
   }
+
+  /**
+   * 获取文件流
+   */
+  async getFileStream(key: string): Promise<any> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    const response = await this.s3Client.send(command);
+    return response.Body;
+  }
 }

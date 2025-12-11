@@ -235,6 +235,26 @@ export class ImagesService {
   }
 
   /**
+   * 获取图片的 S3 Key (用于下载等场景)
+   */
+  async getS3KeyForImage(
+    comicPath: string,
+    imagePath: string,
+  ): Promise<string> {
+    const comicHash = this.getComicHash(comicPath);
+    const imageHash = this.generateCacheKey(imagePath);
+    const ext = extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
+    return `cache/comics/${comicHash}/pages/${imageHash}.${ext}`;
+  }
+
+  /**
+   * 获取图片流 (用于下载)
+   */
+  async getImageStream(key: string): Promise<any> {
+    return this.s3Service.getFileStream(key);
+  }
+
+  /**
    * 归档漫画到 S3 (批量上传所有图片)
    */
   async archiveComicToS3(comicPath: string, images: string[]): Promise<void> {

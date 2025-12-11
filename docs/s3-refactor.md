@@ -78,6 +78,14 @@ RUSTFS_REGION=us-east-1 # 区域
   3.  确认上传完成后，**自动删除**本地的 ZIP/CBZ 文件。
 - **结果**: 实现“零本地存储”，所有内容均从 S3 读取。
 
+### 4.3 下载重建 (Download Reconstruction)
+
+即便删除了本地 ZIP，我们依然支持**下载功能**。
+
+- **API**: `GET /comics/:id/download`
+- **原理**: 实时从 S3 获取每一页图片，通过流式处理 (Stream Pipelining) 重新组装成 ZIP 文件返回给客户端。
+- **按需下载**: 支持 `?chapterIds=...` 参数，仅下载指定章节。
+
 ## 5. API 变更 (API Changes)
 
 前端调用方式保持不变，但响应行为发生了变化。

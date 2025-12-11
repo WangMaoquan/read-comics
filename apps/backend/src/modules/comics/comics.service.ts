@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, StreamableFile, NotFoundException } from '@nestjs/common';
+import * as archiver from 'archiver';
+import { basename } from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Comic } from '@entities/comic.entity';
@@ -457,5 +459,93 @@ export class ComicsService {
       console.error(`Failed to delete local file for comic ${id}:`, error);
       // We don't throw here because the main goal (archive to S3) succeeded.
     }
+  }
+
+  async download(
+    id: string,
+    chapterIds?: string[],
+  ): Promise<StreamableFile | null> {
+    const comic = await this.comicRepository.findOne({
+      where: { id },
+      relations: ['chapters'],
+    });
+
+    if (!comic) {
+      throw new NotFoundException(`Comic with id ${id} not found`);
+    }
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Sets the compression level.
+    });
+
+    // 筛选章节
+    let targetChapters = comic.chapters;
+    if (chapterIds && chapterIds.length > 0) {
+      targetChapters = comic.chapters.filter((c) => chapterIds.includes(c.id));
+    }
+
+    // 按顺序排序章节 (pageNumber)
+    targetChapters.sort((a, b) => a.pageNumber - b.pageNumber);
+
+    // 异步处理：开始构建 ZIP流
+    (async () => {
+      try {
+        for (const chapter of targetChapters) {
+          // 确保 pages 存在
+          if (!chapter.pages || chapter.pages.length === 0) continue;
+
+          // 文件夹名：如果是多章节漫画，每章一个文件夹；单章节直接放根目录或者根据喜好
+          // 这里使用 "Chapter X" 格式或者直接用章节标题
+          const folderName = `Chapter ${chapter.pageNumber.toString().padStart(3, '0')} - ${chapter.title}`;
+
+          for (const pageName of chapter.pages) {
+            // 1. 获取 S3 Key
+            // 注意：这里需要重新生成 S3 Key，逻辑必须与 prepareImageOnS3 保持一致
+            // 幸好 ImagesService 是 public 的，或者我们需要复制逻辑。
+            // 最好是 ImagesService 提供一个 helper。
+            // 但这里我们没有 helper，只能重新实现一遍 key 生成逻辑。
+            // 或者我们在 ImagesService 加一个 getS3Key 方法。
+            // 简单起见，这里直接调用 ImagesService 的 helper (但是那个 private)
+            // Let's assume we can use the same logic here:
+            // cache/comics/{comicHash}/pages/{imageHash}.{ext}
+
+            // 我们需要 access private methods of ImagesService? No.
+            // We should add a public method in ImagesService: getS3KeyForImage(comicPath, imagePath).
+
+            // WAIT: We can't easily access private methods.
+            // Ideally we refactor code to expose key generation.
+            // For now, let's replicate the logic carefully.
+            // It depends on comicPath and imagePath.
+
+            const s3Key = await this.imagesService.getS3KeyForImage(
+              comic.filePath,
+              pageName,
+            );
+
+            // 2. 获取 S3 流
+            try {
+              const s3Stream = await this.imagesService.getImageStream(s3Key);
+              // 3. 添加到 ZIP
+              // 路径： Chapter X/001.jpg
+              archive.append(s3Stream, { name: `${folderName}/${pageName}` });
+            } catch (e) {
+              console.warn(
+                `Skipping missing image ${pageName} in chapter ${chapter.title}:`,
+                e,
+              );
+            }
+          }
+        }
+        await archive.finalize();
+      } catch (err) {
+        console.error('Archive error:', err);
+        archive.emit('error', err);
+      }
+    })();
+
+    return new StreamableFile(archive, {
+      type: 'application/zip',
+      disposition: `attachment; filename="${encodeURIComponent(comic.title)}.zip"`,
+    });
   }
 }

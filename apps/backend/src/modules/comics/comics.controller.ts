@@ -147,4 +147,22 @@ export class ComicsController {
     await this.comicsService.archive(id);
     return { success: true, message: 'Comic archived successfully' };
   }
+
+  @Get(':id/download')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '下载漫画（支持按需下载章节）' })
+  @ApiQuery({
+    name: 'chapterIds',
+    required: false,
+    type: String,
+    description: '逗号分隔的章节ID',
+  })
+  async download(
+    @Param('id') id: string,
+    @Query('chapterIds') chapterIds?: string,
+  ) {
+    const ids = chapterIds ? chapterIds.split(',') : undefined;
+    return this.comicsService.download(id, ids);
+  }
 }
