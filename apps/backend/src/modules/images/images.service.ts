@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  OnModuleInit,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { promises as fs, createReadStream } from 'fs';
-import { join, extname } from 'path';
+import { promises as fs } from 'fs';
+import { extname } from 'path';
 import { createHash } from 'crypto';
 import * as sharp from 'sharp';
 import { S3Service } from '../s3/s3.service';
@@ -122,8 +118,12 @@ export class ImagesService {
    * 优化图片 (调整大小 + 转换为 WebP)
    */
   async optimizeImage(imageBuffer: Buffer): Promise<Buffer> {
-    const maxWidth = this.configService.get<number>('IMAGE_MAX_WIDTH', 1600);
-    const quality = this.configService.get<number>('IMAGE_QUALITY', 80);
+    const maxWidth = parseInt(
+      this.configService.get<string>('IMAGE_MAX_WIDTH', '1600'),
+    );
+    const quality = parseInt(
+      this.configService.get<string>('IMAGE_QUALITY', '80'),
+    );
     const format = this.configService.get<string>('IMAGE_FORMAT', 'webp');
 
     let pipeline = sharp(imageBuffer);
