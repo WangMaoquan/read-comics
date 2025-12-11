@@ -119,6 +119,34 @@ export class ImagesService {
   }
 
   /**
+   * 优化图片 (调整大小 + 转换为 WebP)
+   */
+  async optimizeImage(imageBuffer: Buffer): Promise<Buffer> {
+    const maxWidth = this.configService.get<number>('IMAGE_MAX_WIDTH', 1600);
+    const quality = this.configService.get<number>('IMAGE_QUALITY', 80);
+    const format = this.configService.get<string>('IMAGE_FORMAT', 'webp');
+
+    let pipeline = sharp(imageBuffer);
+
+    // Resize if needed
+    const metadata = await pipeline.metadata();
+    if (metadata.width && metadata.width > maxWidth) {
+      pipeline = pipeline.resize({ width: maxWidth, withoutEnlargement: true });
+    }
+
+    // Convert format
+    if (format === 'webp') {
+      pipeline = pipeline.webp({ quality });
+    } else if (format === 'jpeg' || format === 'jpg') {
+      pipeline = pipeline.jpeg({ quality });
+    } else if (format === 'png') {
+      pipeline = pipeline.png({ quality });
+    }
+
+    return await pipeline.toBuffer();
+  }
+
+  /**
    * 准备图片到 S3 (返回 S3 Key)
    */
   async prepareImageOnS3(
@@ -126,11 +154,12 @@ export class ImagesService {
     imagePath: string,
   ): Promise<string> {
     const comicHash = this.getComicHash(comicPath);
-    const imageHash = this.generateCacheKey(imagePath); // 只 hash imagePath，不包含 comicPath，因为已经在目录里了
-    const ext = extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
+    // 原始文件名作为 Hash 依据，但后缀改为 webp (默认)
+    const imageHash = this.generateCacheKey(imagePath);
+    const targetFormat = this.configService.get<string>('IMAGE_FORMAT', 'webp');
 
     // 使用层级结构: cache/comics/{comicHash}/pages/{imageHash}.{ext}
-    const s3Key = `cache/comics/${comicHash}/pages/${imageHash}.${ext}`;
+    const s3Key = `cache/comics/${comicHash}/pages/${imageHash}.${targetFormat}`;
 
     // 检查 S3 是否存在
     const exists = await this.s3Service.hasFile(s3Key);
@@ -141,14 +170,14 @@ export class ImagesService {
     // Extract
     const imageBuffer = await this.extractImageFromComic(comicPath, imagePath);
 
+    // Optimize
+    const optimizedBuffer = await this.optimizeImage(imageBuffer);
+
     // Determine content type
-    let contentType = 'image/jpeg';
-    if (ext === 'png') contentType = 'image/png';
-    else if (ext === 'gif') contentType = 'image/gif';
-    else if (ext === 'webp') contentType = 'image/webp';
+    const contentType = `image/${targetFormat}`;
 
     // Upload
-    await this.s3Service.uploadFile(s3Key, imageBuffer, contentType);
+    await this.s3Service.uploadFile(s3Key, optimizedBuffer, contentType);
 
     return s3Key;
   }
@@ -162,8 +191,8 @@ export class ImagesService {
   ): Promise<string> {
     const comicHash = this.getComicHash(comicPath);
     const imageHash = this.generateCacheKey(imagePath);
-    const ext = extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
-    return `cache/comics/${comicHash}/pages/${imageHash}.${ext}`;
+    const targetFormat = this.configService.get<string>('IMAGE_FORMAT', 'webp');
+    return `cache/comics/${comicHash}/pages/${imageHash}.${targetFormat}`;
   }
 
   /**

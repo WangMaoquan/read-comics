@@ -131,3 +131,11 @@ RUSTFS_REGION=us-east-1 # 区域
 - **L2 (Redis)**: 分布式 Redis 缓存 (`@keyv/redis`)。
   - 作用: 跨实例共享缓存，持久化。
   - **Namespace**: 使用 `read-comics-s3` 命名空间防止 Key 冲突。
+
+### 7.3 图片优化 (Image Optimization)
+
+为了节省带宽并提升加载速度，图片在上传至 S3 前会自动进行优化：
+
+- **尺寸限制**: 自动将过大的图片缩小至 `IMAGE_MAX_WIDTH` (默认 1600px)。
+- **格式转换**: 默认转换为 `WebP` 格式，大幅减小体积。
+- **S3 存储**: 存储路径后缀会自动根据目标格式调整 (如 `.webp`)。
