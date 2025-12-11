@@ -85,6 +85,7 @@ RUSTFS_REGION=us-east-1 # 区域
 - **API**: `GET /comics/:id/download`
 - **原理**: 实时从 S3 获取每一页图片，通过流式处理 (Stream Pipelining) 重新组装成 ZIP 文件返回给客户端。
 - **按需下载**: 支持 `?chapterIds=...` 参数，仅下载指定章节。
+- **格式说明**: 由于 S3 存储的是优化后的图片 (如 WebP)，下载的 ZIP 包中图片扩展名也会相应改变 (如 `.jpg` -> `.webp`)。
 
 ## 5. API 变更 (API Changes)
 

@@ -1,6 +1,6 @@
 import { Injectable, StreamableFile, NotFoundException } from '@nestjs/common';
 import * as archiver from 'archiver';
-import { basename } from 'path';
+import { basename, extname } from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Comic } from '@entities/comic.entity';
@@ -522,12 +522,20 @@ export class ComicsService {
               pageName,
             );
 
+            // Get the actual extension from the S3 key (which reflects the optimized format, e.g., .webp)
+            const actualExt = extname(s3Key);
+            // Construct the new filename with the correct extension
+            const newFileName =
+              basename(pageName, extname(pageName)) + actualExt;
+
             // 2. 获取 S3 流
             try {
               const s3Stream = await this.imagesService.getImageStream(s3Key);
               // 3. 添加到 ZIP
-              // 路径： Chapter X/001.jpg
-              archive.append(s3Stream, { name: `${folderName}/${pageName}` });
+              // 路径： Chapter X/001.webp
+              archive.append(s3Stream, {
+                name: `${folderName}/${newFileName}`,
+              });
             } catch (e) {
               console.warn(
                 `Skipping missing image ${pageName} in chapter ${chapter.title}:`,
