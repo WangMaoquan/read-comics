@@ -63,6 +63,10 @@ RUSTFS_BUCKET_PREFIX=read-comics # Bucket 名称
 RUSTFS_REGION=us-east-1 # 区域
 ```
 
+### 4.1 自动初始化 (Auto-Initialization)
+
+`S3Service` 在模块启动时 (`onModuleInit`) 会尝试自动创建配置中指定的 Bucket（如果不存在）。这简化了部署流程，无需手动预先创建 Bucket。
+
 ## 5. API 变更 (API Changes)
 
 前端调用方式保持不变，但响应行为发生了变化。

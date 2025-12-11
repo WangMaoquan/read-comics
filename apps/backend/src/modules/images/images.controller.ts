@@ -183,42 +183,6 @@ export class ImagesController {
   }
 
   /**
-   * 获取缓存统计信息
-   */
-  @Get('cache/stats')
-  @ApiOperation({ summary: '获取缓存统计信息' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  getCacheStats() {
-    return {
-      success: true,
-      data: this.imagesService.getCacheStats(),
-    };
-  }
-
-  /**
-   * 清理缓存
-   */
-  /**
-   * 清理缓存
-   */
-  @Post('cache/clean')
-  @ApiOperation({ summary: '清理缓存' })
-  @ApiQuery({
-    name: 'maxAge',
-    description: '最大缓存时间(毫秒)',
-    required: false,
-    type: Number,
-  })
-  @ApiResponse({ status: 200, description: '清理成功' })
-  async cleanCache(@Query('maxAge') maxAge: number = 24 * 60 * 60 * 1000) {
-    // S3 cache implementation doesn't support manual cleaning yet
-    return {
-      success: true,
-      message: 'Cache cleaned successfully (No-op for S3)',
-    };
-  }
-
-  /**
    * 获取支持的图片格式
    */
   @Get('formats')

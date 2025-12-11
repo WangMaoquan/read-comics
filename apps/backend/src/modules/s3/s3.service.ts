@@ -7,14 +7,14 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 
 // https://docs.nestjs.com/techniques/caching#installation
 
 @Injectable()
-export class S3Service {
+export class S3Service implements OnModuleInit {
   private s3Client: S3Client;
   private bucket: string;
   private isCreateBucket: boolean = false;
@@ -41,9 +41,13 @@ export class S3Service {
     this.bucket = this.configService.get('RUSTFS_BUCKET_PREFIX')!;
   }
 
-  async ininBucket() {
+  async onModuleInit() {
+    await this.initBucket();
+  }
+
+  async initBucket() {
     if (this.isCreateBucket) {
-      console.log(`${this.bucket} has already exist`);
+      console.log(`${this.bucket} already exists`);
       return;
     }
 
@@ -56,7 +60,11 @@ export class S3Service {
       this.isCreateBucket = true;
       console.log(`${this.bucket} init complete`);
     } catch (error) {
-      console.log(error);
+      // Ignore if bucket already exists error or handle accordingly
+      // For now, logging as user did
+      console.log(`Bucket init check: ${error.message}`);
+      // Usually S3 services don't fail just because they can't create a bucket (might already exist owned by someone else or permission issue)
+      // But assuming the user wants to ensure it exists.
     }
   }
 

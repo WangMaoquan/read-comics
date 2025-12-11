@@ -8,27 +8,16 @@ import { promises as fs, createReadStream } from 'fs';
 import { join, extname } from 'path';
 import { createHash } from 'crypto';
 import * as sharp from 'sharp';
-import { LRUCache } from 'lru-cache';
 import { S3Service } from '../s3/s3.service';
 import { ZipUtilsService } from '@common/utils/zip-utils.service';
 
 @Injectable()
-@Injectable()
 export class ImagesService {
-  private cache: LRUCache<string, Buffer>;
-
   constructor(
     private configService: ConfigService,
     private zipUtilsService: ZipUtilsService,
     private s3Service: S3Service,
-  ) {
-    // 初始化 LRU 缓存: 最多 100 个图片，最大 100MB
-    this.cache = new LRUCache<string, Buffer>({
-      max: 100,
-      maxSize: 100 * 1024 * 1024, // 100MB
-      sizeCalculation: (value) => value.length,
-    });
-  }
+  ) {}
 
   /**
    * 生成缓存键
@@ -174,20 +163,6 @@ export class ImagesService {
   }
 
   /**
-   * 从缓存获取图片
-   */
-  async getCachedImage(cacheKey: string): Promise<Buffer | null> {
-    return this.cache.get(cacheKey) || null;
-  }
-
-  /**
-   * 缓存图片
-   */
-  async cacheImage(cacheKey: string, imageBuffer: Buffer): Promise<void> {
-    this.cache.set(cacheKey, imageBuffer);
-  }
-
-  /**
    * 生成并缓存缩略图 (返回 S3 Key)
    */
   async generateAndCacheThumbnail(
@@ -288,30 +263,6 @@ export class ImagesService {
         `Failed to extract image: ${error.message}`,
       );
     }
-  }
-
-  /**
-   * 读取文件流
-   */
-  async readFileStream(filePath: string) {
-    return createReadStream(filePath);
-  }
-
-  /**
-   * 获取缓存统计信息
-   */
-  getCacheStats(): {
-    itemCount: number;
-    maxItems: number;
-    currentSize: number;
-    maxSize: number;
-  } {
-    return {
-      itemCount: this.cache.size,
-      maxItems: this.cache.max,
-      currentSize: this.cache.calculatedSize || 0,
-      maxSize: this.cache.maxSize || 0,
-    };
   }
 }
 
