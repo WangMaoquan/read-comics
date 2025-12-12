@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as yauzl from 'yauzl';
-import * as iconv from 'iconv-lite';
+import iconv from 'iconv-lite';
 
 /**
  * Promisified version of yauzl.open
