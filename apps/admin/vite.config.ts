@@ -2,10 +2,24 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
+import { compression } from 'vite-plugin-compression2';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+  plugins: [
+    vue(),
+    tailwindcss(),
+    // Bundle analysis visualization
+    visualizer({
+      filename: './analysis-bundle/stats.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+    // Compression (gzip by default)
+    compression(),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -20,7 +34,7 @@ export default defineConfig({
       output: {
         // 手动分包策略
         manualChunks(id) {
-          console.log(id);
+          // Vue 核心库
           if (
             id.includes('node_modules/vue') ||
             id.includes('node_modules/vue-router') ||
@@ -28,15 +42,34 @@ export default defineConfig({
           ) {
             return 'vue';
           }
-          if (id.includes('echarts') || id.includes('vue-echarts')) {
+
+          // ECharts 核心
+          if (id.includes('echarts/core')) {
+            return 'echarts-core';
+          }
+
+          // ECharts 图表组件
+          if (id.includes('echarts/charts')) {
+            return 'echarts-charts';
+          }
+
+          // ECharts 其他组件
+          if (id.includes('echarts') || id.includes('zrender')) {
             return 'echarts';
           }
+
+          if (id.includes('vue-echarts')) {
+            return 'vue-echarts';
+          }
+
           if (id.includes('node_modules/@vueuse')) {
             return 'vueuse';
           }
+
           if (id.includes('@read-comics/api-client')) {
             return 'api-client';
           }
+
           // 默认分包
           if (id.includes('node_modules')) {
             return 'vendor';
@@ -62,8 +95,8 @@ export default defineConfig({
       },
     },
 
-    // 启用压缩
-    minify: 'esbuild',
+    // 使用 terser 进行更好的压缩
+    minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true, // 移除 console
@@ -80,6 +113,9 @@ export default defineConfig({
 
     // 启用源码映射
     sourcemap: false, // 生产环境关闭源码映射以减小体积
+
+    // 调整 chunk 大小警告限制
+    chunkSizeWarningLimit: 600,
   },
 
   // 优化预构建配置

@@ -2,10 +2,23 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
+import { compression } from 'vite-plugin-compression2';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+  plugins: [
+    vue(),
+    tailwindcss(), // Bundle analysis visualization
+    visualizer({
+      filename: './analysis-bundle/stats.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+    // Compression (gzip by default)
+    compression(),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -25,8 +38,8 @@ export default defineConfig({
     sourcemap: false,
     // 启用 CSS 代码分割
     cssCodeSplit: true,
-    // 设置 chunk 大小警告限制为 1000kb
-    chunkSizeWarningLimit: 1000,
+    // 设置 chunk 大小警告限制为 600kb
+    chunkSizeWarningLimit: 600,
     // Rollup 打包配置
     rollupOptions: {
       output: {
@@ -68,8 +81,8 @@ export default defineConfig({
         },
       },
     },
-    // 压缩配置
-    minify: 'esbuild',
+    // 使用 terser 进行更好的压缩
+    minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true, // 移除 console
