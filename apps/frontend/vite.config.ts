@@ -70,6 +70,13 @@ export default defineConfig({
     },
     // 压缩配置
     minify: 'esbuild',
+    terserOptions: {
+      compress: {
+        drop_console: true, // 移除 console
+        drop_debugger: true, // 移除 debugger
+        pure_funcs: ['console.log', 'console.debug'], // 移除指定函数
+      },
+    },
     // 设置目标浏览器
     target: 'es2015',
     // 启用 CSS 压缩
