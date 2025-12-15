@@ -9,9 +9,6 @@ import { User } from '@entities/user.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailModule } from '@modules/email/email.module';
 import { EmailService } from '@modules/email/email.service';
-import { CacheModule } from '@nestjs/cache-manager';
-import Keyv from 'keyv';
-import KeyvRedis from '@keyv/redis';
 
 @Module({
   imports: [
@@ -28,21 +25,6 @@ import KeyvRedis from '@keyv/redis';
       },
     }),
     EmailModule,
-    CacheModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        return {
-          stores: [
-            new Keyv({
-              store: new KeyvRedis(configService.get<string>('REDIS_LINK')),
-              namespace: 'read-comics-email',
-              ttl: 5 * 60,
-            }),
-          ],
-        };
-      },
-    }),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, EmailService],
