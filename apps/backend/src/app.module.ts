@@ -18,6 +18,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     AuthModule,
     FavoritesModule,
     TagsModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
