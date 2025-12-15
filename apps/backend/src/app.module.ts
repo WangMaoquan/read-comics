@@ -16,6 +16,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { TagsModule } from './modules/tags/tags.module';
+import { SystemModule } from './modules/system/system.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { EmailModule } from './modules/email/email.module';
@@ -57,6 +58,7 @@ import KeyvRedis from '@keyv/redis';
     AuthModule,
     FavoritesModule,
     TagsModule,
+    SystemModule,
     EmailModule,
   ],
   controllers: [AppController],

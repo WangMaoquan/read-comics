@@ -4,6 +4,10 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
   CreateBucketCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  _Object,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
@@ -160,5 +164,127 @@ export class S3Service implements OnModuleInit {
 
     const response = await this.s3Client.send(command);
     return response.Body;
+  }
+
+  /**
+   * 删除单个文件
+   * @param key S3对象的key
+   */
+  async deleteFile(key: string): Promise<void> {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+      await this.s3Client.send(command);
+    } catch (error) {
+      console.error(`S3 Delete Error for key ${key}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量删除文件
+   * @param keys S3对象key的数组
+   */
+  async deleteFiles(keys: string[]): Promise<void> {
+    if (keys.length === 0) {
+      return;
+    }
+
+    try {
+      const command = new DeleteObjectsCommand({
+        Bucket: this.bucket,
+        Delete: {
+          Objects: keys.map((key) => ({ Key: key })),
+          Quiet: false,
+        },
+      });
+      await this.s3Client.send(command);
+    } catch (error) {
+      console.error(`S3 Bulk Delete Error for keys ${keys.join(', ')}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 列出桶中的所有文件
+   */
+  async listAllFiles(): Promise<_Object[]> {
+    const allObjects: _Object[] = [];
+    let continuationToken: string | undefined;
+
+    try {
+      do {
+        const command = new ListObjectsV2Command({
+          Bucket: this.bucket,
+          ContinuationToken: continuationToken,
+        });
+
+        const response = await this.s3Client.send(command);
+
+        if (response.Contents) {
+          allObjects.push(...response.Contents);
+        }
+
+        continuationToken = response.NextContinuationToken;
+      } while (continuationToken);
+
+      return allObjects;
+    } catch (error) {
+      console.error('Error listing S3 objects:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除桶中的所有文件
+   * @returns 删除的文件数量
+   */
+  async deleteAllFiles(): Promise<number> {
+    try {
+      // 获取所有文件
+      const allObjects = await this.listAllFiles();
+
+      if (allObjects.length === 0) {
+        console.log('No files to delete in S3 bucket');
+        return 0;
+      }
+
+      // S3 DeleteObjects 命令最多支持一次删除 1000 个对象
+      const batchSize = 1000;
+      let deletedCount = 0;
+
+      for (let i = 0; i < allObjects.length; i += batchSize) {
+        const batch = allObjects.slice(i, i + batchSize);
+
+        const deleteCommand = new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: {
+            Objects: batch.map((obj) => ({ Key: obj.Key })),
+            Quiet: true, // 不返回成功删除的对象列表
+          },
+        });
+
+        const response = await this.s3Client.send(deleteCommand);
+
+        // 计算成功删除的数量
+        const batchDeletedCount = batch.length - (response.Errors?.length || 0);
+        deletedCount += batchDeletedCount;
+
+        if (response.Errors && response.Errors.length > 0) {
+          console.error(
+            `Failed to delete ${response.Errors.length} objects:`,
+            response.Errors,
+          );
+        }
+      }
+
+      console.log(`Deleted ${deletedCount} files from S3 bucket`);
+      return deletedCount;
+    } catch (error) {
+      console.error('Error deleting all S3 files:', error);
+      throw error;
+    }
   }
 }
