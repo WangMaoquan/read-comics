@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -7,6 +7,9 @@ import { User } from '@entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { EmailService } from '@modules/email/email.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +17,8 @@ export class AuthService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
+    private emailService: EmailService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -102,11 +107,6 @@ export class AuthService {
     };
   }
 
-  private verificationCodes = new Map<
-    string,
-    { code: string; expires: number }
-  >();
-
   async validateUser(userId: string) {
     const user = await this.usersRepository.findOne({
       where: { id: userId },
@@ -130,13 +130,22 @@ export class AuthService {
       throw new UnauthorizedException('该邮箱未注册');
     }
 
-    // 生成 6 位验证码
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const oldCode = await this.cacheManager.get(`code_${email}`);
 
-    // 存储验证码，有效期 10 分钟
-    this.verificationCodes.set(email, {
-      code,
-      expires: Date.now() + 10 * 60 * 1000,
+    if (oldCode) {
+      return {
+        message: '验证码五分钟内有效, 请不要重复发送!',
+      };
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.cacheManager.set(`code_${email}`, code);
+
+    await this.emailService.sendMail({
+      to: email,
+      subject: '验证码',
+      html: `<p>你的验证码为 ${code}</p>
+            <p>有效时长为 5 分钟</p>`,
     });
 
     // TODO: 发送邮件
@@ -149,8 +158,8 @@ export class AuthService {
     const { email, code, password } = resetPasswordDto;
 
     // 验证验证码
-    const stored = this.verificationCodes.get(email);
-    if (!stored || stored.code !== code || stored.expires < Date.now()) {
+    const stored = await this.cacheManager.get(`code_${email}`);
+    if (!stored || stored !== code) {
       throw new UnauthorizedException('验证码无效或已过期');
     }
 
@@ -166,7 +175,7 @@ export class AuthService {
     await this.usersRepository.save(user);
 
     // 清除验证码
-    this.verificationCodes.delete(email);
+    await this.cacheManager.del(`code_${email}`);
 
     return { message: '密码重置成功' };
   }

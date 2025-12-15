@@ -24,14 +24,20 @@ export class EmailService {
       {
         from: {
           name: this.configSevice.get<string>('EMAIL_FROM', '默认'),
-          address: this.configSevice.get<string>('EMAIL_PASSWORD')!,
+          address: this.configSevice.get<string>('EMAIL_USER')!,
         },
         to,
         subject,
         html,
       },
-      (error) => {
-        console.log(error?.message, 'sendMail error');
+      (error, info) => {
+        /**
+         * error 为 undefined 或者 null 时说明发送成功
+         */
+        if (error) {
+          console.log(error?.message, 'sendMail error');
+          console.log(info, 'info');
+        }
       },
     );
   }

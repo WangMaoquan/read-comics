@@ -11,11 +11,11 @@ export class EmailController {
   ) {}
 
   @Get('code')
-  async sendEmailCode(@Query('address') address) {
-    const code = Math.random().toString(16).slice(2, 8);
-    this.cacheManager.set(`code_${address}`, code);
+  async sendEmailCode(@Query('email') email) {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.cacheManager.set(`code_${email}`, code);
     await this.emailService.sendMail({
-      to: address,
+      to: email,
       subject: '验证码',
       html: `<p>你的验证码为 ${code}</p`,
     });
