@@ -3,7 +3,7 @@
   import { useRouter, useRoute } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import { authService } from '@/api/services';
-  import Alert from '@/components/Alert.vue';
+  import { toast } from '@/composables/useToast';
 
   const router = useRouter();
   const route = useRoute();
@@ -15,17 +15,15 @@
   const confirmPassword = ref('');
   const showPassword = ref(false);
   const loading = ref(false);
-  const errorMessage = ref('');
 
   const handleSubmit = async () => {
-    errorMessage.value = '';
-
+    // 客户端验证
     if (password.value !== confirmPassword.value) {
-      errorMessage.value = '两次密码输入不一致';
+      toast.error('两次密码输入不一致');
       return;
     }
     if (password.value.length < 6) {
-      errorMessage.value = '密码长度至少为 6 个字符';
+      toast.error('密码长度至少为 6 个字符');
       return;
     }
 
@@ -48,8 +46,6 @@
       authStore.setAuth(user, response.token);
       const redirect = route.query.redirect as string;
       router.push(redirect || '/');
-    } catch (error: any) {
-      errorMessage.value = error.message || '注册失败';
     } finally {
       loading.value = false;
     }
@@ -58,13 +54,6 @@
 
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-5">
-    <Alert
-      v-if="errorMessage"
-      :message="errorMessage"
-      type="error"
-      class="mb-6"
-    />
-
     <div class="group">
       <label class="block text-sm font-medium text-gray-300 mb-2">用户名</label>
       <div class="relative">

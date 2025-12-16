@@ -3,7 +3,6 @@
   import { useRouter, useRoute } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import { authService } from '@/api/services';
-  import Alert from '@/components/Alert.vue';
 
   const router = useRouter();
   const route = useRoute();
@@ -14,14 +13,12 @@
   const rememberMe = ref(false);
   const showPassword = ref(false);
   const loading = ref(false);
-  const errorMessage = ref('');
 
   const emit = defineEmits<{
     (e: 'switch-mode', mode: 'register' | 'forgot-password'): void;
   }>();
 
   const handleSubmit = async () => {
-    errorMessage.value = '';
     loading.value = true;
 
     try {
@@ -37,8 +34,6 @@
       authStore.setAuth(user, response.token);
       const redirect = route.query.redirect as string;
       router.push(redirect || '/');
-    } catch (error: any) {
-      errorMessage.value = error.message || '登录失败';
     } finally {
       loading.value = false;
     }
@@ -47,13 +42,6 @@
 
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-5">
-    <Alert
-      v-if="errorMessage"
-      :message="errorMessage"
-      type="error"
-      class="mb-6"
-    />
-
     <div class="group">
       <label class="block text-sm font-medium text-gray-300 mb-2">邮箱</label>
       <div class="relative">
