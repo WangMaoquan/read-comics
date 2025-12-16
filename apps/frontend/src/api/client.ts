@@ -4,9 +4,45 @@ import { STORAGE_KEYS } from '@/config';
 import { useStorage } from '@vueuse/core';
 import { performanceMonitor } from '@/utils/performance';
 import { logger } from '@/utils/logger';
+import { toast } from '@/composables/useToast';
 
 // 从环境变量获取 API 基础 URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
+/**
+ * 从错误响应中提取错误消息
+ */
+function getErrorMessage(error: any): string {
+  // 优先使用后端返回的错误消息
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  // 根据 HTTP 状态码返回默认消息
+  const status = error.response?.status;
+  switch (status) {
+    case 400:
+      return '请求参数错误';
+    case 401:
+      return '登录已过期，请重新登录';
+    case 403:
+      return '没有权限执行此操作';
+    case 404:
+      return '请求的资源不存在';
+    case 500:
+      return '服务器错误，请稍后重试';
+    case 502:
+    case 503:
+    case 504:
+      return '服务暂时不可用，请稍后重试';
+    default:
+      // 网络错误
+      if (!error.response) {
+        return '网络连接失败，请检查网络';
+      }
+      return error.message || '操作失败，请重试';
+  }
+}
 
 export const api = createApi({
   baseURL: API_BASE_URL,
@@ -15,6 +51,9 @@ export const api = createApi({
   },
   onUnauthorized: () => {
     logger.warn('Unauthorized access, redirecting to login');
+
+    // 显示提示消息
+    toast.error('登录已过期，请重新登录');
 
     // 清除本地存储
     localStorage.removeItem('token');
@@ -29,6 +68,12 @@ export const api = createApi({
       status: error.response?.status,
       url: error.config?.url,
     });
+
+    // 401 错误已经在 onUnauthorized 中处理，不需要重复显示
+    if (error.response?.status !== 401) {
+      const errorMessage = getErrorMessage(error);
+      toast.error(errorMessage);
+    }
   },
   // 启用缓存（默认 5 分钟）
   cache: {
