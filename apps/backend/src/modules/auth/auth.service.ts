@@ -28,7 +28,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new UnauthorizedException('用户名或邮箱已存在');
+      throw new UnauthorizedException('邮箱已存在');
     }
 
     // 加密密码
@@ -84,7 +84,7 @@ export class AuthService {
       user.password,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('密码错误');
     }
 
     // 生成 token
