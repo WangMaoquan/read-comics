@@ -35,6 +35,9 @@
           clearInterval(timer);
         }
       }, 1000);
+    } catch (e) {
+      // 已经在api/config 中处理了 不管就好
+      // console.log(e);
     } finally {
       loading.value = false;
     }

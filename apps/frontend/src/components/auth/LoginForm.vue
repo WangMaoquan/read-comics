@@ -20,7 +20,6 @@
 
   const handleSubmit = async () => {
     loading.value = true;
-
     try {
       const response = await authService.login({
         email: email.value,
@@ -34,6 +33,9 @@
       authStore.setAuth(user, response.token);
       const redirect = route.query.redirect as string;
       router.push(redirect || '/');
+    } catch (e) {
+      // 已经在api/config 中处理了 不管就好
+      // console.log(e);
     } finally {
       loading.value = false;
     }
