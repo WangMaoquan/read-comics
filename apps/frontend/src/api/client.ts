@@ -49,10 +49,16 @@ export const api = createApi({
   getToken: () => {
     return useStorage<string | null>(STORAGE_KEYS.AUTH_TOKEN, '').value;
   },
-  onUnauthorized: () => {
-    logger.warn('Unauthorized access, redirecting to login');
+  onUnauthorized: (error) => {
+    // 检查是否是认证相关接口
+    const isAuthRequest = error?.config?.url?.includes('/auth');
 
-    // 显示提示消息
+    if (isAuthRequest) {
+      // 认证接口的 401: 不处理,让 onError 显示错误
+      return;
+    }
+
+    // 其他接口的 401: 显示提示并跳转
     toast.error('登录已过期，请重新登录');
 
     // 清除本地存储
@@ -69,8 +75,26 @@ export const api = createApi({
       url: error.config?.url,
     });
 
-    // 401 错误已经在 onUnauthorized 中处理，不需要重复显示
-    if (error.response?.status !== 401) {
+    // 401 处理逻辑:
+    // 1. 认证接口(登录/注册等)的 401: 在这里显示 specific 错误消息 (onUnauthorized 会跳过)
+    // 2. 其他接口的 401: onUnauthorized 会处理(显示"登录已过期"并跳转), 这里跳过
+    // 3. 非 401 错误: 在这里显示通用错误消息
+
+    if (error.response?.status === 401) {
+      const isAuthRequest =
+        error.config?.url?.includes('/auth/login') ||
+        error.config?.url?.includes('/auth/register') ||
+        error.config?.url?.includes('/auth/forgot-password') ||
+        error.config?.url?.includes('/auth/reset-password');
+
+      if (isAuthRequest) {
+        // 认证接口的 401: 显示具体错误消息
+        const errorMessage = getErrorMessage(error);
+        toast.error(errorMessage);
+      }
+      // 非认证接口的 401: onUnauthorized 已处理, 这里的 onError 忽略
+    } else {
+      // 非 401 错误: 显示错误消息
       const errorMessage = getErrorMessage(error);
       toast.error(errorMessage);
     }

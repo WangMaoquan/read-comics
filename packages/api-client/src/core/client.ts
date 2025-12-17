@@ -3,6 +3,7 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosResponse,
   type InternalAxiosRequestConfig,
+  type AxiosError,
 } from 'axios';
 import { CacheManager, type CacheConfig } from './cache';
 import { DeduplicationManager } from './deduplication';
@@ -31,8 +32,8 @@ export interface ApiClientConfig {
   baseURL: string;
   timeout?: number;
   getToken?: () => string | null;
-  onUnauthorized?: () => void;
-  onError?: (error: any) => void;
+  onUnauthorized?: (error: AxiosError) => void;
+  onError?: (error: AxiosError) => void;
   /** 缓存配置 */
   cache?: Partial<CacheConfig>;
   /** 重试配置 */
@@ -96,7 +97,7 @@ export class ApiClient {
       },
       (error) => {
         if (error.response?.status === 401) {
-          this.config.onUnauthorized?.();
+          this.config.onUnauthorized?.(error);
         }
 
         this.config.onError?.(error);
