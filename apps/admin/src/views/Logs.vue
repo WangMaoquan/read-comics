@@ -102,12 +102,12 @@
   // 导出日志 (模拟)
   const handleExport = () => {
     const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      'Time,Level,Module,Message,User\n' +
+      'data:text/csv;charset=utf-8,\uFEFF' +
+      '时间,级别,模块,消息,用户,IP\n' +
       logs.value
         .map(
           (log) =>
-            `${log.createdAt},${log.level},${log.module},"${log.message}",${log.username || '-'}`,
+            `${formatTime(log.createdAt)},${log.level.toUpperCase()},${log.module},"${log.message.replace(/"/g, '""')}",${log.username || '-'},${log.ip || '-'}`,
         )
         .join('\n');
 
@@ -116,7 +116,7 @@
     link.setAttribute('href', encodedUri);
     link.setAttribute(
       'download',
-      `system_logs_${new Date().toISOString()}.csv`,
+      `system_logs_${new Date().toLocaleDateString()}.csv`,
     );
     document.body.appendChild(link);
     link.click();
@@ -242,9 +242,18 @@
           >
             <option value="">所有模块</option>
             <option value="auth">Auth</option>
-            <option value="system">System</option>
             <option value="comics">Comics</option>
+            <option value="chapters">Chapters</option>
+            <option value="tags">Tags</option>
+            <option value="favorites">Favorites</option>
             <option value="files">Files</option>
+            <option value="images">Images</option>
+            <option value="stats">Stats</option>
+            <option value="logs">Logs</option>
+            <option value="tasks">Tasks</option>
+            <option value="backups">Backups</option>
+            <option value="system">System</option>
+            <option value="email">Email</option>
           </select>
         </div>
         <div class="flex gap-2">

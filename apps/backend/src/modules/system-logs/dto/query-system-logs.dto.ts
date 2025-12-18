@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsIn, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsIn,
+  IsDateString,
+  IsNumber,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class QuerySystemLogsDto {
@@ -33,9 +40,13 @@ export class QuerySystemLogsDto {
 
   @ApiProperty({ required: false, description: '页码', default: 1 })
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   page?: number;
 
   @ApiProperty({ required: false, description: '每页数量', default: 10 })
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   pageSize?: number;
 }

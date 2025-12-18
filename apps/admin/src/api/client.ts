@@ -7,11 +7,11 @@ import { API_BASE_URL } from './config';
 export const api = createApi({
   baseURL: API_BASE_URL,
   // 获取 token 的方法
-  getToken: () => localStorage.getItem('admin_token'),
+  getToken: () => localStorage.getItem('token'),
   // 处理 401 未授权
   onUnauthorized: () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     window.location.href = '/login';
   },
   // 处理其他错误
