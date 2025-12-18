@@ -5,8 +5,18 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 // import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
+import helmet from 'helmet';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 安全头部
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false, // 允许跨域加载图片
+      contentSecurityPolicy: false, // 简单起见，关闭 CSP 以免阻塞 Swagger 或某些前端加载，后续可精细配置
+    }),
+  );
 
   // 全局前缀 - 已移除
   // app.setGlobalPrefix('api');

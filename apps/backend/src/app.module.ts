@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
@@ -70,6 +71,12 @@ import { BullModule } from '@nestjs/bullmq';
     TagsModule,
     SystemModule,
     EmailModule,
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100, // 增加到 100 以免正常翻页被拦截
+      },
+    ]),
   ],
   controllers: [AppController],
   providers: [
@@ -81,6 +88,10 @@ import { BullModule } from '@nestjs/bullmq';
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

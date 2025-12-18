@@ -69,23 +69,38 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    // 1. 检查锁定状态
+    const lockKey = `login_lock_${email}`;
+    const failedKey = `login_failures_${email}`;
+
+    const isLocked = await this.cacheManager.get(lockKey);
+    if (isLocked) {
+      throw new UnauthorizedException('账户已被锁定，请 15 分钟后再试');
+    }
+
     // 查找用户
     const user = await this.usersRepository.findOne({
-      where: { email: loginDto.email },
+      where: { email },
     });
 
     if (!user || !user.password) {
-      throw new UnauthorizedException('该用户未注册, 请先注册');
+      // 增加失败计数并模拟延迟以防止时序攻击（可选）
+      await this.handleFailedLogin(failedKey, lockKey);
+      throw new UnauthorizedException('邮箱或密码错误');
     }
 
     // 验证密码
-    const isPasswordValid = await bcrypt.compare(
-      loginDto.password,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
     if (!isPasswordValid) {
-      throw new UnauthorizedException('密码错误');
+      await this.handleFailedLogin(failedKey, lockKey);
+      throw new UnauthorizedException('邮箱或密码错误');
     }
+
+    // 登录成功，重置失败计数
+    await this.cacheManager.del(failedKey);
 
     // 生成 token
     const payload = {
@@ -105,6 +120,20 @@ export class AuthService {
       },
       token,
     };
+  }
+
+  private async handleFailedLogin(failedKey: string, lockKey: string) {
+    let failures: number = (await this.cacheManager.get(failedKey)) || 0;
+    failures++;
+
+    if (failures >= 5) {
+      // 达到 5 次，锁定 15 分钟 (900,000 ms)
+      await this.cacheManager.set(lockKey, true, 900000);
+      await this.cacheManager.del(failedKey);
+    } else {
+      // 记录失败次数，有效期 1 小时
+      await this.cacheManager.set(failedKey, failures, 3600000);
+    }
   }
 
   async validateUser(userId: string) {
