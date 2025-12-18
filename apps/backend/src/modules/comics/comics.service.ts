@@ -3,6 +3,7 @@ import * as archiver from 'archiver';
 import { basename, extname } from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { PathUtils } from '@common/utils/path-utils';
 import { Comic } from '@entities/comic.entity';
 import { Chapter } from '@entities/chapter.entity';
 import { ReadingProgress } from '@entities/reading-progress.entity';
@@ -636,5 +637,81 @@ export class ComicsService {
       type: 'application/zip',
       disposition: `attachment; filename="${encodeURIComponent(comic.title)}.zip"`,
     });
+  }
+
+  /**
+   * 合并重复漫画
+   */
+  async mergeDuplicates(keepId: string, deleteIds: string[]): Promise<void> {
+    const keepComic = await this.comicRepository.findOne({
+      where: { id: keepId },
+    });
+    if (!keepComic) throw new NotFoundException('Keep comic not found');
+
+    for (const deleteId of deleteIds) {
+      if (deleteId === keepId) continue;
+
+      const deleteComic = await this.comicRepository.findOne({
+        where: { id: deleteId },
+      });
+      if (!deleteComic) continue;
+
+      // 1. 迁移收藏
+      const favorites = await this.favoritesService.findAllByComic(deleteId);
+      for (const fav of favorites) {
+        await this.favoritesService.migrateFavorite(fav.id, keepId);
+      }
+
+      // 2. 迁移阅读进度
+      const progresses = await this.progressRepository.find({
+        where: { comicId: deleteId },
+      });
+      for (const prog of progresses) {
+        const existing = await this.progressRepository.findOne({
+          where: { comicId: keepId, chapterId: prog.chapterId },
+        });
+        if (!existing) {
+          await this.progressRepository.update(prog.id, { comicId: keepId });
+        } else {
+          if (prog.progress > existing.progress) {
+            await this.progressRepository.update(existing.id, {
+              progress: prog.progress,
+              currentPage: prog.currentPage,
+              lastReadAt: prog.lastReadAt,
+              isReadComplete: prog.isReadComplete,
+            });
+          }
+          await this.progressRepository.remove(prog);
+        }
+      }
+
+      // 3. 删除物理文件
+      if (deleteComic.filePath) {
+        // 只有当路径不同时才物理删除，防止删除同一个文件两次
+        if (
+          !keepComic.filePath ||
+          PathUtils.safeJoin(
+            this.filesService.getComicsPath(),
+            deleteComic.filePath,
+          ) !==
+            PathUtils.safeJoin(
+              this.filesService.getComicsPath(),
+              keepComic.filePath,
+            )
+        ) {
+          try {
+            await this.filesService.deleteFile(deleteComic.filePath);
+          } catch (e) {
+            console.error(
+              `Failed-to delete redundant file ${deleteComic.filePath}`,
+              e,
+            );
+          }
+        }
+      }
+
+      // 4. 删除数据库记录
+      await this.comicRepository.delete(deleteId);
+    }
   }
 }

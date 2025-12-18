@@ -100,4 +100,29 @@ export class ComicsService {
       API_ENDPOINTS.comics.progressChapter(comicId, chapterId),
     );
   }
+
+  /**
+   * 合并重复漫画
+   */
+  async mergeDuplicates(
+    keepId: string,
+    deleteIds: string[],
+  ): Promise<{ success: boolean }> {
+    return this.client.post<{ success: boolean }>(
+      API_ENDPOINTS.comics.mergeDuplicates,
+      {
+        keepId,
+        deleteIds,
+      },
+    );
+  }
+
+  /**
+   * 归档漫画
+   */
+  async archive(id: string): Promise<{ success: boolean; message: string }> {
+    return this.client.post<{ success: boolean; message: string }>(
+      API_ENDPOINTS.comics.archive(id),
+    );
+  }
 }

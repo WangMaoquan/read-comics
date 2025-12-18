@@ -13,6 +13,8 @@ export const API_ENDPOINTS = {
     progressChapter: (id: string, chapterId: string) =>
       `/comics/${id}/progress/chapter/${chapterId}`,
     toggleFavorite: (id: string) => `/comics/${id}/favorite`,
+    mergeDuplicates: '/comics/merge-duplicates',
+    archive: (id: string) => `/comics/${id}/archive`,
   },
   chapters: {
     detail: (id: string) => `/chapters/${id}`,

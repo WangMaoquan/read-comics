@@ -137,6 +137,28 @@ export class FavoritesService {
     return { message: '已取消收藏' };
   }
 
+  async findAllByComic(comicId: string) {
+    return await this.favoritesRepository.find({ where: { comicId } });
+  }
+
+  async migrateFavorite(id: string, newComicId: string) {
+    // Check if user already has a favorite for the new comic
+    const fav = await this.favoritesRepository.findOne({ where: { id } });
+    if (!fav) return;
+
+    const existing = await this.favoritesRepository.findOne({
+      where: { userId: fav.userId, comicId: newComicId },
+    });
+
+    if (existing) {
+      // Already favorited the new one, just delete the old record
+      await this.favoritesRepository.remove(fav);
+    } else {
+      // Migrate
+      await this.favoritesRepository.update(id, { comicId: newComicId });
+    }
+  }
+
   async getStats(userId: string) {
     const total = await this.favoritesRepository.count({ where: { userId } });
 

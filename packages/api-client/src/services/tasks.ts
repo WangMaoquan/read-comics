@@ -4,7 +4,14 @@ import { API_ENDPOINTS } from '../core/config';
 export interface Task {
   id: string;
   name: string;
-  type: 'scan' | 'thumbnail' | 'backup' | 'cleanup' | 'import';
+  type:
+    | 'scan'
+    | 'thumbnail'
+    | 'backup'
+    | 'cleanup'
+    | 'import'
+    | 'deduplicate'
+    | 'fetch-metadata';
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   startTime?: string;

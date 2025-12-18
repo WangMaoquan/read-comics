@@ -7,7 +7,14 @@ import {
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
-export type TaskType = 'scan' | 'thumbnail' | 'backup' | 'cleanup' | 'import';
+export type TaskType =
+  | 'scan'
+  | 'thumbnail'
+  | 'backup'
+  | 'cleanup'
+  | 'import'
+  | 'deduplicate'
+  | 'fetch-metadata';
 export type TaskStatus =
   | 'pending'
   | 'running'
@@ -27,7 +34,15 @@ export class Task {
 
   @ApiProperty({
     description: '任务类型',
-    enum: ['scan', 'thumbnail', 'backup', 'cleanup', 'import'],
+    enum: [
+      'scan',
+      'thumbnail',
+      'backup',
+      'cleanup',
+      'import',
+      'deduplicate',
+      'fetch-metadata',
+    ],
   })
   @Column()
   type: TaskType;

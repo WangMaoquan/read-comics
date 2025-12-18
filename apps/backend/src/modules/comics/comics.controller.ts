@@ -165,4 +165,17 @@ export class ComicsController {
     const ids = chapterIds ? chapterIds.split(',') : undefined;
     return this.comicsService.download(id, ids);
   }
+
+  @Post('merge-duplicates')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '合并重复漫画' })
+  async mergeDuplicates(
+    @Body('keepId') keepId: string,
+    @Body('deleteIds') deleteIds: string[],
+  ) {
+    await this.comicsService.mergeDuplicates(keepId, deleteIds);
+    return { success: true };
+  }
 }
