@@ -7,14 +7,22 @@ import * as sharp from 'sharp';
 import pLimit from 'p-limit';
 import { S3Service } from '../s3/s3.service';
 import { ZipUtilsService } from '@common/utils/zip-utils.service';
+import { PathUtils } from '@common/utils/path-utils';
 
 @Injectable()
 export class ImagesService {
+  private comicsPath: string;
+
   constructor(
     private configService: ConfigService,
     private zipUtilsService: ZipUtilsService,
     private s3Service: S3Service,
-  ) {}
+  ) {
+    this.comicsPath = this.configService.get<string>(
+      'COMICS_PATH',
+      './user-upload',
+    );
+  }
 
   /**
    * 获取图片配置
@@ -336,14 +344,17 @@ export class ImagesService {
     imagePath: string,
   ): Promise<Buffer> {
     try {
-      // 检查文件是否存在
-      await fs.access(comicPath);
+      // 安全校验并获取完整路径
+      const fullComicPath = PathUtils.safeJoin(this.comicsPath, comicPath);
 
-      const ext = extname(comicPath).toLowerCase();
+      // 检查文件是否存在
+      await fs.access(fullComicPath);
+
+      const ext = extname(fullComicPath).toLowerCase();
       if (ext === '.cbz' || ext === '.zip') {
         // 使用异步的 ZipUtilsService
         return await this.zipUtilsService.extractFileFromZip(
-          comicPath,
+          fullComicPath,
           imagePath,
         );
       }

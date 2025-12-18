@@ -10,6 +10,7 @@ import { join, extname, basename } from 'path';
 import { watch, FSWatcher } from 'chokidar';
 import { ComicFormat } from '@read-comics/types';
 import { ZipUtilsService } from '@common/utils/zip-utils.service';
+import { PathUtils } from '@common/utils/path-utils';
 
 @Injectable()
 export class FilesService implements OnModuleInit {
@@ -321,7 +322,7 @@ export class FilesService implements OnModuleInit {
     exists: boolean;
   }> {
     try {
-      const fullPath = join(this.comicsPath, filePath);
+      const fullPath = PathUtils.safeJoin(this.comicsPath, filePath);
       const stats = await fs.stat(fullPath);
 
       return {
@@ -343,7 +344,7 @@ export class FilesService implements OnModuleInit {
    */
   async deleteFile(filePath: string): Promise<void> {
     try {
-      const fullPath = join(this.comicsPath, filePath);
+      const fullPath = PathUtils.safeJoin(this.comicsPath, filePath);
       await fs.unlink(fullPath);
     } catch (error) {
       console.error('Error deleting file:', error);
