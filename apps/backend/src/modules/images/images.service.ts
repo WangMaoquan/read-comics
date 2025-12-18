@@ -337,6 +337,49 @@ export class ImagesService {
   }
 
   /**
+   * 预热漫画所有页面的缓存到 S3
+   */
+  async prepareComicPages(
+    comicId: string,
+    chapters: any[],
+    comicPath: string,
+    onProgress?: (processed: number, total: number) => Promise<void>,
+  ): Promise<void> {
+    const limit = pLimit(3); // 限制并发数为 3，避免压垮 CPU
+    const allPages: { chapterId: string; imagePath: string }[] = [];
+
+    for (const chapter of chapters) {
+      if (chapter.pages) {
+        for (const pagePath of chapter.pages) {
+          allPages.push({ chapterId: chapter.id, imagePath: pagePath });
+        }
+      }
+    }
+
+    const total = allPages.length;
+    let processed = 0;
+
+    const tasks = allPages.map((page) =>
+      limit(async () => {
+        try {
+          await this.prepareImageOnS3(comicPath, page.imagePath);
+          processed++;
+          if (onProgress && processed % 5 === 0) {
+            await onProgress(processed, total);
+          }
+        } catch (e) {
+          console.error(`Failed to pre-warm image ${page.imagePath}:`, e);
+        }
+      }),
+    );
+
+    await Promise.all(tasks);
+    if (onProgress) {
+      await onProgress(total, total);
+    }
+  }
+
+  /**
    * 从漫画文件中提取图片
    */
   async extractImageFromComic(

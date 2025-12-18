@@ -11,7 +11,8 @@ export interface Task {
     | 'cleanup'
     | 'import'
     | 'deduplicate'
-    | 'fetch-metadata';
+    | 'fetch-metadata'
+    | 'prepare-assets';
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   startTime?: string;

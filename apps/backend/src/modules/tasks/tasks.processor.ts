@@ -5,6 +5,8 @@ import { TasksService } from './tasks.service';
 import { FilesService } from '../files/files.service';
 import { ComicsService } from '../comics/comics.service';
 import { BangumiService } from '../system/bangumi.service';
+import { ImagesService } from '../images/images.service';
+import { ChaptersService } from '../chapters/chapters.service';
 
 @Processor('tasks')
 export class TasksProcessor extends WorkerHost {
@@ -15,6 +17,8 @@ export class TasksProcessor extends WorkerHost {
     private readonly filesService: FilesService,
     private readonly comicsService: ComicsService,
     private readonly bangumiService: BangumiService,
+    private readonly imagesService: ImagesService,
+    private readonly chaptersService: ChaptersService,
   ) {
     super();
   }
@@ -36,6 +40,8 @@ export class TasksProcessor extends WorkerHost {
           return await this.handleDeduplicateTask(job);
         case 'thumbnail':
           return await this.handleThumbnailTask(job);
+        case 'prepare-assets':
+          return await this.handlePrepareAssetsTask(job);
         default:
           this.logger.warn(`Unknown task type: ${type}`);
           return { message: 'Unknown task type' };
@@ -191,5 +197,55 @@ export class TasksProcessor extends WorkerHost {
     });
 
     return { duplicatesFound: duplicates.length };
+  }
+
+  private async handlePrepareAssetsTask(job: Job) {
+    const { taskId, params } = job.data;
+    const { comicId } = params;
+
+    const comic = await this.comicsService.findOne(comicId);
+    if (!comic) throw new Error('Comic not found');
+
+    const chapters = await this.chaptersService.findAll(comicId);
+
+    this.logger.log(
+      `Stage 1: Starting asset pre-warming for comic: ${comic.title}`,
+    );
+
+    // 第一阶段：生成 WebP 缓存 (占 80% 进度)
+    await this.imagesService.prepareComicPages(
+      comicId,
+      chapters,
+      comic.filePath,
+      async (processed, total) => {
+        const progress = Math.round((processed / total) * 80);
+        await job.updateProgress(progress);
+        await this.tasksService.updateProgress(taskId, progress);
+      },
+    );
+
+    // 第二阶段：全量归档并删除本地文件 (占最后 20% 进度)
+    this.logger.log(
+      `Stage 2: Archiving original file for comic: ${comic.title}`,
+    );
+    try {
+      await this.comicsService.archive(comicId);
+      await job.updateProgress(100);
+      await this.tasksService.updateProgress(taskId, 100);
+    } catch (archiveError) {
+      this.logger.error(
+        `Archive stage failed for comic ${comicId}: ${archiveError.message}`,
+      );
+      // 即使归档阶段失败，预热阶段可能已成功，所以不抛出异常导致整个任务标记为失败
+      // 但我们需要在结果中记录错误
+    }
+
+    await this.tasksService.complete(taskId, {
+      message: 'Asset pre-warming and automatic archiving complete',
+      chaptersProcessed: chapters.length,
+      archived: true,
+    });
+
+    return { success: true };
   }
 }

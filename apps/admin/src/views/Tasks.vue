@@ -247,6 +247,7 @@
       import: '批量导入',
       deduplicate: '查重清理',
       'fetch-metadata': '抓取元数据',
+      'prepare-assets': '资产预热',
     };
     return map[type] || type;
   };

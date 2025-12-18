@@ -14,7 +14,8 @@ export type TaskType =
   | 'cleanup'
   | 'import'
   | 'deduplicate'
-  | 'fetch-metadata';
+  | 'fetch-metadata'
+  | 'prepare-assets';
 export type TaskStatus =
   | 'pending'
   | 'running'
@@ -42,6 +43,7 @@ export class Task {
       'import',
       'deduplicate',
       'fetch-metadata',
+      'prepare-assets',
     ],
   })
   @Column()
