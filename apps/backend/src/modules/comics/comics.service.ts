@@ -1,4 +1,10 @@
-import { Injectable, StreamableFile, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  StreamableFile,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import * as archiver from 'archiver';
 import { basename, extname } from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,6 +12,7 @@ import { Repository, DataSource } from 'typeorm';
 import { PathUtils } from '@common/utils/path-utils';
 import { Comic } from '@entities/comic.entity';
 import { Chapter } from '@entities/chapter.entity';
+import { Task } from '@entities/task.entity';
 import { ReadingProgress } from '@entities/reading-progress.entity';
 import { Tag } from '@entities/tag.entity';
 import { CreateComicDto } from './dto/create-comic.dto';
@@ -17,6 +24,7 @@ import { ChaptersService } from '../chapters/chapters.service';
 import { FavoritesService } from '../favorites/favorites.service';
 import { ImagesService } from '../images/images.service';
 import { FilesService } from '../files/files.service';
+import { TasksService } from '../tasks/tasks.service';
 
 @Injectable()
 export class ComicsService {
@@ -30,6 +38,8 @@ export class ComicsService {
     private readonly dataSource: DataSource,
     private readonly imagesService: ImagesService,
     private readonly filesService: FilesService,
+    @Inject(forwardRef(() => TasksService))
+    private readonly tasksService: TasksService,
   ) {}
 
   async importFromPath(filePath: string): Promise<Comic | null> {
@@ -449,6 +459,11 @@ export class ComicsService {
       where: { comicId, chapterId: updateProgressDto.chapterId },
     });
 
+    // 触发后端预热任务
+    this.triggerAssetPrewarm(comicId).catch((err) =>
+      console.error('Failed to trigger asset prewarm:', err),
+    );
+
     if (!progress) {
       progress = this.progressRepository.create({
         comicId,
@@ -713,5 +728,28 @@ export class ComicsService {
       // 4. 删除数据库记录
       await this.comicRepository.delete(deleteId);
     }
+  }
+
+  private async triggerAssetPrewarm(comicId: string) {
+    const comic = await this.comicRepository.findOne({
+      where: { id: comicId },
+    });
+    if (!comic) return;
+
+    // 检查是否已有该漫画的预热任务在排队或运行
+    const qb = this.dataSource.getRepository(Task).createQueryBuilder('task');
+    const existingTask = await qb
+      .where("task.type = 'prepare-assets'")
+      .andWhere("task.status IN ('pending', 'running')")
+      .andWhere("task.params ->> 'comicId' = :comicId", { comicId })
+      .getOne();
+
+    if (existingTask) return;
+
+    await this.tasksService.create({
+      name: `预热资产: ${comic.title}`,
+      type: 'prepare-assets',
+      params: { comicId },
+    });
   }
 }

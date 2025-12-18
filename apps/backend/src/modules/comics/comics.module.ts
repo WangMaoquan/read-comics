@@ -9,6 +9,7 @@ import { ChaptersModule } from '../chapters/chapters.module';
 import { FavoritesModule } from '../favorites/favorites.module';
 import { ImagesModule } from '../images/images.module';
 import { FilesModule } from '../files/files.module';
+import { TasksModule } from '../tasks/tasks.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { FilesModule } from '../files/files.module';
     FavoritesModule,
     ImagesModule,
     forwardRef(() => FilesModule),
+    forwardRef(() => TasksModule),
   ],
   controllers: [ComicsController],
   providers: [ComicsService],
