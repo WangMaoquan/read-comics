@@ -32,4 +32,9 @@ export class UpdateComicDto {
   @IsEnum(ComicStatus)
   @IsOptional()
   status?: ComicStatus;
+
+  @ApiProperty({ description: '文件哈希值', required: false })
+  @IsString()
+  @IsOptional()
+  hash?: string;
 }

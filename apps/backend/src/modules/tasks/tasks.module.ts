@@ -6,6 +6,7 @@ import { TasksService } from './tasks.service';
 import { Task } from '@entities/task.entity';
 import { FilesModule } from '../files/files.module';
 import { ComicsModule } from '../comics/comics.module';
+import { SystemModule } from '../system/system.module';
 import { TasksProcessor } from './tasks.processor';
 
 @Module({
@@ -16,6 +17,7 @@ import { TasksProcessor } from './tasks.processor';
     }),
     FilesModule,
     ComicsModule,
+    SystemModule,
   ],
   controllers: [TasksController],
   providers: [TasksService, TasksProcessor],

@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { FilesService } from '../files/files.service';
 import { ComicsService } from '../comics/comics.service';
+import { BangumiService } from '../system/bangumi.service';
 
 @Processor('tasks')
 export class TasksProcessor extends WorkerHost {
@@ -13,6 +14,7 @@ export class TasksProcessor extends WorkerHost {
     private readonly tasksService: TasksService,
     private readonly filesService: FilesService,
     private readonly comicsService: ComicsService,
+    private readonly bangumiService: BangumiService,
   ) {
     super();
   }
@@ -28,6 +30,10 @@ export class TasksProcessor extends WorkerHost {
       switch (type) {
         case 'scan':
           return await this.handleScanTask(job);
+        case 'fetch-metadata':
+          return await this.handleFetchMetadataTask(job);
+        case 'deduplicate':
+          return await this.handleDeduplicateTask(job);
         case 'thumbnail':
           return await this.handleThumbnailTask(job);
         default:
@@ -87,5 +93,103 @@ export class TasksProcessor extends WorkerHost {
       message: 'Thumbnails generated',
     });
     return { success: true };
+  }
+
+  private async handleFetchMetadataTask(job: Job) {
+    const { taskId, params } = job.data;
+    const { comicId } = params;
+
+    const comic = await this.comicsService.findOne(comicId);
+    if (!comic) {
+      throw new Error(`Comic ${comicId} not found`);
+    }
+
+    this.logger.log(`Fetching metadata for comic: ${comic.title}`);
+    await this.tasksService.updateProgress(taskId, 10);
+
+    const result = await this.bangumiService.searchSubject(comic.title);
+    if (!result) {
+      await this.tasksService.updateProgress(taskId, 100);
+      await this.tasksService.complete(taskId, {
+        message: 'No metadata found on Bangumi',
+      });
+      return { found: false };
+    }
+
+    await this.tasksService.updateProgress(taskId, 50);
+    const details = await this.bangumiService.getSubjectDetails(result.id);
+
+    // 更新漫画信息
+    await this.comicsService.updateMetadata(comicId, {
+      description: details.summary || result.summary,
+      author:
+        details.infobox?.find((i: any) => i.key === '作者')?.value ||
+        comic.author,
+      rating: Math.round(details.rating?.score / 2) || comic.rating, // 10分制转5分制
+      tags: details.tags?.slice(0, 5).map((t: any) => t.name) || [],
+      cover: result.images?.large || result.image,
+    });
+
+    await this.tasksService.updateProgress(taskId, 100);
+    await this.tasksService.complete(taskId, {
+      found: true,
+      title: result.name_cn || result.name,
+    });
+
+    return { found: true };
+  }
+
+  private async handleDeduplicateTask(job: Job) {
+    const { taskId } = job.data;
+    this.logger.log(`Starting deduplication task ${taskId}`);
+
+    // 1. 获取所有漫画并计算缺失的哈希
+    const comics = await this.comicsService.findAllSimple(); // 需要实现简单列表获取
+    const total = comics.length;
+    let processed = 0;
+    const hashGroups: Map<string, string[]> = new Map();
+
+    for (const comic of comics) {
+      let currentHash = comic.hash;
+      if (!currentHash) {
+        try {
+          currentHash = await this.filesService.calculateFileHash(
+            comic.filePath,
+          );
+          await this.comicsService.update(comic.id, { hash: currentHash });
+        } catch (err) {
+          this.logger.error(`Failed to hash ${comic.filePath}: ${err.message}`);
+          continue;
+        }
+      }
+
+      const group = hashGroups.get(currentHash) || [];
+      group.push(comic.id);
+      hashGroups.set(currentHash, group);
+
+      processed++;
+      await this.tasksService.updateProgress(
+        taskId,
+        Math.round((processed / total) * 50),
+      );
+    }
+
+    // 2. 识别重复
+    const duplicates: any[] = [];
+    for (const [hash, ids] of hashGroups.entries()) {
+      if (ids.length > 1) {
+        duplicates.push({ hash, count: ids.length, ids });
+      }
+    }
+
+    await this.tasksService.updateProgress(taskId, 100);
+    await this.tasksService.complete(taskId, {
+      totalScanned: total,
+      uniqueFiles: hashGroups.size,
+      duplicateGroups: duplicates.length,
+      duplicates,
+    });
+
+    return { duplicatesFound: duplicates.length };
   }
 }

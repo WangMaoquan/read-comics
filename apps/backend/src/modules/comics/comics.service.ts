@@ -311,6 +311,10 @@ export class ComicsService {
     return dataMap;
   }
 
+  async findAllSimple(): Promise<Comic[]> {
+    return this.comicRepository.find();
+  }
+
   // 后续补充 vo , 需要将 对应 的vo 放到 packages/types 中
   async findOne(id: string): Promise<Comic | null> {
     const comic = await this.comicRepository.findOne({ where: { id } });
@@ -378,6 +382,55 @@ export class ComicsService {
     } else {
       await this.favoritesService.create(userId, { comicId: id });
       comic.isFavorite = true;
+    }
+
+    return await this.comicRepository.save(comic);
+  }
+
+  async updateMetadata(
+    id: string,
+    metadata: {
+      description?: string;
+      author?: string;
+      rating?: number;
+      tags?: string[];
+      cover?: string;
+    },
+  ): Promise<Comic> {
+    const comic = await this.comicRepository.findOne({
+      where: { id },
+      relations: ['tags'],
+    });
+
+    if (!comic) {
+      throw new Error(`Comic with id ${id} not found`);
+    }
+
+    if (metadata.description) comic.description = metadata.description;
+    if (metadata.author) comic.author = metadata.author;
+    if (metadata.rating) comic.rating = metadata.rating;
+    if (metadata.cover) comic.cover = metadata.cover;
+
+    if (metadata.tags && metadata.tags.length > 0) {
+      const tags: Tag[] = [];
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+
+      try {
+        for (const tagName of metadata.tags) {
+          let tag = await queryRunner.manager.findOne(Tag, {
+            where: { name: tagName },
+          });
+          if (!tag) {
+            tag = queryRunner.manager.create(Tag, { name: tagName });
+            tag = await queryRunner.manager.save(Tag, tag);
+          }
+          tags.push(tag);
+        }
+        comic.tags = tags;
+      } finally {
+        await queryRunner.release();
+      }
     }
 
     return await this.comicRepository.save(comic);

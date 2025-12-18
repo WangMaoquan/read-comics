@@ -4,7 +4,8 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { promises as fs } from 'fs';
+import { promises as fs, createReadStream } from 'fs';
+import { createHash } from 'crypto';
 import { join, extname, basename } from 'path';
 import { watch, FSWatcher } from 'chokidar';
 import { ComicFormat } from '@read-comics/types';
@@ -67,6 +68,19 @@ export class FilesService implements OnModuleInit {
       console.error('Error scanning comics directory:', error);
       return [];
     }
+  }
+
+  /**
+   * 计算文件哈希值 (MD5)
+   */
+  async calculateFileHash(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hash = createHash('md5');
+      const stream = createReadStream(filePath);
+      stream.on('data', (data) => hash.update(data));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', (err) => reject(err));
+    });
   }
 
   /**

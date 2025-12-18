@@ -183,6 +183,8 @@
       backup: '系统备份',
       cleanup: '清理缓存',
       import: '批量导入',
+      deduplicate: '查重清理',
+      'fetch-metadata': '抓取元数据',
     };
     return map[type] || type;
   };
@@ -439,6 +441,7 @@
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="scan">库扫描</option>
+              <option value="deduplicate">查重清理</option>
               <option value="thumbnail">生成缩略图</option>
               <option value="backup">系统备份</option>
               <option value="cleanup">清理缓存</option>

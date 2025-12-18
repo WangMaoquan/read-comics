@@ -42,6 +42,7 @@
     "@types/passport-jwt": "^4.0.1",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
+    "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.66.1",
     "cache-manager": "^7.2.7",

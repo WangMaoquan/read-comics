@@ -1,8 +1,10 @@
 <script setup lang="ts">
   import { ref, onMounted, computed } from 'vue';
-  import { comicsService, imagesService } from '../api/services';
+  import { comicsService, imagesService, tasksService } from '../api/services';
   import type { Comic } from '@read-comics/types';
+  import { useToast } from '../composables/useToast';
 
+  const toast = useToast();
   const comics = ref<Comic[]>([]);
   const loading = ref(false);
   const searchQuery = ref('');
@@ -43,11 +45,25 @@
   const fetchComics = async () => {
     loading.value = true;
     try {
-      comics.value = await comicsService.getComics();
+      const response = await comicsService.getComics();
+      comics.value = response.data;
     } catch (error) {
       console.error('Failed to fetch comics:', error);
     } finally {
       loading.value = false;
+    }
+  };
+
+  const scrapeMetadata = async (comic: Comic) => {
+    try {
+      await tasksService.createTask({
+        name: `抓取元数据: ${comic.title}`,
+        type: 'fetch-metadata',
+        params: { comicId: comic.id },
+      });
+      toast.success('元数据抓取任务已启动');
+    } catch (error) {
+      toast.error('任务启动失败');
     }
   };
 
@@ -340,6 +356,12 @@
               </td>
               <td class="p-4">
                 <div class="flex gap-2">
+                  <button
+                    @click="scrapeMetadata(comic)"
+                    class="text-green-600 hover:text-green-800 dark:hover:text-green-400 text-sm font-medium"
+                  >
+                    抓取
+                  </button>
                   <button
                     @click="openEditModal(comic)"
                     class="text-blue-600 hover:text-blue-800 dark:hover:text-blue-400 text-sm font-medium"

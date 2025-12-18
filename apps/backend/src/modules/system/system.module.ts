@@ -13,6 +13,8 @@ import { Task } from '@entities/task.entity';
 import { SystemLog } from '@entities/system-log.entity';
 import { S3Module } from '@modules/s3/s3.module';
 
+import { BangumiService } from './bangumi.service';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -29,7 +31,7 @@ import { S3Module } from '@modules/s3/s3.module';
     S3Module,
   ],
   controllers: [SystemController],
-  providers: [SystemService],
-  exports: [SystemService],
+  providers: [SystemService, BangumiService],
+  exports: [SystemService, BangumiService],
 })
 export class SystemModule {}
