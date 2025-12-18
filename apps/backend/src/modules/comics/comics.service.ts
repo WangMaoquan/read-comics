@@ -31,6 +31,34 @@ export class ComicsService {
     private readonly filesService: FilesService,
   ) {}
 
+  async importFromPath(filePath: string): Promise<Comic | null> {
+    // 1. 检查是否已存在 (通过文件路径)
+    const existing = await this.comicRepository.findOne({
+      where: { filePath },
+    });
+    if (existing) return existing;
+
+    try {
+      // 2. 解析文件
+      const comicData = await this.filesService.parseComicFile(filePath);
+      const fileInfo = await this.filesService.getFileInfo(filePath);
+
+      // 3. 创建漫画记录
+      return await this.create({
+        title: comicData.title,
+        filePath: filePath,
+        fileSize: fileInfo.size,
+        fileFormat: comicData.format,
+        totalPages: comicData.totalPages,
+        status: ComicStatus.UNREAD,
+        chapters: comicData.chapters,
+      });
+    } catch (error) {
+      console.error(`Failed to import comic from ${filePath}:`, error);
+      return null;
+    }
+  }
+
   async create(createComicDto: CreateComicDto): Promise<Comic> {
     const queryRunner = this.dataSource.createQueryRunner();
 

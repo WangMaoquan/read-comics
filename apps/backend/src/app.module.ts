@@ -23,6 +23,7 @@ import { EmailModule } from './modules/email/email.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -44,6 +45,15 @@ import KeyvRedis from '@keyv/redis';
         };
       },
       isGlobal: true,
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          url: configService.get<string>('REDIS_LINK'),
+        },
+      }),
     }),
     DatabaseModule,
     ComicsModule,

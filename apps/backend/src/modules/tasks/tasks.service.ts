@@ -3,12 +3,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from '@entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class TasksService {
   constructor(
     @InjectRepository(Task)
     private tasksRepository: Repository<Task>,
+    @InjectQueue('tasks')
+    private tasksQueue: Queue,
   ) {}
 
   async create(createTaskDto: CreateTaskDto) {
@@ -20,48 +24,44 @@ export class TasksService {
 
     const savedTask = await this.tasksRepository.save(task);
 
-    // 模拟异步任务执行 (实际项目中建议使用 Bull Queue)
-    this.processTask(savedTask.id).catch(console.error);
+    // 加入 BullMQ 队列
+    await this.tasksQueue.add('execute', {
+      taskId: savedTask.id,
+      type: createTaskDto.type,
+      params: createTaskDto.params,
+    });
 
     return savedTask;
   }
 
-  private async processTask(taskId: string) {
-    const task = await this.tasksRepository.findOne({ where: { id: taskId } });
-    if (!task) return;
-
-    try {
-      // 更新状态为运行中
-      task.status = 'running';
-      task.startTime = new Date();
-      await this.tasksRepository.save(task);
-
-      // 模拟任务执行过程
-      for (let i = 0; i <= 100; i += 10) {
-        // 检查任务是否被取消
-        const currentTask = await this.tasksRepository.findOne({
-          where: { id: taskId },
-        });
-        if (!currentTask || currentTask.status === 'cancelled') {
-          return;
-        }
-
-        task.progress = i;
-        await this.tasksRepository.save(task);
-        await new Promise((resolve) => setTimeout(resolve, 500)); // 模拟耗时
-      }
-
-      // 任务完成
-      task.status = 'completed';
-      task.endTime = new Date();
-      task.result = { message: 'Task completed successfully' };
-      await this.tasksRepository.save(task);
-    } catch (error) {
-      task.status = 'failed';
-      task.error = error.message;
-      task.endTime = new Date();
-      await this.tasksRepository.save(task);
+  // 状态更新方法供 TasksProcessor 调用
+  async updateStatus(id: string, status: Task['status']) {
+    const update: Partial<Task> = { status };
+    if (status === 'running') {
+      update.startTime = new Date();
     }
+    await this.tasksRepository.update(id, update);
+  }
+
+  async updateProgress(id: string, progress: number) {
+    await this.tasksRepository.update(id, { progress });
+  }
+
+  async complete(id: string, result: any) {
+    await this.tasksRepository.update(id, {
+      status: 'completed',
+      progress: 100,
+      endTime: new Date(),
+      result,
+    });
+  }
+
+  async handleError(id: string, error: string) {
+    await this.tasksRepository.update(id, {
+      status: 'failed',
+      error,
+      endTime: new Date(),
+    });
   }
 
   async findAll() {
@@ -76,7 +76,9 @@ export class TasksService {
 
   async cancel(id: string) {
     const task = await this.tasksRepository.findOne({ where: { id } });
-    if (task && task.status === 'running') {
+    if (task && (task.status === 'running' || task.status === 'pending')) {
+      // 从队列中移除 (如果支持) 或 标记为取消
+      // BullMQ 任务取消通常需要更复杂的逻辑，这里先简单更新状态
       task.status = 'cancelled';
       task.endTime = new Date();
       await this.tasksRepository.save(task);
@@ -94,7 +96,12 @@ export class TasksService {
       task.endTime = undefined;
       const savedTask = await this.tasksRepository.save(task);
 
-      this.processTask(savedTask.id).catch(console.error);
+      await this.tasksQueue.add('execute', {
+        taskId: savedTask.id,
+        type: savedTask.type,
+        params: savedTask.params,
+      });
+
       return savedTask;
     }
     return task;

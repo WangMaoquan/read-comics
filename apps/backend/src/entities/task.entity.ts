@@ -55,6 +55,10 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   error?: string;
 
+  @ApiProperty({ description: '任务参数', required: false })
+  @Column({ type: 'json', nullable: true })
+  params?: any;
+
   @ApiProperty({ description: '任务结果', required: false })
   @Column({ type: 'json', nullable: true })
   result?: any;
