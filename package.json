@@ -82,9 +82,10 @@
       "@nestjs/core",
       "@scarf/scarf",
       "bcrypt",
+      "esbuild",
+      "msgpackr-extract",
       "sharp",
-      "unrs-resolver",
-      "esbuild"
+      "unrs-resolver"
     ]
   }
 }
