@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { ref, onMounted, onUnmounted } from 'vue';
-  import { tasksService } from '../api/client';
+  import { tasksService, comicsService } from '../api/client';
   import type { Task, TaskStats } from '@read-comics/api-client';
   import { useApi } from '../composables/useApi';
   import { useConfirm } from '../composables/useConfirm';
@@ -13,6 +13,10 @@
   // 状态
   const tasks = ref<Task[]>([]);
   const showCreateModal = ref(false);
+  const showReportModal = ref(false);
+  const selectedTask = ref<Task | null>(null);
+  const duplicateDetails = ref<any[]>([]);
+  const loadingDetails = ref(false);
   let pollInterval: any = null;
 
   // 统计数据
@@ -27,7 +31,14 @@
   // 新建任务表单
   const createForm = ref({
     name: '',
-    type: 'scan' as 'scan' | 'thumbnail' | 'backup' | 'cleanup' | 'import',
+    type: 'scan' as
+      | 'scan'
+      | 'thumbnail'
+      | 'backup'
+      | 'cleanup'
+      | 'import'
+      | 'deduplicate'
+      | 'fetch-metadata',
     params: {},
   });
 
@@ -139,6 +150,57 @@
 
     if (confirmed) {
       clearCompleted();
+    }
+  };
+
+  const openReport = async (task: Task) => {
+    selectedTask.value = task;
+    showReportModal.value = true;
+
+    if (task.type === 'deduplicate' && task.result?.duplicates) {
+      loadingDetails.value = true;
+      duplicateDetails.value = [];
+
+      try {
+        const groups = [];
+        for (const group of task.result.duplicates) {
+          const items = await Promise.all(
+            group.ids.map((id: string) =>
+              comicsService.getComicById(id).catch(() => null),
+            ),
+          );
+          groups.push({
+            hash: group.hash,
+            comics: items.filter((c) => c !== null),
+          });
+        }
+        duplicateDetails.value = groups;
+      } catch (e) {
+        toast.error('加载重复详情失败');
+      } finally {
+        loadingDetails.value = false;
+      }
+    }
+  };
+
+  const handleMerge = async (keepId: string, deleteIds: string[]) => {
+    const confirmed = await confirm({
+      title: '确认合并',
+      message: `确定要合并这些漫画吗？这将物理删除 ${deleteIds.length} 个冗余文件。建议由系统自动保留其中一份。`,
+      type: 'danger',
+      confirmText: '确认合并',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await comicsService.mergeDuplicates(keepId, deleteIds);
+      toast.success('合并成功');
+      // 简单处理：关闭并刷新，或者重新加载报告
+      showReportModal.value = false;
+      refreshData();
+    } catch (e) {
+      toast.error('合并失败');
     }
   };
 
@@ -393,6 +455,15 @@
                   重试
                 </button>
                 <button
+                  v-if="
+                    task.status === 'completed' && task.type === 'deduplicate'
+                  "
+                  @click="openReport(task)"
+                  class="text-green-600 hover:text-green-800 text-sm font-medium"
+                >
+                  报告
+                </button>
+                <button
                   @click="handleDelete(task.id)"
                   class="text-red-600 hover:text-red-800 text-sm font-medium"
                 >
@@ -464,6 +535,118 @@
           >
             <span v-if="creating" class="animate-spin">⚡</span>
             {{ creating ? '创建中...' : '创建任务' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 查重报告模态框 -->
+    <div
+      v-if="showReportModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+      >
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+              重复文件报告
+            </h2>
+            <button
+              @click="showReportModal = false"
+              class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              ✕
+            </button>
+          </div>
+          <div v-if="selectedTask?.result" class="mt-2 text-sm text-gray-500">
+            扫描总数: {{ selectedTask.result.totalScanned }} | 唯一文件:
+            {{ selectedTask.result.uniqueFiles }} | 重复组:
+            {{ selectedTask.result.duplicateGroups }}
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+          <div v-if="loadingDetails" class="text-center py-8 text-gray-500">
+            正加载详细信息...
+          </div>
+          <div
+            v-else-if="duplicateDetails.length === 0"
+            class="text-center py-8 text-gray-500"
+          >
+            未发现重复文件
+          </div>
+          <div
+            v-for="group in duplicateDetails"
+            :key="group.hash"
+            class="space-y-4"
+          >
+            <div class="flex items-center gap-3">
+              <span
+                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-500"
+                >Hash: {{ group.hash.slice(0, 8) }}...</span
+              >
+              <span class="text-sm font-medium text-blue-600"
+                >发现 {{ group.comics.length }} 份副本</span
+              >
+            </div>
+            <div
+              class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            >
+              <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/30">
+                  <tr class="text-gray-500">
+                    <th class="p-3 text-left font-medium">标题</th>
+                    <th class="p-3 text-left font-medium">路径</th>
+                    <th class="p-3 text-right font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tr
+                    v-for="comic in group.comics"
+                    :key="comic.id"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-700/20"
+                  >
+                    <td class="p-3 font-medium text-gray-900 dark:text-white">
+                      {{ comic.title }}
+                    </td>
+                    <td
+                      class="p-3 text-gray-500 truncate max-w-xs"
+                      :title="comic.filePath"
+                    >
+                      {{ comic.filePath }}
+                    </td>
+                    <td class="p-3 text-right">
+                      <button
+                        @click="
+                          handleMerge(
+                            comic.id,
+                            group.comics
+                              .filter((c: any) => c.id !== comic.id)
+                              .map((c: any) => c.id),
+                          )
+                        "
+                        class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                      >
+                        保留此份并清理其他
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end"
+        >
+          <button
+            @click="showReportModal = false"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            关闭
           </button>
         </div>
       </div>
