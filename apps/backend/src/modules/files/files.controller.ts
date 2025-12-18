@@ -4,8 +4,6 @@ import {
   Post,
   Delete,
   Param,
-  Res,
-  StreamableFile,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -25,7 +23,6 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { Response } from 'express';
 import { FilesService } from './files.service';
 import { ComicFormat } from '@read-comics/types';
 import { ComicsService } from '../comics/comics.service';
@@ -40,7 +37,6 @@ export class FilesController {
   constructor(
     private readonly filesService: FilesService,
     private readonly comicsService: ComicsService,
-    private readonly chaptersService: ChaptersService,
   ) {}
 
   /**
