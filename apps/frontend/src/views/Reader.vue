@@ -89,7 +89,7 @@
   );
 
   // 使用图片预加载 composable
-  const { preloadImages } = useImagePreload(pages, currentPage);
+  const { preloadImages } = useImagePreload(pages, currentPage, getNextChapter);
 
   // 监听当前页变化，触发预加载
   watch(currentPage, () => {
