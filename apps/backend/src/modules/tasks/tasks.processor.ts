@@ -1,4 +1,5 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import * as fs from 'fs/promises';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { TasksService } from './tasks.service';
@@ -208,11 +209,23 @@ export class TasksProcessor extends WorkerHost {
 
     const chapters = await this.chaptersService.findAll(comicId);
 
+    // 检查本地文件是否存在
+    let fileExists = true;
+    try {
+      await fs.access(comic.filePath);
+    } catch (e) {
+      fileExists = false;
+      this.logger.warn(
+        `Local file missing for comic ${comic.title}, checking if already cloudified...`,
+      );
+    }
+
     this.logger.log(
       `Stage 1: Starting asset pre-warming for comic: ${comic.title}`,
     );
 
     // 第一阶段：生成 WebP 缓存 (占 80% 进度)
+    // prepareComicPages 内部会处理从 S3 原图生成的逻辑（通过 prepareImageOnS3）
     await this.imagesService.prepareComicPages(
       comicId,
       chapters,
@@ -225,25 +238,31 @@ export class TasksProcessor extends WorkerHost {
     );
 
     // 第二阶段：全量归档并删除本地文件 (占最后 20% 进度)
-    this.logger.log(
-      `Stage 2: Archiving original file for comic: ${comic.title}`,
-    );
-    try {
-      await this.comicsService.archive(comicId);
+    if (fileExists) {
+      this.logger.log(
+        `Stage 2: Archiving original file for comic: ${comic.title}`,
+      );
+      try {
+        await this.comicsService.archive(comicId);
+        await job.updateProgress(100);
+        await this.tasksService.updateProgress(taskId, 100);
+      } catch (archiveError) {
+        this.logger.error(
+          `Archive stage failed for comic ${comicId}: ${archiveError.message}`,
+        );
+      }
+    } else {
+      this.logger.log(
+        `Stage 2: Skipping local archive for comic: ${comic.title} (already cloudified)`,
+      );
       await job.updateProgress(100);
       await this.tasksService.updateProgress(taskId, 100);
-    } catch (archiveError) {
-      this.logger.error(
-        `Archive stage failed for comic ${comicId}: ${archiveError.message}`,
-      );
-      // 即使归档阶段失败，预热阶段可能已成功，所以不抛出异常导致整个任务标记为失败
-      // 但我们需要在结果中记录错误
     }
 
     await this.tasksService.complete(taskId, {
       message: 'Asset pre-warming and automatic archiving complete',
       chaptersProcessed: chapters.length,
-      archived: true,
+      archived: fileExists,
     });
 
     return { success: true };
