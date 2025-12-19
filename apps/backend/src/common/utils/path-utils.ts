@@ -29,7 +29,9 @@ export class PathUtils {
     }
 
     // 3. 合并并规范化路径
-    const fullPath = resolve(join(absoluteRoot, relativePath));
+    // relativePath.slice(11) absoluteRoot 和 relativePath, 带有了一段相同的
+    // 例如 ab: /xx/xx/xx/aaaaa, re: aaaaa/xxx/xxx
+    const fullPath = resolve(join(absoluteRoot, relativePath.slice(11)));
 
     // 4. 检查结果是否以根目录开头
     const relativePart = relative(absoluteRoot, fullPath);
