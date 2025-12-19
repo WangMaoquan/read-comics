@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { Favorite } from '../entities/favorite.entity';
 import { Tag } from '../entities/tag.entity';
 import { SystemLog } from '../entities/system-log.entity';
+import { Task } from '@entities/task.entity';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SystemLog } from '../entities/system-log.entity';
           Favorite,
           Tag,
           SystemLog,
+          Task,
         ],
         synchronize: true, // 开发环境使用，生产环境需要关闭
         logging: true,

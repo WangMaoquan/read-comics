@@ -122,8 +122,6 @@ export class FilesService implements OnModuleInit {
       // 使用异步的 ZipUtilsService
       const allFiles = await this.zipUtilsService.listFilesInZip(filePath);
 
-      console.log(allFiles, 'allFiles');
-
       // 过滤出图片文件
       const imageExtensions = [
         '.jpg',

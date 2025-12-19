@@ -116,7 +116,7 @@ export class ImagesService {
     });
 
     // 使用层级结构: cache/comics/{comicHash}/thumbnails/{optionsHash}.jpg
-    const s3Key = `cache/comics/${comicHash}/thumbnails/${optionsHash}.jpg`;
+    const s3Key = `${comicHash}/thumbnails-cache/${optionsHash}.jpg`;
 
     // 检查 S3 是否存在
     const exists = await this.s3Service.hasFile(s3Key);
@@ -136,9 +136,6 @@ export class ImagesService {
     return s3Key;
   }
 
-  /**
-   * 优化图片 (调整大小 + 转换为 WebP)
-   */
   /**
    * 优化图片 (调整大小 + 转换为 WebP)
    */
@@ -172,7 +169,7 @@ export class ImagesService {
     const comicHash = this.getComicHash(comicPath);
     const imageHash = this.generateCacheKey(imagePath);
     const ext = extname(imagePath).toLowerCase().replace('.', '') || 'jpg';
-    return `originals/comics/${comicHash}/pages/${imageHash}.${ext}`;
+    return `${comicHash}/originals-cache/${imageHash}.${ext}`;
   }
 
   /**
@@ -182,7 +179,7 @@ export class ImagesService {
     const comicHash = this.getComicHash(comicPath);
     const imageHash = this.generateCacheKey(imagePath);
     const { format } = this.getImageConfig();
-    return `cache/comics/${comicHash}/pages/${imageHash}.${format}`;
+    return `${comicHash}/webp-cache/${imageHash}.${format}`;
   }
 
   /**
@@ -272,9 +269,6 @@ export class ImagesService {
     return this.s3Service.getFileStream(key);
   }
 
-  /**
-   * 归档漫画到 S3 (上传原图)
-   */
   /**
    * 归档漫画到 S3 (上传原图)
    */
