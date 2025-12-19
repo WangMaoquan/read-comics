@@ -108,7 +108,7 @@
         },
       },
     ],
-    grid: { top: 20, right: 20, bottom: 20, left: 40, containLabel: true },
+    grid: { top: 20, right: 20, bottom: 20, left: 40, outerBounds: true },
   }));
 
   const pieOption = computed(() => ({
@@ -142,7 +142,7 @@
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
     },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: '3%', outerBounds: true },
     xAxis: {
       type: 'value',
       axisLine: { lineStyle: { color: '#9ca3af' } },
