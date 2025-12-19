@@ -56,7 +56,7 @@ export class ComicsService {
       const fileInfo = await this.filesService.getFileInfo(filePath);
 
       // 3. 创建漫画记录
-      const comic = await this.create({
+      return await this.create({
         title: comicData.title,
         filePath: filePath,
         fileSize: fileInfo.size,
@@ -65,13 +65,6 @@ export class ComicsService {
         status: ComicStatus.UNREAD,
         chapters: comicData.chapters,
       });
-
-      // 4. 触发资产预热 (上传后即刻开始)
-      this.triggerAssetPrewarm(comic.id).catch((err) =>
-        console.error('Failed to trigger asset prewarm after import:', err),
-      );
-
-      return comic;
     } catch (error) {
       console.error(`Failed to import comic from ${filePath}:`, error);
       return null;
@@ -144,6 +137,12 @@ export class ComicsService {
       }
 
       await queryRunner.commitTransaction();
+
+      // 触发后端预热任务 (上传/导入完成后即刻触发)
+      this.triggerAssetPrewarm(savedComic.id).catch((err) =>
+        console.error('Failed to trigger asset prewarm after creation:', err),
+      );
+
       return savedComic;
     } catch (err) {
       await queryRunner.rollbackTransaction();
