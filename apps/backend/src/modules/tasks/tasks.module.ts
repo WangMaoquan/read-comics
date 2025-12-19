@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { TasksController } from './tasks.controller';
@@ -18,7 +18,7 @@ import { TasksProcessor } from './tasks.processor';
       name: 'tasks',
     }),
     FilesModule,
-    ComicsModule,
+    forwardRef(() => ComicsModule),
     SystemModule,
     ImagesModule,
     ChaptersModule,
