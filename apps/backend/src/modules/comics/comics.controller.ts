@@ -43,7 +43,6 @@ export class ComicsController {
   @ApiResponse({ status: 201, description: '创建成功' })
   @UsePipes(new ValidationPipe())
   create(@Body() createComicDto: CreateComicDto) {
-    console.log(createComicDto);
     return this.comicsService.create(createComicDto);
   }
 

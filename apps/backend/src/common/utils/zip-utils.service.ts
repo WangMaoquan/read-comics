@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as yauzl from 'yauzl';
-import iconv from 'iconv-lite';
+import * as iconv from 'iconv-lite';
 
 /**
  * Promisified version of yauzl.open
@@ -210,7 +210,8 @@ export class ZipUtilsService {
         const decoded =
           encoding === 'utf8'
             ? rawFileName.toString('utf8')
-            : iconv.decode(rawFileName, encoding);
+            : // @ts-expect-error windows 中获取不到正确的类型范围 难受
+              iconv.decode(rawFileName, encoding);
         // 检查是否包含乱码字符
         if (!decoded.includes('�')) {
           return decoded;
