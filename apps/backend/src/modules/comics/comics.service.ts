@@ -138,11 +138,6 @@ export class ComicsService {
 
       await queryRunner.commitTransaction();
 
-      // 触发后端预热任务 (上传/导入完成后即刻触发)
-      this.triggerAssetPrewarm(savedComic.id).catch((err) =>
-        console.error('Failed to trigger asset prewarm after creation:', err),
-      );
-
       return savedComic;
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -734,7 +729,7 @@ export class ComicsService {
     }
   }
 
-  private async triggerAssetPrewarm(comicId: string) {
+  async triggerAssetPrewarm(comicId: string) {
     const comic = await this.comicRepository.findOne({
       where: { id: comicId },
     });

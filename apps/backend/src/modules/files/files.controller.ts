@@ -164,6 +164,13 @@ export class FilesController {
         chapters: parseResult.chapters, // 直接传入章节数据
       });
 
+      // 触发后端预热任务 (上传/导入完成后即刻触发)
+      this.comicsService
+        .triggerAssetPrewarm(comic.id)
+        .catch((err) =>
+          console.error('Failed to trigger asset prewarm after creation:', err),
+        );
+
       return {
         success: true,
         message: '文件上传并导入成功',
