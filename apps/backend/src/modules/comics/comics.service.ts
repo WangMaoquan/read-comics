@@ -5,6 +5,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import * as fs from 'fs/promises';
 import * as archiver from 'archiver';
 import { basename, extname } from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -55,7 +56,7 @@ export class ComicsService {
       const fileInfo = await this.filesService.getFileInfo(filePath);
 
       // 3. 创建漫画记录
-      return await this.create({
+      const comic = await this.create({
         title: comicData.title,
         filePath: filePath,
         fileSize: fileInfo.size,
@@ -64,6 +65,13 @@ export class ComicsService {
         status: ComicStatus.UNREAD,
         chapters: comicData.chapters,
       });
+
+      // 4. 触发资产预热 (上传后即刻开始)
+      this.triggerAssetPrewarm(comic.id).catch((err) =>
+        console.error('Failed to trigger asset prewarm after import:', err),
+      );
+
+      return comic;
     } catch (error) {
       console.error(`Failed to import comic from ${filePath}:`, error);
       return null;
@@ -459,10 +467,7 @@ export class ComicsService {
       where: { comicId, chapterId: updateProgressDto.chapterId },
     });
 
-    // 触发后端预热任务
-    this.triggerAssetPrewarm(comicId).catch((err) =>
-      console.error('Failed to trigger asset prewarm:', err),
-    );
+    // 触发后端预热任务 (不再在更新进度时触发，已移至上传/导入环节)
 
     if (!progress) {
       progress = this.progressRepository.create({
@@ -736,11 +741,20 @@ export class ComicsService {
     });
     if (!comic) return;
 
-    // 检查是否已有该漫画的预热任务在排队或运行
+    // 1. 检查本地文件是否存在
+    try {
+      await fs.access(comic.filePath);
+    } catch (e) {
+      // 注意：如果本地文件不存在，且没有待处理/运行中的任务，
+      // 说明可能已经处理过并删除了本地文件，或者确实文件丢失。
+      return;
+    }
+
+    // 2. 检查是否已有该漫画的预热任务在排队、运行或已完成
     const qb = this.dataSource.getRepository(Task).createQueryBuilder('task');
     const existingTask = await qb
       .where("task.type = 'prepare-assets'")
-      .andWhere("task.status IN ('pending', 'running')")
+      .andWhere("task.status IN ('pending', 'running', 'completed')")
       .andWhere("task.params ->> 'comicId' = :comicId", { comicId })
       .getOne();
 
