@@ -25,7 +25,7 @@
       });
 
       // 保存 token 和用户信息
-      localStorage.setItem('token', response.access_token);
+      localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
 
       // 跳转到首页
