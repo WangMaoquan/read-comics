@@ -54,7 +54,36 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}/api`);
-  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+
+  // 增强的启动信息
+  console.log('\n' + '='.repeat(80));
+  console.log('🚀 \x1b[32m漫画阅读器后端服务启动成功!\x1b[0m');
+  console.log('='.repeat(80));
+  console.log(
+    `📅 启动时间: ${new Date().toLocaleString('zh-CN', { hour12: false })}`,
+  );
+  console.log(
+    `🌍 运行环境: \x1b[33m${process.env.NODE_ENV || 'development'}\x1b[0m`,
+  );
+  console.log(`📡 服务地址: \x1b[36mhttp://localhost:${port}\x1b[0m`);
+  console.log(`📚 API 文档: \x1b[36mhttp://localhost:${port}/api/docs\x1b[0m`);
+  console.log(`📊 健康检查: \x1b[36mhttp://localhost:${port}/health\x1b[0m`);
+  console.log('\n📋 配置信息:');
+  console.log(
+    `   - 数据库: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 3306}`,
+  );
+  console.log(
+    `   - Redis: ${process.env.REDIS_LINK ? '✅ 已配置' : '❌ 未配置'}`,
+  );
+  console.log(
+    `   - S3 存储: ${process.env.RUSTFS_ENDPOINT_URL ? '✅ 已配置' : '❌ 未配置'}`,
+  );
+  console.log(
+    `   - 邮件服务: ${process.env.EMAIL_HOST ? '✅ 已配置' : '❌ 未配置'}`,
+  );
+  console.log(
+    `   - 详细日志: ${process.env.NODE_ENV !== 'production' ? '\x1b[32m✅ 已启用\x1b[0m' : '\x1b[33m❌ 已禁用\x1b[0m'}`,
+  );
+  console.log('='.repeat(80) + '\n');
 }
 bootstrap();
